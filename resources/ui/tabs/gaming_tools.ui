@@ -60,7 +60,7 @@
         <property name="valign">center</property>
         <property name="vexpand">false</property>
 
-        <!-- Top (single) -->
+        <!-- Row 1: Steam AiO -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
@@ -68,7 +68,7 @@
             <child>
               <object class="GtkButton" id="btn_steam_aio">
                 <property name="label">Steam AiO</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -76,17 +76,17 @@
           </object>
         </child>
 
-        <!-- Middle row (three buttons) -->
+        <!-- Row 2: Controllers, Gamescope CFG, LACT OC -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
-            <property name="spacing">32</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
 
             <child>
               <object class="GtkButton" id="btn_controllers">
                 <property name="label">Controllers</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -95,7 +95,7 @@
             <child>
               <object class="GtkButton" id="btn_gamescope_cfg">
                 <property name="label">Gamescope CFG</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -104,7 +104,7 @@
             <child>
               <object class="GtkButton" id="btn_lact_oc">
                 <property name="label">LACT OC</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -112,15 +112,35 @@
           </object>
         </child>
 
-        <!-- Bottom (single) -->
+        <!-- Row 3: Lutris, Heroic, Bottles (split from combined button) -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
+
             <child>
-              <object class="GtkButton" id="btn_lutris_heroic_bottles">
-                <property name="label">Lutris/Heroic &amp; Bottles</property>
-                <property name="width-request">180</property>
+              <object class="GtkButton" id="btn_lutris">
+                <property name="label">Lutris</property>
+                <property name="width-request">200</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkButton" id="btn_heroic">
+                <property name="label">Heroic</property>
+                <property name="width-request">200</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkButton" id="btn_bottles">
+                <property name="label">Bottles</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>

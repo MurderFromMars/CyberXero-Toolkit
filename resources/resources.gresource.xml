@@ -32,6 +32,18 @@
             preprocess="xml-stripblanks"
             compressed="true"
         >ui/tabs/servicing_system_tweaks.ui</file>
+    <file
+            preprocess="xml-stripblanks"
+            compressed="true"
+        >ui/selection_dialog.ui</file>
+    <file
+            preprocess="xml-stripblanks"
+            compressed="true"
+        >ui/xerolinux_check_dialog.ui</file>
+    <file
+            preprocess="xml-stripblanks"
+            compressed="true"
+        >ui/dependency_error_dialog.ui</file>
 
     <file compressed="true">css/style.css</file>
 

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+
+  <object class="GtkWindow" id="xerolinux_error_window">
+    <property name="title">Unsupported Distribution</property>
+    <property name="default-width">400</property>
+    <property name="default-height">250</property>
+    <property name="modal">true</property>
+    <property name="resizable">false</property>
+    <property name="deletable">false</property>
+
+    <child>
+      <object class="GtkBox" id="main_box">
+        <property name="orientation">vertical</property>
+        <property name="spacing">20</property>
+        <property name="margin-top">30</property>
+        <property name="margin-bottom">30</property>
+        <property name="margin-start">30</property>
+        <property name="margin-end">30</property>
+
+        <!-- Title section with icon -->
+        <child>
+          <object class="GtkBox" id="title_box">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">10</property>
+            <property name="halign">center</property>
+
+            <child>
+              <object class="GtkImage" id="error_icon">
+                <property name="icon-name">dialog-error</property>
+                <property name="pixel-size">48</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkLabel" id="title_label">
+                <property name="label">Unsupported Distribution</property>
+                <property name="halign">center</property>
+                <style>
+                  <class name="title-2"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <!-- Main message -->
+        <child>
+          <object class="GtkLabel" id="main_message">
+            <property name="label">This application is designed for XeroLinux.</property>
+            <property name="halign">center</property>
+            <property name="margin-top">10</property>
+          </object>
+        </child>
+
+        <!-- Distribution info -->
+        <child>
+          <object class="GtkLabel" id="distro_label">
+            <property name="label">Current distribution: Unknown</property>
+            <property name="halign">center</property>
+            <property name="use-markup">true</property>
+          </object>
+        </child>
+
+        <!-- Link -->
+        <child>
+          <object class="GtkLabel" id="link_label">
+            <property name="label">For more info visit &lt;a href="https://xerolinux.xyz/"&gt;https://xerolinux.xyz/&lt;/a&gt;</property>
+            <property name="use-markup">true</property>
+            <property name="halign">center</property>
+            <property name="margin-top">10</property>
+          </object>
+        </child>
+
+        <!-- Button section -->
+        <child>
+          <object class="GtkBox" id="button_box">
+            <property name="orientation">horizontal</property>
+            <property name="halign">center</property>
+            <property name="margin-top">20</property>
+
+            <child>
+              <object class="GtkButton" id="exit_button">
+                <property name="label">Exit</property>
+                <property name="width-request">100</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
+

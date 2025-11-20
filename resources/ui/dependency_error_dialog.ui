@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+
+  <object class="GtkWindow" id="dependency_error_window">
+    <property name="title">Missing Dependencies</property>
+    <property name="default-width">450</property>
+    <property name="default-height">300</property>
+    <property name="modal">true</property>
+    <property name="resizable">false</property>
+    <property name="deletable">false</property>
+
+    <child>
+      <object class="GtkBox" id="main_box">
+        <property name="orientation">vertical</property>
+        <property name="spacing">20</property>
+        <property name="margin-top">30</property>
+        <property name="margin-bottom">30</property>
+        <property name="margin-start">30</property>
+        <property name="margin-end">30</property>
+
+        <!-- Title section with icon -->
+        <child>
+          <object class="GtkBox" id="title_box">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">10</property>
+            <property name="halign">center</property>
+
+            <child>
+              <object class="GtkImage" id="error_icon">
+                <property name="icon-name">dialog-error</property>
+                <property name="pixel-size">48</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkLabel" id="title_label">
+                <property name="label">Missing Required Dependencies</property>
+                <property name="halign">center</property>
+                <style>
+                  <class name="title-2"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <!-- Main message -->
+        <child>
+          <object class="GtkLabel" id="main_message">
+            <property name="label">The following required dependencies are missing:</property>
+            <property name="halign">center</property>
+            <property name="margin-top">10</property>
+          </object>
+        </child>
+
+        <!-- Missing dependencies list -->
+        <child>
+          <object class="GtkLabel" id="missing_deps_label">
+            <property name="label">• Dependency placeholder</property>
+            <property name="halign">center</property>
+            <property name="use-markup">true</property>
+            <property name="selectable">true</property>
+          </object>
+        </child>
+
+        <!-- Instructions -->
+        <child>
+          <object class="GtkLabel" id="instructions_label">
+            <property name="label">Please install the missing dependencies and restart the application.</property>
+            <property name="halign">center</property>
+            <property name="wrap">true</property>
+            <property name="justify">center</property>
+            <property name="margin-top">10</property>
+          </object>
+        </child>
+
+        <!-- Installation hint -->
+        <child>
+          <object class="GtkLabel" id="install_hint_label">
+            <property name="label">Installation hint placeholder</property>
+            <property name="halign">center</property>
+            <property name="wrap">true</property>
+            <property name="justify">center</property>
+            <property name="use-markup">true</property>
+            <property name="selectable">true</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+        </child>
+
+        <!-- Button section -->
+        <child>
+          <object class="GtkBox" id="button_box">
+            <property name="orientation">horizontal</property>
+            <property name="halign">center</property>
+            <property name="margin-top">20</property>
+
+            <child>
+              <object class="GtkButton" id="exit_button">
+                <property name="label">Exit</property>
+                <property name="width-request">100</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
+

@@ -49,7 +49,7 @@
       </object>
     </child>
 
-    <!-- Plus Buttons Layout -->
+    <!-- Buttons Layout -->
     <child>
       <object class="GtkBox">
         <property name="orientation">vertical</property>
@@ -58,17 +58,17 @@
         <property name="valign">center</property>
         <property name="vexpand">false</property>
 
-        <!-- Single row with three buttons -->
+        <!-- Row 1: OBS-Studio and Jellyfin -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
-            <property name="spacing">32</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
 
             <child>
               <object class="GtkButton" id="btn_obs_studio_aio">
                 <property name="label">OBS-Studio AiO</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -76,17 +76,8 @@
 
             <child>
               <object class="GtkButton" id="btn_jellyfin">
-                <property name="label">Jellyfin</property>
-                <property name="width-request">180</property>
-                <property name="height-request">50</property>
-                <property name="css-classes">suggested-action</property>
-              </object>
-            </child>
-
-            <child>
-              <object class="GtkButton" id="btn_plex_server_client">
-                <property name="label">Plex Server/Client</property>
-                <property name="width-request">180</property>
+                <property name="label">Jellyfin Server</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>

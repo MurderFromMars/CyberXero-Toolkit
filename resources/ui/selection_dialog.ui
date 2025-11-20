@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+
+  <object class="GtkWindow" id="selection_dialog">
+    <property name="title">Selection Dialog</property>
+    <property name="default-width">600</property>
+    <property name="default-height">500</property>
+    <property name="modal">true</property>
+    <property name="resizable">true</property>
+
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">0</property>
+
+        <!-- Header -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <property name="spacing">8</property>
+            <property name="margin-top">24</property>
+            <property name="margin-bottom">24</property>
+            <property name="margin-start">24</property>
+            <property name="margin-end">24</property>
+
+            <child>
+              <object class="GtkLabel" id="dialog_title">
+                <property name="label">Select Options</property>
+                <property name="css-classes">title-2</property>
+                <property name="halign">center</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkLabel" id="dialog_description">
+                <property name="label">Select one or more options from the list below</property>
+                <property name="css-classes">dim</property>
+                <property name="halign">center</property>
+                <property name="wrap">true</property>
+                <property name="justify">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <!-- Separator -->
+        <child>
+          <object class="GtkSeparator">
+            <property name="orientation">horizontal</property>
+          </object>
+        </child>
+
+        <!-- Scrollable content area -->
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="vexpand">true</property>
+            <property name="hexpand">true</property>
+            <property name="margin-top">16</property>
+            <property name="margin-bottom">16</property>
+            <property name="margin-start">24</property>
+            <property name="margin-end">24</property>
+
+            <child>
+              <object class="GtkBox" id="options_container">
+                <property name="orientation">vertical</property>
+                <property name="spacing">12</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <!-- Separator -->
+        <child>
+          <object class="GtkSeparator">
+            <property name="orientation">horizontal</property>
+          </object>
+        </child>
+
+        <!-- Button box -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">12</property>
+            <property name="margin-top">16</property>
+            <property name="margin-bottom">16</property>
+            <property name="margin-start">24</property>
+            <property name="margin-end">24</property>
+            <property name="halign">end</property>
+
+            <child>
+              <object class="GtkButton" id="cancel_button">
+                <property name="label">Cancel</property>
+                <property name="width-request">100</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkButton" id="confirm_button">
+                <property name="label">Install</property>
+                <property name="width-request">100</property>
+                <property name="css-classes">suggested-action</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
+

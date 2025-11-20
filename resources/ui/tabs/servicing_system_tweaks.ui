@@ -58,17 +58,17 @@
         <property name="valign">center</property>
         <property name="vexpand">false</property>
 
-        <!-- Top row (three buttons) -->
+        <!-- Row 1: Clear Pacman, Unlock Pacman, Plasma X11 -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
-            <property name="spacing">32</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
 
             <child>
               <object class="GtkButton" id="btn_clr_pacman">
-                <property name="label">Clr Pacman</property>
-                <property name="width-request">180</property>
+                <property name="label">Clear Pacman Cache</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -76,8 +76,8 @@
 
             <child>
               <object class="GtkButton" id="btn_unlock_pacman">
-                <property name="label">Unlock Pacman</property>
-                <property name="width-request">180</property>
+                <property name="label">Unlock Pacman DB</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -85,8 +85,8 @@
 
             <child>
               <object class="GtkButton" id="btn_plasma_x11">
-                <property name="label">Plasma X11</property>
-                <property name="width-request">180</property>
+                <property name="label">Plasma X11 Session</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -94,17 +94,26 @@
           </object>
         </child>
 
-        <!-- Middle row (two buttons with a spacer) -->
+        <!-- Row 2: VM Guest Utils, WayDroid Guide, Fix GPGME -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
-            <property name="spacing">32</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
 
             <child>
-              <object class="GtkButton" id="btn_v4l2loopback">
-                <property name="label">V4l2loopback</property>
-                <property name="width-request">180</property>
+              <object class="GtkButton" id="btn_vm_guest_utils">
+                <property name="label">VM Guest Utils</property>
+                <property name="width-request">200</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkButton" id="btn_waydroid_guide">
+                <property name="label">WayDroid Guide</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -112,8 +121,8 @@
 
             <child>
               <object class="GtkButton" id="btn_fix_gpgme">
-                <property name="label">Fix GPGME</property>
-                <property name="width-request">180</property>
+                <property name="label">Fix GPGME Database</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -121,26 +130,27 @@
           </object>
         </child>
 
-        <!-- Bottom row (two buttons) -->
+        <!-- Row 3: Fix Arch Keyring, Update Mirrorlist -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
-            <property name="spacing">32</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
+
 
             <child>
               <object class="GtkButton" id="btn_fix_arch_keyring">
                 <property name="label">Fix Arch Keyring</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
             </child>
 
             <child>
-              <object class="GtkButton" id="btn_fix_mirrorlist">
-                <property name="label">Fix Mirrorlist</property>
-                <property name="width-request">180</property>
+              <object class="GtkButton" id="btn_update_mirrorlist">
+                <property name="label">Update Mirrorlist</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>

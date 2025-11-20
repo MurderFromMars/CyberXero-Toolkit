@@ -11,6 +11,7 @@ license=('GPL-3.0-or-later')
 depends=(
     'gtk4'
     'glib2'
+    'vte4'
 )
 makedepends=(
     'rust'

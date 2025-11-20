@@ -58,16 +58,26 @@
         <property name="valign">center</property>
         <property name="vexpand">false</property>
 
-        <!-- Top row (single) -->
+        <!-- Row 1: ZSH AiO, Save Desktop -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
 
             <child>
               <object class="GtkButton" id="btn_zsh_aio">
-                <property name="label">ZSH AiO</property>
-                <property name="width-request">180</property>
+                <property name="label">Setup ZSH AiO</property>
+                <property name="width-request">200</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkButton" id="btn_save_desktop">
+                <property name="label">Save Desktop Tool</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -75,43 +85,35 @@
           </object>
         </child>
 
-        <!-- Middle row (two buttons) -->
+        <!-- Row 2: GRUB Theme, Wallpapers, Layan Patch -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
-            <property name="spacing">32</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
 
             <child>
-              <object class="GtkButton" id="btn_grub_themes">
-                <property name="label">Grub themes</property>
-                <property name="width-request">180</property>
+              <object class="GtkButton" id="btn_grub_theme">
+                <property name="label">GRUB Theme</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
             </child>
 
             <child>
-              <object class="GtkButton" id="btn_wallpaper">
-                <property name="label">Wallpaper</property>
-                <property name="width-request">180</property>
+              <object class="GtkButton" id="btn_wallpapers">
+                <property name="label">Plasma Wallpapers</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
             </child>
-          </object>
-        </child>
-
-        <!-- Bottom row (single) -->
-        <child>
-          <object class="GtkBox">
-            <property name="orientation">horizontal</property>
-            <property name="halign">center</property>
 
             <child>
-              <object class="GtkButton" id="btn_reset_rice">
-                <property name="label">Reset Rice</property>
-                <property name="width-request">180</property>
+              <object class="GtkButton" id="btn_layan_patch">
+                <property name="label">Layan GTK4 Patch</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>

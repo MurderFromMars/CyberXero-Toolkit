@@ -255,20 +255,9 @@
                     <property name="vexpand">true</property>
 
                     <child>
-                      <object class="GtkTextView" id="global_terminal_output_view">
+                      <object class="VteTerminal" id="global_terminal_output_view">
                         <property name="hexpand">true</property>
                         <property name="vexpand">true</property>
-                        <property name="monospace">true</property>
-                        <property name="editable">false</property>
-                        <property name="cursor-visible">false</property>
-                        <!-- Allow multiline content by wrapping long lines -->
-                        <property name="wrap-mode">word-char</property>
-                        <property name="css-classes">terminal-output</property>
-                        <property name="top-margin">8</property>
-                        <property name="bottom-margin">8</property>
-                        <property name="left-margin">12</property>
-                        <property name="right-margin">12</property>
-                        <property name="accepts-tab">false</property>
                       </object>
                     </child>
                   </object>

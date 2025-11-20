@@ -8,6 +8,7 @@ build = "build.rs"
 gtk4 = { version = "0.10", features = ["v4_6"] }
 log = "0.4"
 simple_logger = "5.0"
+vte4 = "0.9"
 
 [build-dependencies]
 glib-build-tools = "0.21"

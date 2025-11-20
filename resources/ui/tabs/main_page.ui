@@ -51,7 +51,7 @@
           </object>
         </child>
 
-        <!-- Diamond Buttons Section -->
+        <!-- Action Buttons Section -->
         <child>
           <object class="GtkBox">
             <property name="orientation">vertical</property>
@@ -59,16 +59,17 @@
             <property name="halign">center</property>
             <property name="valign">center</property>
 
-            <!-- Top button -->
+            <!-- Row 1: Update System -->
             <child>
               <object class="GtkBox">
                 <property name="orientation">horizontal</property>
+                <property name="spacing">16</property>
                 <property name="halign">center</property>
 
                 <child>
                   <object class="GtkButton" id="btn_update_system">
                     <property name="label">Update System</property>
-                    <property name="width-request">180</property>
+                    <property name="width-request">200</property>
                     <property name="height-request">50</property>
                     <property name="css-classes">suggested-action</property>
                   </object>
@@ -76,19 +77,17 @@
               </object>
             </child>
 
-            <!-- Middle row with left and right buttons -->
+            <!-- Row 2: PKG Manager and Parallel Downloads -->
             <child>
               <object class="GtkBox">
                 <property name="orientation">horizontal</property>
-                <property name="spacing">32</property>
+                <property name="spacing">16</property>
                 <property name="halign">center</property>
 
                 <child>
                   <object class="GtkButton" id="btn_pkg_manager">
-                    <property
-                                    name="label"
-                                >PKG Manager GUI &amp; others</property>
-                    <property name="width-request">180</property>
+                    <property name="label">PKG Manager GUI</property>
+                    <property name="width-request">200</property>
                     <property name="height-request">50</property>
                     <property name="css-classes">suggested-action</property>
                   </object>
@@ -97,7 +96,7 @@
                 <child>
                   <object class="GtkButton" id="btn_parallel_downloads">
                     <property name="label">Setup Parallel Downloads</property>
-                    <property name="width-request">180</property>
+                    <property name="width-request">200</property>
                     <property name="height-request">50</property>
                     <property name="css-classes">suggested-action</property>
                   </object>
@@ -105,16 +104,17 @@
               </object>
             </child>
 
-            <!-- Bottom button -->
+            <!-- Row 3: Install Drivers -->
             <child>
               <object class="GtkBox">
                 <property name="orientation">horizontal</property>
+                <property name="spacing">16</property>
                 <property name="halign">center</property>
 
                 <child>
-                  <object class="GtkButton" id="btn_drivers_codecs">
-                    <property name="label">Install Drivers/Codecs</property>
-                    <property name="width-request">180</property>
+                  <object class="GtkButton" id="btn_install_drivers">
+                    <property name="label">Install Drivers</property>
+                    <property name="width-request">200</property>
                     <property name="height-request">50</property>
                     <property name="css-classes">suggested-action</property>
                   </object>
@@ -150,7 +150,7 @@
                 <property name="css-classes">circular</property>
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">discord</property>
+                    <property name="icon-name">discord-symbolic</property>
                     <property name="pixel-size">24</property>
                   </object>
                 </child>
@@ -167,7 +167,7 @@
                 <property name="css-classes">circular</property>
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">youtube</property>
+                    <property name="icon-name">youtube-symbolic</property>
                     <property name="pixel-size">24</property>
                   </object>
                 </child>
@@ -184,7 +184,7 @@
                 <property name="css-classes">circular</property>
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">globe</property>
+                    <property name="icon-name">globe-symbolic</property>
                     <property name="pixel-size">24</property>
                   </object>
                 </child>
@@ -201,7 +201,7 @@
                 <property name="css-classes">circular</property>
                 <child>
                   <object class="GtkImage">
-                    <property name="icon-name">coffee</property>
+                    <property name="icon-name">coffee-symbolic</property>
                     <property name="pixel-size">24</property>
                   </object>
                 </child>

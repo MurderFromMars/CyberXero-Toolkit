@@ -51,7 +51,7 @@
       </object>
     </child>
 
-    <!-- Plus Buttons Layout -->
+    <!-- Buttons Layout -->
     <child>
       <object class="GtkBox">
         <property name="orientation">vertical</property>
@@ -60,7 +60,7 @@
         <property name="valign">center</property>
         <property name="vexpand">false</property>
 
-        <!-- Top (single) -->
+        <!-- Row 1: Docker -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
@@ -68,7 +68,7 @@
             <child>
               <object class="GtkButton" id="btn_docker">
                 <property name="label">Docker</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -76,17 +76,17 @@
           </object>
         </child>
 
-        <!-- Middle row (three buttons) -->
+        <!-- Row 2: Podman, vBox, DistroBox -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
-            <property name="spacing">32</property>
+            <property name="spacing">16</property>
             <property name="halign">center</property>
 
             <child>
               <object class="GtkButton" id="btn_podman">
                 <property name="label">Podman</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -95,7 +95,7 @@
             <child>
               <object class="GtkButton" id="btn_vbox">
                 <property name="label">vBox</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -104,7 +104,7 @@
             <child>
               <object class="GtkButton" id="btn_distrobox">
                 <property name="label">DistroBox</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>
@@ -112,7 +112,7 @@
           </object>
         </child>
 
-        <!-- Bottom (single) -->
+        <!-- Row 3: KVM -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
@@ -120,7 +120,7 @@
             <child>
               <object class="GtkButton" id="btn_kvm">
                 <property name="label">KVM</property>
-                <property name="width-request">180</property>
+                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action</property>
               </object>

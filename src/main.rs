@@ -1,12 +1,13 @@
-use gtk4::prelude::*;
 use gtk4::Application;
+use gtk4::prelude::{ApplicationExt, ApplicationExtManual};
 use log::info;
 
 mod config;
+mod core;
 mod ui;
+mod utils;
 
 fn main() {
-    // Initialize logger
     simple_logger::SimpleLogger::new().init().unwrap();
 
     info!(

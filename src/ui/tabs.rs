@@ -4,7 +4,7 @@
 //! allowing users to switch between different pages in the application stack.
 
 use gtk4::prelude::*;
-use gtk4::{Box, Button, Stack};
+use gtk4::{Box, Button, Image, Label, Orientation, Stack};
 use log::info;
 
 /// Represents a single tab in the navigation sidebar.
@@ -20,13 +20,29 @@ pub struct Tab {
 }
 
 impl Tab {
-    /// Create a new tab with the given label and page name.
-    pub fn new(label: &str, page_name: &str) -> Self {
+    /// Create a new tab with the given label, page name and icon name.
+    pub fn new(label: &str, page_name: &str, icon_name: &str) -> Self {
+        let content_box = Box::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(8)
+            .hexpand(true)
+            .build();
+
+        let image = Image::from_icon_name(icon_name);
+        image.set_pixel_size(18);
+
+        let label_widget = Label::new(Some(label));
+        label_widget.set_xalign(0.0);
+
+        content_box.append(&image);
+        content_box.append(&label_widget);
+
         let button = Button::builder()
-            .label(label)
             .hexpand(true)
             .css_classes(vec!["tab-button".to_string()])
             .build();
+
+        button.set_child(Some(&content_box));
 
         Tab {
             label: label.to_string(),
@@ -46,7 +62,6 @@ impl Tab {
             info!("Tab clicked: navigating to page '{}'", page_name);
             stack_clone.set_visible_child_name(&page_name);
 
-            // Update active state for all tabs
             update_active_tab(&tabs_clone, &button_clone);
         });
     }
@@ -62,19 +77,23 @@ pub fn setup_tabs(tabs_container: &Box, stack: &Stack) {
     // Define the tabs to display
     // These correspond to stack page names defined in main.ui
     let tabs_config = vec![
-        ("Main Page", "main_page"),
-        ("Customization", "customization"),
-        ("Gaming Tools", "gaming_tools"),
-        ("Containers/VMs", "containers_vms"),
-        ("Multimedia Tools", "multimedia_tools"),
-        ("Kernel Manager/SCX", "kernel_manager_scx"),
-        ("Servicing/System tweaks", "servicing_system_tweaks"),
+        ("Main Page", "main_page", "house-symbolic"),
+        ("Customization", "customization", "gear-symbolic"),
+        ("Gaming Tools", "gaming_tools", "gamepad-symbolic"),
+        ("Containers/VMs", "containers_vms", "box-symbolic"),
+        ("Multimedia Tools", "multimedia_tools", "play-symbolic"),
+        ("Kernel Manager/SCX", "kernel_manager_scx", "hammer-symbolic"),
+        (
+            "Servicing/System tweaks",
+            "servicing_system_tweaks",
+            "toolbox-symbolic",
+        ),
     ];
 
     let mut first_button: Option<Button> = None;
 
-    for (label, page_name) in tabs_config {
-        let tab = Tab::new(label, page_name);
+    for (label, page_name, icon_name) in tabs_config {
+        let tab = Tab::new(label, page_name, icon_name);
         tab.connect_navigation(stack, tabs_container);
 
         if first_button.is_none() {
@@ -98,9 +117,10 @@ pub fn setup_tabs(tabs_container: &Box, stack: &Stack) {
 /// * `stack` - The stack widget to navigate
 /// * `label` - Display name for the tab
 /// * `page_name` - Name of the stack page to navigate to
+/// * `icon_name` - Icon name for the tab button
 #[allow(dead_code)]
-pub fn add_tab(tabs_container: &Box, stack: &Stack, label: &str, page_name: &str) {
-    let tab = Tab::new(label, page_name);
+pub fn add_tab(tabs_container: &Box, stack: &Stack, label: &str, page_name: &str, icon_name: &str) {
+    let tab = Tab::new(label, page_name, icon_name);
     tab.connect_navigation(stack, tabs_container);
 
     tabs_container.append(&tab.button);
@@ -136,13 +156,11 @@ pub fn set_active_tab(tabs_container: &Box, page_name: &str) {
 
     while let Some(widget) = child {
         if let Ok(button) = widget.clone().downcast::<Button>() {
-            // Check if this button's associated page matches
             if let Some(label) = button.label() {
-                // Simple heuristic: if the page_name matches the button label in lowercase
                 if label.to_lowercase() == page_name.to_lowercase() {
-                    button.add_css_class("active-tab");
+                    button.add_css_class("active");
                 } else {
-                    button.remove_css_class("active-tab");
+                    button.remove_css_class("active");
                 }
             }
         }

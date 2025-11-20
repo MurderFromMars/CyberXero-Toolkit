@@ -53,5 +53,12 @@
     <file compressed="true">icons/scalable/actions/youtube-symbolic.svg</file>
     <file compressed="true">icons/scalable/actions/coffee-symbolic.svg</file>
     <file compressed="true">icons/scalable/actions/globe-symbolic.svg</file>
+    <file compressed="true">icons/scalable/actions/house-symbolic.svg</file>
+    <file compressed="true">icons/scalable/actions/gear-symbolic.svg</file>
+    <file compressed="true">icons/scalable/actions/gamepad-symbolic.svg</file>
+    <file compressed="true">icons/scalable/actions/box-symbolic.svg</file>
+    <file compressed="true">icons/scalable/actions/play-symbolic.svg</file>
+    <file compressed="true">icons/scalable/actions/toolbox-symbolic.svg</file>
+    <file compressed="true">icons/scalable/actions/hammer-symbolic.svg</file>
   </gresource>
 </gresources>

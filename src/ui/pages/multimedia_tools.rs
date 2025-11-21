@@ -54,6 +54,27 @@ fn setup_obs_studio_aio(page_builder: &Builder, terminal: &Terminal, terminal_ti
                 let obs_installed = core::is_flatpak_installed("com.obsproject.Studio");
                 let v4l2_installed = core::is_package_installed("v4l2loopback-dkms");
 
+                // Check if plugin groups are installed
+                let graphics_capture_installed =
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.OBSVkCapture") &&
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.Gstreamer") &&
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.GStreamerVaapi");
+
+                let transitions_effects_installed =
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.MoveTransition") &&
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.TransitionTable") &&
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.ScaleToSound");
+
+                let streaming_tools_installed =
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.WebSocket") &&
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.SceneSwitcher") &&
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.DroidCam");
+
+                let audio_video_tools_installed =
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.waveform") &&
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.VerticalCanvas") &&
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.BackgroundRemoval");
+
                 let config = selection_dialog::SelectionDialogConfig::new(
                     "OBS-Studio AiO Installation",
                     "Select which components to install. All options are optional.",
@@ -68,25 +89,25 @@ fn setup_obs_studio_aio(page_builder: &Builder, terminal: &Terminal, terminal_ti
                     "graphics_capture",
                     "Graphics Capture Plugins",
                     "VkCapture, GStreamer, GStreamer VA-API (for game/screen capture)",
-                    false,
+                    graphics_capture_installed,
                 ))
                 .add_option(selection_dialog::SelectionOption::new(
                     "transitions_effects",
                     "Transitions & Effects",
                     "Move Transition, Transition Table, Scale to Sound (visual effects)",
-                    false,
+                    transitions_effects_installed,
                 ))
                 .add_option(selection_dialog::SelectionOption::new(
                     "streaming_tools",
                     "Streaming & Recording Tools",
                     "WebSocket API, Scene Switcher, DroidCam (advanced features)",
-                    false,
+                    streaming_tools_installed,
                 ))
                 .add_option(selection_dialog::SelectionOption::new(
                     "audio_video_tools",
                     "Audio & Video Tools",
                     "Waveform, Vertical Canvas, Background Removal (content tools)",
-                    false,
+                    audio_video_tools_installed,
                 ))
                 .add_option(selection_dialog::SelectionOption::new(
                     "v4l2",

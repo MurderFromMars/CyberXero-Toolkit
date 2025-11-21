@@ -22,10 +22,10 @@ pub fn is_package_installed(package: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Check if a flatpak package is installed
+/// Check if a flatpak package is installed (apps, runtimes, and extensions)
 pub fn is_flatpak_installed(package: &str) -> bool {
     std::process::Command::new("flatpak")
-        .args(&["list", "--app"])
+        .args(&["list"])
         .output()
         .map(|output| {
             if output.status.success() {

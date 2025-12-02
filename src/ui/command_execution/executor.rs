@@ -5,9 +5,7 @@ use super::types::{CommandResult, CommandStep, CommandType};
 use super::widgets::CommandExecutionWidgets;
 use crate::{aur_helper, utils};
 use gtk4::gio;
-use gtk4::glib;
-use gtk4::prelude::*;
-use log::info;
+use log::{error, info};
 use std::cell::RefCell;
 use std::ffi::OsString;
 use std::rc::Rc;
@@ -38,27 +36,15 @@ pub fn execute_commands_sequence(
     }
 
     let cmd = &commands[index];
-    let total = commands.len();
 
     // Mark current task as running
     widgets.update_task_status(index, super::types::TaskStatus::Running);
     widgets.set_title(&cmd.friendly_name);
 
-    append_output(
-        &widgets,
-        &format!(
-            "\n=== Step {}/{}: {} ===\n",
-            index + 1,
-            total,
-            cmd.friendly_name
-        ),
-        false,
-    );
-
     let (full_command, full_args) = match resolve_command(cmd) {
         Ok(result) => result,
         Err(err) => {
-            append_output(&widgets, &format!("✗ {}\n", err), true);
+            error!("Failed to prepare command: {}", err);
             finalize_execution(&widgets, false, "Failed to prepare command");
             if let Some(callback) = on_complete {
                 callback(false);
@@ -76,15 +62,12 @@ pub fn execute_commands_sequence(
     }
     let argv_refs: Vec<&std::ffi::OsStr> = argv.iter().map(|s| s.as_os_str()).collect();
 
-    let flags = gio::SubprocessFlags::STDOUT_PIPE | gio::SubprocessFlags::STDERR_PIPE;
+    // We don't capture output anymore, so no pipes needed
+    let flags = gio::SubprocessFlags::empty();
     let subprocess = match gio::Subprocess::newv(&argv_refs, flags) {
         Ok(proc) => proc,
         Err(err) => {
-            append_output(
-                &widgets,
-                &format!("✗ Failed to start command: {}\n", err),
-                true,
-            );
+            error!("Failed to start command: {}", err);
             finalize_execution(&widgets, false, "Failed to start operation");
             if let Some(callback) = on_complete {
                 callback(false);
@@ -104,9 +87,6 @@ pub fn execute_commands_sequence(
         current_process.clone(),
     );
 
-    attach_stream_reader(&subprocess, context.clone(), false);
-    attach_stream_reader(&subprocess, context.clone(), true);
-
     let wait_context = context.clone();
     let wait_subprocess = subprocess.clone();
     wait_subprocess
@@ -122,11 +102,7 @@ pub fn execute_commands_sequence(
                 }
             }
             Err(err) => {
-                append_output(
-                    &wait_context.widgets,
-                    &format!("✗ Failed to wait for command: {}\n", err),
-                    true,
-                );
+                error!("Failed to wait for command: {}", err);
                 wait_context.set_exit_result(CommandResult::Failure { exit_code: None });
             }
         });
@@ -156,90 +132,10 @@ pub fn resolve_command(command: &CommandStep) -> Result<(String, Vec<String>), S
     }
 }
 
-/// Attach stream reader for stdout or stderr
-pub fn attach_stream_reader(
-    subprocess: &gio::Subprocess,
-    context: Rc<RunningCommandContext>,
-    is_error_stream: bool,
-) {
-    let stream = if is_error_stream {
-        subprocess.stderr_pipe()
-    } else {
-        subprocess.stdout_pipe()
-    };
-
-    if let Some(stream) = stream {
-        let data_stream = gio::DataInputStream::new(&stream);
-        read_stream(data_stream, context, is_error_stream);
-    } else {
-        context.mark_stream_done(is_error_stream);
-    }
-}
-
-/// Read stream line by line asynchronously
-fn read_stream(
-    data_stream: gio::DataInputStream,
-    context: Rc<RunningCommandContext>,
-    is_error_stream: bool,
-) {
-    let stream_clone = data_stream.clone();
-    data_stream.clone().read_line_utf8_async(
-        glib::Priority::default(),
-        None::<&gio::Cancellable>,
-        move |res| match res {
-            Ok(Some(line)) => {
-                let mut text = line.to_string();
-                text.push('\n');
-                append_output(&context.widgets, &text, is_error_stream);
-                read_stream(stream_clone.clone(), context.clone(), is_error_stream);
-            }
-            Ok(None) => {
-                context.mark_stream_done(is_error_stream);
-            }
-            Err(err) => {
-                append_output(
-                    &context.widgets,
-                    &format!("✗ Failed to read command output: {}\n", err),
-                    true,
-                );
-                context.mark_stream_done(is_error_stream);
-            }
-        },
-    );
-}
-
-/// Append output to the text buffer
-pub fn append_output(widgets: &CommandExecutionWidgets, text: &str, is_error: bool) {
-    let buffer = &widgets.output_buffer;
-    let mut end_iter = buffer.end_iter();
-
-    if is_error {
-        if let Some(error_tag) = buffer.tag_table().lookup("error") {
-            buffer.insert_with_tags(&mut end_iter, text, &[&error_tag]);
-        } else {
-            buffer.insert(&mut end_iter, text);
-        }
-    } else {
-        buffer.insert(&mut end_iter, text);
-    }
-
-    // Auto-scroll to bottom
-    let mark = buffer.create_mark(None, &buffer.end_iter(), false);
-    widgets
-        .output_view
-        .scroll_to_mark(&mark, 0.0, true, 0.0, 1.0);
-}
-
 /// Finalize dialog with success or failure message
 pub fn finalize_execution(widgets: &CommandExecutionWidgets, success: bool, message: &str) {
     use std::sync::atomic::Ordering;
     super::ACTION_RUNNING.store(false, Ordering::SeqCst);
 
     widgets.show_completion(success, message);
-
-    if success {
-        append_output(widgets, &format!("\n✓ {}\n", message), false);
-    } else {
-        append_output(widgets, &format!("\n✗ {}\n", message), true);
-    }
 }

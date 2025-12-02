@@ -41,7 +41,7 @@ mod widgets;
 
 use gtk4::glib;
 use gtk4::prelude::*;
-use gtk4::{Button, Label, Separator, TextBuffer, TextTag, TextView, Window};
+use gtk4::{Button, Label, Separator, Window};
 use log::{error, warn};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -133,20 +133,6 @@ pub fn run_commands_with_progress(
     window.set_transient_for(Some(parent));
     window.set_title(Some(title));
 
-    // Create output buffer and view (not in UI file, we'll add it dynamically)
-    let output_buffer = TextBuffer::new(None::<&gtk4::TextTagTable>);
-    let output_view = TextView::new();
-    output_view.set_buffer(Some(&output_buffer));
-    output_view.set_editable(false);
-    output_view.set_monospace(true);
-    output_view.set_wrap_mode(gtk4::WrapMode::WordChar);
-
-    // Create a tag for error text
-    let error_tag = TextTag::new(Some("error"));
-    error_tag.set_foreground(Some("red"));
-    error_tag.set_weight(700); // bold
-    output_buffer.tag_table().add(&error_tag);
-
     // Create task items for each command
     let mut task_items = Vec::new();
     for (i, cmd) in commands.iter().enumerate() {
@@ -165,8 +151,6 @@ pub fn run_commands_with_progress(
         window: window.clone(),
         title_label,
         task_list_container,
-        output_buffer,
-        output_view,
         cancel_button: cancel_button.clone(),
         close_button: close_button.clone(),
         task_items,
@@ -182,7 +166,6 @@ pub fn run_commands_with_progress(
     let running_process = current_process.clone();
     cancel_button.connect_clicked(move |_| {
         *cancelled_clone.borrow_mut() = true;
-        executor::append_output(&widgets_clone, "\n[Cancelled by user]\n", true);
         widgets_clone.disable_cancel();
         if let Some(process) = running_process.borrow().as_ref() {
             process.force_exit();

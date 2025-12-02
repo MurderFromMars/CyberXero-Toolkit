@@ -2,7 +2,7 @@
 
 use super::types::TaskStatus;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, Button, Label, TextBuffer, TextView, Window};
+use gtk4::{Box as GtkBox, Button, Label, Window};
 
 /// Container for all command execution dialog widgets
 pub struct CommandExecutionWidgets {
@@ -10,8 +10,6 @@ pub struct CommandExecutionWidgets {
     pub title_label: Label,
     #[allow(dead_code)]
     pub task_list_container: GtkBox,
-    pub output_buffer: TextBuffer,
-    pub output_view: TextView,
     pub cancel_button: Button,
     pub close_button: Button,
     pub task_items: Vec<TaskItem>,

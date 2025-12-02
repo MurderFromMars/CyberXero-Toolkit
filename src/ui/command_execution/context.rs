@@ -1,10 +1,10 @@
 //! Running command context and state management.
 
-use super::executor::{append_output, execute_commands_sequence, finalize_execution};
+use super::executor::{execute_commands_sequence, finalize_execution};
 use super::types::{CommandResult, CommandStep};
 use super::widgets::CommandExecutionWidgets;
 use gtk4::gio;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 /// Context for a running command execution
@@ -15,8 +15,6 @@ pub struct RunningCommandContext {
     pub cancelled: Rc<RefCell<bool>>,
     pub on_complete: Option<Rc<dyn Fn(bool) + 'static>>,
     pub current_process: Rc<RefCell<Option<gio::Subprocess>>>,
-    stdout_done: Cell<bool>,
-    stderr_done: Cell<bool>,
     exit_result: RefCell<Option<CommandResult>>,
 }
 
@@ -37,20 +35,8 @@ impl RunningCommandContext {
             cancelled,
             on_complete,
             current_process,
-            stdout_done: Cell::new(false),
-            stderr_done: Cell::new(false),
             exit_result: RefCell::new(None),
         })
-    }
-
-    /// Mark a stream as done (stdout or stderr)
-    pub fn mark_stream_done(self: &Rc<Self>, is_error_stream: bool) {
-        if is_error_stream {
-            self.stderr_done.set(true);
-        } else {
-            self.stdout_done.set(true);
-        }
-        self.try_finalize();
     }
 
     /// Set the exit result for the current command
@@ -59,13 +45,8 @@ impl RunningCommandContext {
         self.try_finalize();
     }
 
-    /// Try to finalize the current command if all streams are done
+    /// Try to finalize the current command
     fn try_finalize(self: &Rc<Self>) {
-        // Wait for both streams and exit result
-        if !(self.stdout_done.get() && self.stderr_done.get()) {
-            return;
-        }
-
         let result = {
             let mut exit_result = self.exit_result.borrow_mut();
             exit_result.take()
@@ -93,7 +74,6 @@ impl RunningCommandContext {
                 // Mark task as successful
                 self.widgets
                     .update_task_status(self.index, super::types::TaskStatus::Success);
-                append_output(&self.widgets, "✓ Step completed successfully\n", false);
                 execute_commands_sequence(
                     self.widgets.clone(),
                     self.commands.clone(),
@@ -103,17 +83,10 @@ impl RunningCommandContext {
                     self.current_process.clone(),
                 );
             }
-            CommandResult::Failure { exit_code } => {
+            CommandResult::Failure { exit_code: _ } => {
                 // Mark task as failed
                 self.widgets
                     .update_task_status(self.index, super::types::TaskStatus::Failed);
-                if let Some(code) = exit_code {
-                    append_output(
-                        &self.widgets,
-                        &format!("✗ Command failed with exit code: {}\n", code),
-                        true,
-                    );
-                }
                 finalize_execution(
                     &self.widgets,
                     false,

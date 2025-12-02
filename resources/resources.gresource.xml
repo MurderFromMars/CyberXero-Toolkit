@@ -94,5 +94,8 @@
         <file
             compressed="true"
         >icons/scalable/actions/circle-noth-symbolic.svg</file>
+        <file
+            compressed="true"
+        >icons/scalable/actions/nvidia-symbolic.svg</file>
     </gresource>
 </gresources>

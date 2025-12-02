@@ -71,12 +71,29 @@
 
                         <child>
                             <object class="GtkButton" id="btn_gpu_drivers">
-                                <property name="label">NVIDIA Drivers</property>
                                 <property name="width-request">200</property>
                                 <property name="height-request">50</property>
                                 <property
                                     name="css-classes"
                                 >suggested-action pill</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="orientation">horizontal</property>
+                                        <property name="spacing">8</property>
+                                        <property name="halign">center</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">nvidia-symbolic</property>
+                                                <property name="icon-size">normal</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label">NVIDIA Drivers</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
                             </object>
                         </child>
 

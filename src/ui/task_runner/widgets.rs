@@ -81,6 +81,11 @@ impl TaskItem {
                 self.status_icon.set_icon_name(Some("circle-xmark"));
                 self.status_icon.set_visible(true);
             }
+            TaskStatus::Cancelled => {
+                self.spinner_icon.set_visible(false);
+                self.status_icon.set_icon_name(Some("circle-stop"));
+                self.status_icon.set_visible(true);
+            }
         }
     }
 }
@@ -142,7 +147,9 @@ impl TaskRunnerWidgets {
     }
 
     /// Show completion state.
-    pub fn show_completion(&self, _success: bool, _message: &str) {
+    #[allow(unused_variables)]
+    pub fn show_completion(&self, success: bool, message: &str) {
+        self.set_title(message);
         self.enable_close();
     }
 }

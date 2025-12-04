@@ -22,6 +22,8 @@ pub enum TaskStatus {
     Success,
     /// Task failed with error
     Failed,
+    /// Task was cancelled by user
+    Cancelled,
 }
 
 /// Result of command execution.

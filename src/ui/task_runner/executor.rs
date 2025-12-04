@@ -63,7 +63,10 @@ impl RunningContext {
 
         // Check if cancelled
         if *self.cancelled.borrow() {
-            finalize_execution(&self.widgets, false, "Operation cancelled");
+            // Mark the current task as cancelled
+            self.widgets
+                .update_task_status(self.index, TaskStatus::Cancelled);
+            finalize_execution(&self.widgets, false, "Operation cancelled by user");
             if let Some(callback) = &self.on_complete {
                 callback(false);
             }
@@ -114,7 +117,11 @@ pub fn execute_commands(
     current_process: Rc<RefCell<Option<gio::Subprocess>>>,
 ) {
     if *cancelled.borrow() {
-        finalize_execution(&widgets, false, "Operation cancelled");
+        // If there's a current task being processed, mark it as cancelled
+        if index < commands.len() {
+            widgets.update_task_status(index, TaskStatus::Cancelled);
+        }
+        finalize_execution(&widgets, false, "Operation cancelled by user");
         if let Some(callback) = on_complete {
             callback(false);
         }
@@ -139,7 +146,12 @@ pub fn execute_commands(
         Ok(result) => result,
         Err(err) => {
             error!("Failed to prepare command: {}", err);
-            finalize_execution(&widgets, false, "Failed to prepare command");
+            widgets.update_task_status(index, TaskStatus::Failed);
+            finalize_execution(
+                &widgets,
+                false,
+                &format!("Failed to prepare command: {}", err),
+            );
             if let Some(callback) = on_complete {
                 callback(false);
             }
@@ -161,7 +173,12 @@ pub fn execute_commands(
         Ok(proc) => proc,
         Err(err) => {
             error!("Failed to start command: {}", err);
-            finalize_execution(&widgets, false, "Failed to start operation");
+            widgets.update_task_status(index, TaskStatus::Failed);
+            finalize_execution(
+                &widgets,
+                false,
+                &format!("Failed to start operation: {}", err),
+            );
             if let Some(callback) = on_complete {
                 callback(false);
             }

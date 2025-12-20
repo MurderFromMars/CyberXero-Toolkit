@@ -30,6 +30,8 @@ fn setup_obs_studio_aio(page_builder: &Builder) {
                 let window_ref = window.upcast_ref::<gtk4::Window>();
 
                 let obs_installed = core::is_flatpak_installed("com.obsproject.Studio");
+                let wayland_hotkeys_installed =
+                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.WaylandHotkeys");
                 let v4l2_installed = core::is_package_installed("v4l2loopback-dkms");
 
                 let graphics_capture_installed =
@@ -61,6 +63,12 @@ fn setup_obs_studio_aio(page_builder: &Builder) {
                     "OBS-Studio",
                     "Main OBS-Studio application (Flatpak)",
                     obs_installed,
+                ))
+                .add_option(SelectionOption::new(
+                    "wayland_hotkeys",
+                    "Wayland Hotkeys Plugin",
+                    "Enable hotkey support for OBS on Wayland",
+                    wayland_hotkeys_installed,
                 ))
                 .add_option(SelectionOption::new(
                     "graphics_capture",
@@ -102,6 +110,13 @@ fn setup_obs_studio_aio(page_builder: &Builder) {
                             "flatpak",
                             &["install", "-y", "com.obsproject.Studio"],
                             "Installing OBS-Studio...",
+                        ));
+                    }
+                    if selected_ids.contains(&"wayland_hotkeys".to_string()) {
+                        commands.push(Command::normal(
+                            "flatpak",
+                            &["install", "-y", "com.obsproject.Studio.Plugin.WaylandHotkeys"],
+                            "Installing Wayland Hotkeys plugin...",
                         ));
                     }
                     if selected_ids.contains(&"graphics_capture".to_string()) {

@@ -4,7 +4,42 @@ use gtk4::prelude::*;
 use vte4::prelude::*;
 use vte4::Terminal;
 use gtk4::{Button, Window};
+use gtk4::gdk::RGBA;
+use std::str::FromStr;
+use std::rc::Rc;
+use std::cell::RefCell;
 use log::{info, error};
+
+fn update_terminal_style(terminal: &Terminal) {
+    let style_manager = adw::StyleManager::default();
+    let is_dark = style_manager.is_dark();
+
+    let bg_color = if is_dark {
+        RGBA::from_str("#1e1e1e").unwrap()
+    } else {
+        RGBA::from_str("#ffffff").unwrap()
+    };
+
+    let fg_color = if is_dark {
+        RGBA::from_str("#ffffff").unwrap()
+    } else {
+        RGBA::from_str("#000000").unwrap()
+    };
+
+    // Gnome Console / Adwaita Palette
+    let palette_strs = [
+        "#241f31", "#c01c28", "#2ec27e", "#f5c211", "#1e78e4", "#9841bb", "#00c0a0", "#9a9996", // Normal
+        "#5e5c64", "#ed333b", "#57e389", "#f8e45c", "#3584e4", "#9141ac", "#26a269", "#ffffff"  // Bright
+    ];
+
+    let palette: Vec<RGBA> = palette_strs
+        .iter()
+        .map(|s| RGBA::from_str(s).unwrap())
+        .collect();
+
+    let palette_refs: Vec<&RGBA> = palette.iter().collect();
+    terminal.set_colors(Some(&fg_color), Some(&bg_color), &palette_refs);
+}
 
 /// Shows an interactive terminal window for the given command.
 pub fn show_terminal_dialog(parent: &Window, title: &str, command: &str, args: &[&str]) {
@@ -29,6 +64,26 @@ pub fn show_terminal_dialog(parent: &Window, title: &str, command: &str, args: &
     // Set a nice monospace font
     let font_desc = gtk4::pango::FontDescription::from_string("Monospace 11");
     terminal.set_font(Some(&font_desc));
+
+    // Setup theming
+    update_terminal_style(&terminal);
+
+    let terminal_weak = terminal.downgrade();
+    let style_manager = adw::StyleManager::default();
+    let signal_id = style_manager.connect_dark_notify(move |_| {
+        if let Some(term) = terminal_weak.upgrade() {
+            update_terminal_style(&term);
+        }
+    });
+
+    // Clean up signal handler when window closes
+    let signal_id_wrapper = Rc::new(RefCell::new(Some(signal_id)));
+    let window_widget: &gtk4::Widget = window.as_ref();
+    window_widget.connect_unmap(move |_| {
+        if let Some(id) = signal_id_wrapper.borrow_mut().take() {
+            adw::StyleManager::default().disconnect(id);
+        }
+    });
 
     // Setup close button
     let window_clone = window.clone();

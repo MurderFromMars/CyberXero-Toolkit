@@ -21,51 +21,39 @@
                 </child>
 
                 <property name="content">
-                    <object class="GtkBox">
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">0</property>
+                    <object class="GtkScrolledWindow" id="terminal_scrolled">
                         <property name="vexpand">true</property>
                         <property name="hexpand">true</property>
-
-                        <!-- Terminal Scrolled Window -->
-                        <child>
-                            <object class="GtkScrolledWindow" id="terminal_scrolled">
+                        <property name="child">
+                            <object class="VteTerminal" id="terminal">
                                 <property name="vexpand">true</property>
                                 <property name="hexpand">true</property>
-                                <property name="child">
-                                    <object class="VteTerminal" id="terminal">
-                                        <property name="vexpand">true</property>
-                                        <property name="hexpand">true</property>
-                                    </object>
-                                </property>
                             </object>
-                        </child>
+                        </property>
+                    </object>
+                </property>
 
-                        <!-- Footer with Close button -->
+                <child type="bottom">
+                    <object class="GtkBox" id="footer_box">
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">0</property>
+                        <property name="margin-top">12</property>
+                        <property name="margin-bottom">12</property>
+                        <property name="margin-start">12</property>
+                        <property name="margin-end">12</property>
+
                         <child>
-                            <object class="GtkBox" id="footer_box">
-                                <property name="orientation">horizontal</property>
-                                <property name="spacing">0</property>
-                                <property name="margin-top">12</property>
-                                <property name="margin-bottom">12</property>
-                                <property name="margin-start">12</property>
-                                <property name="margin-end">12</property>
-
-                                <child>
-                                    <object class="GtkButton" id="close_button">
-                                        <property name="label">Close</property>
-                                        <property name="halign">end</property>
-                                        <property name="hexpand">true</property>
-                                        <property name="css-classes">pill</property>
-                                        <property name="sensitive">false</property>
-                                    </object>
-                                </child>
+                            <object class="GtkButton" id="close_button">
+                                <property name="label">Close</property>
+                                <property name="halign">end</property>
+                                <property name="hexpand">true</property>
+                                <property name="css-classes">pill suggested-action</property>
+                                <property name="sensitive">false</property>
                             </object>
                         </child>
                     </object>
-                </property>
+                </child>
             </object>
         </property>
     </object>
 </interface>
-

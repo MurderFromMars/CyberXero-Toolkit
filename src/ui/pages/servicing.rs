@@ -16,6 +16,7 @@ use crate::ui::dialogs::error::show_error;
 use crate::ui::dialogs::selection::{
     show_selection_dialog, SelectionDialogConfig, SelectionOption,
 };
+use crate::ui::dialogs::terminal;
 use crate::ui::task_runner::{self, Command, CommandSequence};
 use gtk4::prelude::*;
 use gtk4::{ApplicationWindow, Builder};
@@ -38,23 +39,18 @@ fn setup_clr_pacman(page_builder: &Builder) {
     if let Some(btn_clr_pacman) = page_builder.object::<gtk4::Button>("btn_clr_pacman") {
         btn_clr_pacman.connect_clicked(move |button| {
             info!("Servicing: Clear Pacman Cache button clicked");
-            let commands = CommandSequence::new()
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("sh")
-                        .args(&["-c", "yes | pacman -Scc"])
-                        .description("Clearing Pacman cache (full clean)...")
-                        .build(),
-                )
-                .build();
             let widget = button.clone().upcast::<gtk4::Widget>();
             if let Some(window) = widget
                 .root()
                 .and_then(|r| r.downcast::<ApplicationWindow>().ok())
             {
-                let window_ref = window.upcast_ref::<gtk4::Window>();
-                task_runner::run(window_ref, commands, "Clear Pacman Cache");
+                // Use terminal dialog for interactive pacman cache clearing
+                terminal::show_terminal_dialog(
+                    window.upcast_ref(),
+                    "Clear Pacman Cache",
+                    "pkexec",
+                    &["pacman", "-Scc"],
+                );
             }
         });
     }
@@ -203,31 +199,18 @@ fn setup_fix_gpgme(page_builder: &Builder) {
     if let Some(btn_fix_gpgme) = page_builder.object::<gtk4::Button>("btn_fix_gpgme") {
         btn_fix_gpgme.connect_clicked(move |button| {
             info!("Servicing: Fix GPGME Database button clicked");
-            let commands = CommandSequence::new()
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("rm")
-                        .args(&["-rf", "/var/lib/pacman/sync"])
-                        .description("Removing sync database...")
-                        .build(),
-                )
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("pacman")
-                        .args(&["-Syy"])
-                        .description("Refreshing package databases...")
-                        .build(),
-                )
-                .build();
             let widget = button.clone().upcast::<gtk4::Widget>();
             if let Some(window) = widget
                 .root()
                 .and_then(|r| r.downcast::<ApplicationWindow>().ok())
             {
-                let window_ref = window.upcast_ref::<gtk4::Window>();
-                task_runner::run(window_ref, commands, "Fix GPGME Database Issue");
+                // Use terminal dialog for interactive GPGME fix
+                terminal::show_terminal_dialog(
+                    window.upcast_ref(),
+                    "Fix GPGME Database",
+                    "pkexec",
+                    &["sh", "-c", "rm -rf /var/lib/pacman/sync && pacman -Syy"],
+                );
             }
         });
     }
@@ -333,13 +316,6 @@ fn setup_update_mirrorlist(page_builder: &Builder) {
                             .build());
                     }
 
-                    commands = commands.then(Command::builder()
-                        .privileged()
-                        .program("pacman")
-                        .args(&["-Syy"])
-                        .description("Refreshing package databases...")
-                        .build());
-
                     if !commands.is_empty() {
                         let window_ref2 = window_clone.upcast_ref::<gtk4::Window>();
                         task_runner::run(window_ref2, commands.build(), "Update System Mirrorlist");
@@ -356,23 +332,18 @@ fn setup_parallel_downloads(page_builder: &Builder) {
     {
         btn_parallel_downloads.connect_clicked(move |button| {
             info!("Servicing: Change Parallel Downloads button clicked");
-            let commands = CommandSequence::new()
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("pmpd")
-                        .args(&[])
-                        .description("Adjusting parallel downloads setting...")
-                        .build(),
-                )
-                .build();
             let widget = button.clone().upcast::<gtk4::Widget>();
             if let Some(window) = widget
                 .root()
                 .and_then(|r| r.downcast::<ApplicationWindow>().ok())
             {
-                let window_ref = window.upcast_ref::<gtk4::Window>();
-                task_runner::run(window_ref, commands, "Change Parallel Downloads");
+                // Use terminal dialog for interactive pmpd tool
+                terminal::show_terminal_dialog(
+                    window.upcast_ref(),
+                    "Change Parallel Downloads",
+                    "pkexec",
+                    &["pmpd"],
+                );
             }
         });
     }

@@ -44,12 +44,16 @@ pub fn is_package_installed(package: &str) -> bool {
 pub fn is_flatpak_installed(package: &str) -> bool {
     debug!("Checking if Flatpak '{}' is installed", package);
 
+    // Use --columns=application to get only app IDs, one per line
     let installed = std::process::Command::new("flatpak")
-        .args(["list"])
+        .args(["list", "--columns=application"])
         .output()
         .map(|output| {
             if output.status.success() {
-                String::from_utf8_lossy(&output.stdout).contains(package)
+                // Check for exact match on any line
+                String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .any(|line| line.trim() == package)
             } else {
                 false
             }

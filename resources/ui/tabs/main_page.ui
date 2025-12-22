@@ -120,6 +120,25 @@
                     </object>
                 </child>
 
+                <!-- Row 3: Install Nix -->
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">horizontal</property>
+                        <property name="halign">center</property>
+
+                        <child>
+                            <object class="GtkButton" id="btn_install_nix">
+                                <property name="label">Install Nix Package Manager</property>
+                                <property name="width-request">200</property>
+                                <property name="height-request">50</property>
+                                <property
+                                    name="css-classes"
+                                >suggested-action pill</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+
                 <!-- Separator -->
                 <child>
                     <object class="GtkSeparator">

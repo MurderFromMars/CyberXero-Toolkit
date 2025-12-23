@@ -143,20 +143,6 @@ fn build_openrazer_commands(selected_frontends: &[String]) -> CommandSequence {
             .build(),
     );
 
-    // Add informational message about reboot requirement
-    commands = commands.then(
-        Command::builder()
-            .normal()
-            .program("echo")
-            .args(&[
-                "⚠️ IMPORTANT: Please reboot your system for the DKMS module to load properly.",
-            ])
-            .description(
-                "⚠️ IMPORTANT: Please reboot your system for the DKMS module to load properly.",
-            )
-            .build(),
-    );
-
     // Optionally install selected frontends
     if selected_frontends.contains(&"polychromatic".to_string()) {
         commands = commands.then(

@@ -184,7 +184,7 @@ fn setup_grub_theme(builder: &Builder, window: &ApplicationWindow) {
 
         // Run everything in terminal - clone if needed, then run interactive installation script
         let install_command = format!(
-            "if [ ! -d \"{}\" ]; then git clone --depth 1 https://github.com/xerolinux/xero-grubs \"{}\"; fi && cd \"{}\" && pkexec ./install.sh",
+            "if [ ! -d \"{}\" ]; then git clone --depth 1 https://github.com/xerolinux/xero-grubs \"{}\"; fi && pkexec sh -c 'cd \"{}\" && ./install.sh'",
             repo_path, repo_path, repo_path
         );
 

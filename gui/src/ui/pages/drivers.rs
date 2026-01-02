@@ -22,6 +22,7 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_asus_rog(page_builder, window);
     setup_openrazer(page_builder, window);
     setup_fingerprint(page_builder, window);
+    setup_zenergy(page_builder, window);
 }
 
 fn setup_tailscale(builder: &Builder, window: &ApplicationWindow) {
@@ -192,6 +193,31 @@ fn setup_fingerprint(builder: &Builder, window: &ApplicationWindow) {
             window.upcast_ref(),
             commands,
             "Install Fingerprint GUI Tool",
+        );
+    });
+}
+
+fn setup_zenergy(builder: &Builder, window: &ApplicationWindow) {
+    let button = extract_widget::<Button>(builder, "btn_zenergy");
+    let window = window.clone();
+
+    button.connect_clicked(move |_| {
+        info!("Zenergy Driver button clicked");
+
+        let commands = CommandSequence::new()
+            .then(
+                Command::builder()
+                    .aur()
+                    .args(&["-S", "--noconfirm", "--needed", "zenergy-dkms-git"])
+                    .description("Installing Zenergy Driver...")
+                    .build(),
+            )
+            .build();
+
+        task_runner::run(
+            window.upcast_ref(),
+            commands,
+            "Install Zenergy Driver",
         );
     });
 }

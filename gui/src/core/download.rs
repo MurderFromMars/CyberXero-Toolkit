@@ -25,7 +25,7 @@ pub async fn fetch_arch_iso_info() -> Result<(String, String)> {
         .context("Failed to build HTTP client")?;
 
     // Use LeaseWeb mirror (same as bash script)
-    let base_url = "https://ftp.energotel.sk/pub/linux/arch/iso/latest/";
+    let base_url = "https://fastly.mirror.pkgbuild.com/iso/latest/";
     let html = client
         .get(base_url)
         .send()
@@ -64,45 +64,39 @@ where
 {
     use futures_util::StreamExt;
     use tokio::io::AsyncWriteExt;
+    use reqwest::header::RANGE;
 
     info!("Starting download from {} to {}", url, dest_path);
 
-    // Use connection timeout only - no overall timeout since we're streaming
-    // We handle cancellation manually via the cancel_flag
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(30))
         .build()
         .context("Failed to build HTTP client")?;
 
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .context("Failed to connect to download server")?;
-    let total_size = response.content_length().unwrap_or(0);
-
-    info!(
-        "Download size: {} bytes ({:.2} MB)",
-        total_size,
-        total_size as f64 / 1024.0 / 1024.0
-    );
-
+    // Create file (truncate if exists)
     let mut file = tokio::fs::File::create(&dest_path)
         .await
         .context("Failed to create destination file")?;
-    let mut stream = response.bytes_stream();
 
     let mut downloaded: u64 = 0;
+    let mut total_size: u64 = 0;
+
+    // Speed calculation variables
     let mut last_update = Instant::now();
     let mut last_downloaded = 0u64;
-    let update_interval = Duration::from_millis(100);
-
-    // For speed averaging to reduce fluctuations
     let mut speed_samples: Vec<f64> = Vec::with_capacity(20);
-    let max_samples = 20; // Average over last 20 samples (2 seconds)
+    let max_samples = 20;
 
-    while let Some(chunk_result) = stream.next().await {
-        // Check if canceled
+    // Try to get total size first
+    if let Ok(resp) = client.head(&url).send().await {
+        if let Some(len) = resp.content_length() {
+            total_size = len;
+            info!("Total size determined via HEAD: {}", total_size);
+        }
+    }
+
+    loop {
+        // Check cancellation
         if cancel_flag.load(Ordering::Relaxed) {
             info!("Download cancelled");
             drop(file);
@@ -110,52 +104,121 @@ where
             anyhow::bail!("Download cancelled");
         }
 
-        // Handle pause
-        while pause_flag.load(Ordering::Relaxed) {
+        // Check pause
+        if pause_flag.load(Ordering::Relaxed) {
             tokio::time::sleep(Duration::from_millis(100)).await;
-            if cancel_flag.load(Ordering::Relaxed) {
-                info!("Download cancelled while paused");
-                drop(file);
-                let _ = tokio::fs::remove_file(&dest_path).await;
-                anyhow::bail!("Download cancelled");
-            }
+            continue;
         }
 
-        let chunk = chunk_result.context("Error receiving data chunk")?;
+        // Check if finished
+        if total_size > 0 && downloaded >= total_size {
+            break;
+        }
 
-        file.write_all(&chunk).await?;
-        downloaded += chunk.len() as u64;
+        // Prepare request
+        let mut request = client.get(&url);
+        if downloaded > 0 {
+            info!("Resuming download from byte {}", downloaded);
+            request = request.header(RANGE, format!("bytes={}-", downloaded));
+        }
 
-        // Update progress
-        let now = Instant::now();
-        if now.duration_since(last_update) >= update_interval {
-            let elapsed = now.duration_since(last_update).as_secs_f64();
-            let bytes_since_update = downloaded - last_downloaded;
-            let instant_speed = bytes_since_update as f64 / elapsed;
+        let response_result = request.send().await;
 
-            // Add to speed samples for averaging
-            speed_samples.push(instant_speed);
-            if speed_samples.len() > max_samples {
-                speed_samples.remove(0);
+        match response_result {
+            Ok(response) => {
+                // Update total_size if we didn't have it
+                if total_size == 0 {
+                    if let Some(len) = response.content_length() {
+                        total_size = downloaded + len;
+                        info!("Total size determined via GET: {}", total_size);
+                    }
+                }
+
+                let status = response.status();
+                if !status.is_success() {
+                    info!("Request failed with status: {}", status);
+                    if status == reqwest::StatusCode::RANGE_NOT_SATISFIABLE && total_size > 0 && downloaded >= total_size {
+                         break;
+                    }
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    continue;
+                }
+
+                let mut stream = response.bytes_stream();
+                let mut error_occurred = false;
+
+                while let Some(chunk_result) = stream.next().await {
+                    if cancel_flag.load(Ordering::Relaxed) {
+                        info!("Download cancelled");
+                        drop(file);
+                        let _ = tokio::fs::remove_file(&dest_path).await;
+                        anyhow::bail!("Download cancelled");
+                    }
+
+                    if pause_flag.load(Ordering::Relaxed) {
+                        info!("Download paused. Dropping connection.");
+                        break;
+                    }
+
+                    match chunk_result {
+                        Ok(chunk) => {
+                            file.write_all(&chunk).await?;
+                            downloaded += chunk.len() as u64;
+
+                            // Update progress
+                            let now = Instant::now();
+                            if now.duration_since(last_update) >= Duration::from_millis(100) {
+                                let elapsed = now.duration_since(last_update).as_secs_f64();
+                                let bytes_since_update = downloaded - last_downloaded;
+                                let instant_speed = bytes_since_update as f64 / elapsed;
+
+                                speed_samples.push(instant_speed);
+                                if speed_samples.len() > max_samples {
+                                    speed_samples.remove(0);
+                                }
+
+                                let avg_speed = if !speed_samples.is_empty() {
+                                    speed_samples.iter().sum::<f64>() / speed_samples.len() as f64
+                                } else {
+                                    instant_speed
+                                };
+
+                                let state = DownloadState {
+                                    downloaded,
+                                    total: total_size,
+                                    speed: avg_speed,
+                                };
+
+                                progress_callback(state);
+
+                                last_update = now;
+                                last_downloaded = downloaded;
+                            }
+                        }
+                        Err(e) => {
+                            info!("Error reading chunk: {}", e);
+                            error_occurred = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Check if we finished successfully
+                if !error_occurred && !pause_flag.load(Ordering::Relaxed) {
+                    if total_size > 0 {
+                        if downloaded >= total_size {
+                            break;
+                        }
+                    } else {
+                        // If total size unknown and stream ended, assume done
+                        break;
+                    }
+                }
             }
-
-            // Calculate average speed
-            let avg_speed = if !speed_samples.is_empty() {
-                speed_samples.iter().sum::<f64>() / speed_samples.len() as f64
-            } else {
-                instant_speed
-            };
-
-            let state = DownloadState {
-                downloaded,
-                total: total_size,
-                speed: avg_speed,
-            };
-
-            progress_callback(state);
-
-            last_update = now;
-            last_downloaded = downloaded;
+            Err(e) => {
+                info!("Connection failed: {}", e);
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
         }
     }
 

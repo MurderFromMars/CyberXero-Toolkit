@@ -129,7 +129,7 @@
                             <object class="GtkButton" id="btn_layan_patch">
                                 <property
                                     name="label"
-                                >Layan GTK4 Patch</property>
+                                >Update Layan Theme</property>
                                 <property name="width-request">200</property>
                                 <property name="height-request">50</property>
                                 <property

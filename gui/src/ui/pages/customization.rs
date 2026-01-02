@@ -5,7 +5,7 @@
 //! - Save Desktop tool
 //! - GRUB theme installation
 //! - Plymouth Manager
-//! - Layan GTK4 patch
+//! - Update Layan Theme
 
 use crate::ui::dialogs::terminal;
 use crate::ui::task_runner::{self, Command, CommandSequence};
@@ -218,47 +218,11 @@ fn setup_layan_patch(builder: &Builder, window: &ApplicationWindow) {
     let window = window.clone();
 
     button.connect_clicked(move |_| {
-        info!("Layan GTK4 Patch button clicked");
+        info!("Update Layan Theme button clicked");
 
         let home = crate::config::env::get().home.clone();
 
         let commands = CommandSequence::new()
-            .then(
-                Command::builder()
-                    .normal()
-                    .program("git")
-                    .args(&[
-                        "clone",
-                        "--depth",
-                        "1",
-                        "https://github.com/vinceliuice/Layan-gtk-theme.git",
-                        &format!("{}/Layan-gtk-theme", home),
-                    ])
-                    .description("Downloading Layan GTK theme...")
-                    .build(),
-            )
-            .then(
-                Command::builder()
-                    .privileged()
-                    .program("sh")
-                    .args(&[
-                        "-c",
-                        &format!(
-                            "cd {}/Layan-gtk-theme && sh install.sh -l -c dark -d {}/.themes",
-                            home, home
-                        ),
-                    ])
-                    .description("Installing Layan GTK theme...")
-                    .build(),
-            )
-            .then(
-                Command::builder()
-                    .normal()
-                    .program("rm")
-                    .args(&["-rf", &format!("{}/Layan-gtk-theme", home)])
-                    .description("Cleaning up GTK theme files...")
-                    .build(),
-            )
             .then(
                 Command::builder()
                     .normal()
@@ -291,6 +255,6 @@ fn setup_layan_patch(builder: &Builder, window: &ApplicationWindow) {
             )
             .build();
 
-        task_runner::run(window.upcast_ref(), commands, "Layan GTK4 Patch & Update");
+        task_runner::run(window.upcast_ref(), commands, "Update Layan Theme");
     });
 }

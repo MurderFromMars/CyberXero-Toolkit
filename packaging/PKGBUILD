@@ -23,6 +23,7 @@ makedepends=(
 )
 provides=('xero-toolkit')
 conflicts=('xero-toolkit')
+replaces=('xlapit-cli')
 options=('!emptydirs')
 
 build() {

@@ -184,6 +184,16 @@ pub fn execute_commands(
 
     let mut process = Command::new(&program);
     process.args(&args);
+
+    // Inject sudo shim to intercept sudo calls in scripts
+    let scripts_dir = crate::config::paths::scripts();
+    if scripts_dir.exists() {
+        if let Ok(path) = std::env::var("PATH") {
+            let new_path = format!("{}:{}", scripts_dir.display(), path);
+            process.env("PATH", new_path);
+        }
+    }
+
     process.stdout(Stdio::piped());
     process.stderr(Stdio::piped());
 
@@ -352,11 +362,30 @@ pub fn execute_commands(
 ///
 /// Returns an error if the AUR helper is required but not available.
 fn resolve_command(command: &Command) -> Result<(String, Vec<String>), String> {
+    // Prepare PATH with scripts directory for sudo shim
+    let scripts_dir = crate::config::paths::scripts();
+    let shim_path_env = if scripts_dir.exists() {
+        if let Ok(path) = std::env::var("PATH") {
+            Some(format!("PATH={}:{}", scripts_dir.display(), path))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     match command.command_type {
         CommandType::Normal => Ok((command.program.clone(), command.args.clone())),
         CommandType::Privileged => {
             // Use xero-auth client instead of pkexec for better session reuse
-            let mut args = Vec::with_capacity(command.args.len() + 1);
+            let mut args = Vec::new();
+
+            // Pass PATH via --env if available
+            if let Some(env) = &shim_path_env {
+                args.push("--env".to_string());
+                args.push(env.clone());
+            }
+
             args.push(command.program.clone());
             args.extend(command.args.clone());
             Ok((get_xero_auth_path().to_string_lossy().to_string(), args))
@@ -400,3 +429,4 @@ pub fn finalize_execution(widgets: &TaskRunnerWidgets, success: bool, message: &
     super::ACTION_RUNNING.store(false, Ordering::SeqCst);
     widgets.show_completion(success, message);
 }
+

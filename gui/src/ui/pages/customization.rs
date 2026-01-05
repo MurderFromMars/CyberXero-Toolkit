@@ -48,11 +48,13 @@ fn setup_zsh_aio(builder: &Builder, window: &ApplicationWindow) {
                 .description("Installing ZSH and dependencies...")
                 .build())
             .then(Command::builder()
-                .privileged()
+                .normal()
                 .program("sh")
                 .args(&[
                     "-c",
-                    "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended",
+                    "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)",
+                    "",
+                    "--unattended",
                 ])
                 .description("Installing Oh My Zsh framework...")
                 .build())

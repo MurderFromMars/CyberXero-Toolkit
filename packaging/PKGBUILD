@@ -46,7 +46,7 @@ package() {
 
   # Install scripts
   install -d "${pkgdir}/opt/xero-toolkit/scripts"
-  install -m755 scripts/*.sh "${pkgdir}/opt/xero-toolkit/scripts/"
+  install -m755 scripts/* "${pkgdir}/opt/xero-toolkit/scripts/"
 
   # Convenience symlink in /usr/bin
   install -d "${pkgdir}/usr/bin"

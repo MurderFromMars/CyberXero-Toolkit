@@ -1,0 +1,25 @@
+#!/bin/bash
+# sudo shim for xero-toolkit
+# Forwards commands to xero-auth
+
+# Path to xero-auth client
+XERO_AUTH="/opt/xero-toolkit/xero-auth"
+
+# Skip sudo flags until we find the command
+while [[ "$1" == -* ]]; do
+    case "$1" in
+        -u|-g|-p|-C|-U)
+            shift 2 # Skip flag and argument
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            shift # Skip flag
+            ;;
+    esac
+done
+
+exec "$XERO_AUTH" "$@"
+

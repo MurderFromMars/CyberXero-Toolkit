@@ -1,6 +1,7 @@
 //! Protocol definitions for communication between client and daemon.
 
 use rkyv::{Archive, Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Message sent from client to daemon.
 #[derive(Debug, Archive, Serialize, Deserialize)]
@@ -9,6 +10,7 @@ pub enum ClientMessage {
     Execute {
         program: String,
         args: Vec<String>,
+        env: Vec<String>,
         working_dir: Option<String>,
     },
     /// Ping to check if daemon is alive.

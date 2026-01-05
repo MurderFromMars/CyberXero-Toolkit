@@ -231,9 +231,10 @@ async fn handle_client(
             ClientMessage::Execute {
                 program,
                 args,
+                env,
                 working_dir,
             } => {
-                execute_command(&writer_arc, program, args, working_dir).await?;
+                execute_command(&writer_arc, program, args, env, working_dir).await?;
             }
         }
     }
@@ -245,6 +246,7 @@ async fn execute_command(
     writer: &Arc<Mutex<tokio::net::unix::WriteHalf<'_>>>,
     program: String,
     args: Vec<String>,
+    env: Vec<String>,
     working_dir: Option<String>,
 ) -> Result<()> {
     info!("Executing: {} {:?}", program, args);
@@ -260,7 +262,17 @@ async fn execute_command(
                 }
             }
 
-            let error = std::process::Command::new(&program).args(&args).exec();
+            let mut cmd = std::process::Command::new(&program);
+            cmd.args(&args);
+
+            // Apply environment variables
+            for env_str in env {
+                if let Some((key, value)) = env_str.split_once('=') {
+                    cmd.env(key, value);
+                }
+            }
+
+            let error = cmd.exec();
 
             eprintln!("Failed to execute {}: {}", program, error);
             std::process::exit(1);

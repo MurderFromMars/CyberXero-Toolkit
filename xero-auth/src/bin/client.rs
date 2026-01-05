@@ -2,11 +2,29 @@
 //!
 //! Command-line client for testing the authentication daemon.
 
-use anyhow::{Context, Result};
+use anyhow::Context;
+use anyhow::Result;
+use clap::Parser;
 use tokio::net::UnixStream;
 use xero_auth::protocol::{ClientMessage, DaemonMessage};
 use xero_auth::protocol_io::{read_message, write_message};
 use xero_auth::shared::{get_socket_path, is_daemon_running};
+
+#[derive(Parser, Debug)]
+#[command(name = "xero-auth")]
+#[command(about = "Xero Authentication Client", long_about = None)]
+struct Args {
+    /// Environment variables to set (KEY=VALUE)
+    #[arg(short, long)]
+    env: Vec<String>,
+
+    /// The program to execute
+    program: String,
+
+    /// Arguments for the program
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+    args: Vec<String>,
+}
 
 struct Client {
     stream: UnixStream,
@@ -28,7 +46,8 @@ impl Client {
     async fn execute<F, G>(
         &mut self,
         program: &str,
-        args: &[&str],
+        args: &[String],
+        env: Vec<String>,
         working_dir: Option<&str>,
         on_output: F,
         on_error: G,
@@ -42,7 +61,8 @@ impl Client {
         // Write request message
         let message = ClientMessage::Execute {
             program: program.to_string(),
-            args: args.iter().map(|s| s.to_string()).collect(),
+            args: args.to_vec(),
+            env,
             working_dir: working_dir.map(|s| s.to_string()),
         };
         write_message(&mut writer, &message).await?;
@@ -84,14 +104,7 @@ async fn main() {
         std::process::exit(1);
     }
 
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.is_empty() {
-        eprintln!("Usage: xero-auth <program> [args...]");
-        std::process::exit(1);
-    }
-
-    let program = &args[0];
-    let cmd_args: Vec<&str> = args[1..].iter().map(|s| s.as_str()).collect();
+    let args = Args::parse();
 
     let mut client = match Client::new().await {
         Ok(client) => client,
@@ -103,8 +116,9 @@ async fn main() {
 
     let exit_code = match client
         .execute(
-            program,
-            &cmd_args,
+            &args.program,
+            &args.args,
+            args.env,
             None,
             |line| print!("{}", line),
             |line| eprint!("{}", line),

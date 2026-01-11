@@ -4,7 +4,7 @@
 //! - Clear Pacman cache
 //! - Unlock Pacman database
 //! - Plasma X11 session installation
-//! - VM guest utilities
+//! - Pacman local database fix
 //! - WayDroid guide
 //! - Fix GPGME database
 //! - Fix Arch keyring
@@ -12,7 +12,6 @@
 //! - Parallel downloads adjustment
 
 use crate::core;
-use crate::ui::dialogs::error::show_error;
 use crate::ui::dialogs::selection::{
     show_selection_dialog, SelectionDialogConfig, SelectionOption, SelectionType,
 };
@@ -28,7 +27,7 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_clr_pacman(page_builder, window);
     setup_unlock_pacman(page_builder, window);
     setup_plasma_x11(page_builder, window);
-    setup_vm_guest_utils(page_builder, window);
+    setup_pacman_db_fix(page_builder, window);
     setup_waydroid_guide(page_builder);
     setup_fix_gpgme(page_builder, window);
     setup_fix_arch_keyring(page_builder, window);
@@ -88,60 +87,25 @@ fn setup_plasma_x11(page_builder: &Builder, window: &ApplicationWindow) {
     });
 }
 
-fn setup_vm_guest_utils(page_builder: &Builder, window: &ApplicationWindow) {
-    let btn_vm_guest_utils = extract_widget::<gtk4::Button>(page_builder, "btn_vm_guest_utils");
+fn setup_pacman_db_fix(page_builder: &Builder, window: &ApplicationWindow) {
+    let btn_pacman_db_fix = extract_widget::<gtk4::Button>(page_builder, "btn_pacman_db_fix");
     let window = window.clone();
-    btn_vm_guest_utils.connect_clicked(move |_| {
-        info!("Servicing: VM Guest Utils button clicked");
-        let output = std::process::Command::new("systemd-detect-virt").output();
-        let mut commands = CommandSequence::new();
-        match output {
-            Ok(result) if result.status.success() => {
-                let virt = String::from_utf8_lossy(&result.stdout).trim().to_string();
-                match virt.as_str() {
-                    "oracle" => {
-                        commands = commands.then(
-                            Command::builder()
-                                .aur()
-                                .args(&["-S", "--needed", "--noconfirm", "virtualbox-guest-utils"])
-                                .description("Installing VirtualBox guest utilities...")
-                                .build(),
-                        )
-                    }
-                    "kvm" => {
-                        commands = commands.then(
-                            Command::builder()
-                                .aur()
-                                .args(&[
-                                    "-S",
-                                    "--needed",
-                                    "--noconfirm",
-                                    "qemu-guest-agent",
-                                    "spice-vdagent",
-                                ])
-                                .description("Installing KVM/QEMU guest agents...")
-                                .build(),
-                        )
-                    }
-                    _ => {
-                        show_error(&window, "Unsupported or no virtualization detected.");
-                        return;
-                    }
-                }
-            }
-            _ => {
-                show_error(&window, "Failed to detect virtualization environment.");
-                return;
-            }
-        }
-
-        if !commands.is_empty() {
-            task_runner::run(
-                window.upcast_ref(),
-                commands.build(),
-                "Install VM Guest Utilities",
-            );
-        }
+    btn_pacman_db_fix.connect_clicked(move |_| {
+        info!("Servicing: Pacman DB Fix button clicked");
+        let commands = CommandSequence::new()
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("sh")
+                    .args(&[
+                        "-c",
+                        "find /var/lib/pacman/local/ -type f -name 'desc' -exec sed -i '/^%INSTALLED_DB%$/,+2d' {} \\;",
+                    ])
+                    .description("Fixing Pacman local database...")
+                    .build(),
+            )
+            .build();
+        task_runner::run(window.upcast_ref(), commands, "Pacman DB Fix");
     });
 }
 

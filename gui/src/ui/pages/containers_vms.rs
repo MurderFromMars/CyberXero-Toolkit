@@ -6,6 +6,7 @@
 //! - VirtualBox installation
 //! - DistroBox installation
 //! - KVM/QEMU virtualization setup
+//! - iOS iPA Sideloader (Plume Impactor)
 
 use crate::core;
 use crate::ui::dialogs::selection::{
@@ -24,6 +25,7 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_vbox(page_builder, window);
     setup_distrobox(page_builder, window);
     setup_kvm(page_builder, window);
+    setup_ipa_sideloader(page_builder, window);
 }
 
 fn setup_docker(builder: &Builder, window: &ApplicationWindow) {
@@ -262,5 +264,26 @@ fn setup_kvm(builder: &Builder, window: &ApplicationWindow) {
         );
 
         task_runner::run(window.upcast_ref(), commands.build(), "KVM / QEMU Setup");
+    });
+}
+
+fn setup_ipa_sideloader(builder: &Builder, window: &ApplicationWindow) {
+    let button = extract_widget::<Button>(builder, "btn_ipa_sideloader");
+    let window = window.clone();
+
+    button.connect_clicked(move |_| {
+        info!("iOS iPA Sideloader button clicked");
+
+        let commands = CommandSequence::new()
+            .then(
+                Command::builder()
+                    .aur()
+                    .args(&["-S", "--noconfirm", "--needed", "plume-impactor"])
+                    .description("Installing Plume Impactor...")
+                    .build(),
+            )
+            .build();
+
+        task_runner::run(window.upcast_ref(), commands, "iOS iPA Sideloader Setup");
     });
 }

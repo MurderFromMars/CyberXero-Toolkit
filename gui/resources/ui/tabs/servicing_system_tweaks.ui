@@ -117,8 +117,8 @@
                         <property name="halign">center</property>
 
                         <child>
-                            <object class="GtkButton" id="btn_vm_guest_utils">
-                                <property name="label">VM Guest Utils</property>
+                            <object class="GtkButton" id="btn_pacman_db_fix">
+                                <property name="label">Pacman DB Fix</property>
                                 <property name="width-request">200</property>
                                 <property name="height-request">50</property>
                                 <property

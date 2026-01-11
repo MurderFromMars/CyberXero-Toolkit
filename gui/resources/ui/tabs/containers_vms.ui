@@ -61,10 +61,11 @@
                 <property name="vexpand">true</property>
                 <property name="margin-top">32</property>
 
-                <!-- Row 1: Docker -->
+                <!-- Row 1: Docker, Podman, vBox -->
                 <child>
                     <object class="GtkBox">
                         <property name="orientation">horizontal</property>
+                        <property name="spacing">16</property>
                         <property name="halign">center</property>
                         <child>
                             <object class="GtkButton" id="btn_docker">
@@ -76,16 +77,6 @@
                                 >suggested-action pill</property>
                             </object>
                         </child>
-                    </object>
-                </child>
-
-                <!-- Row 2: Podman, vBox, DistroBox -->
-                <child>
-                    <object class="GtkBox">
-                        <property name="orientation">horizontal</property>
-                        <property name="spacing">16</property>
-                        <property name="halign">center</property>
-
                         <child>
                             <object class="GtkButton" id="btn_podman">
                                 <property name="label">Podman</property>
@@ -96,7 +87,6 @@
                                 >suggested-action pill</property>
                             </object>
                         </child>
-
                         <child>
                             <object class="GtkButton" id="btn_vbox">
                                 <property name="label">Virtual Box</property>
@@ -107,6 +97,15 @@
                                 >suggested-action pill</property>
                             </object>
                         </child>
+                    </object>
+                </child>
+
+                <!-- Row 2: DistroBox, KVM, iPA Sideloader -->
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">16</property>
+                        <property name="halign">center</property>
 
                         <child>
                             <object class="GtkButton" id="btn_distrobox">
@@ -118,17 +117,21 @@
                                 >suggested-action pill</property>
                             </object>
                         </child>
-                    </object>
-                </child>
 
-                <!-- Row 3: KVM -->
-                <child>
-                    <object class="GtkBox">
-                        <property name="orientation">horizontal</property>
-                        <property name="halign">center</property>
                         <child>
                             <object class="GtkButton" id="btn_kvm">
                                 <property name="label">Qemu Virtual Manager</property>
+                                <property name="width-request">200</property>
+                                <property name="height-request">50</property>
+                                <property
+                                    name="css-classes"
+                                >suggested-action pill</property>
+                            </object>
+                        </child>
+
+                        <child>
+                            <object class="GtkButton" id="btn_ipa_sideloader">
+                                <property name="label">iOS iPA Sideloader</property>
                                 <property name="width-request">200</property>
                                 <property name="height-request">50</property>
                                 <property

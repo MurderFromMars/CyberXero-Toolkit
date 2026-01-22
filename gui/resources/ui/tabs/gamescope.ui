@@ -5,32 +5,50 @@
 
     <object class="GtkBox" id="page_gamescope">
         <property name="orientation">vertical</property>
+        <property name="spacing">0</property>
+        <property name="margin-top">24</property>
+        <property name="margin-bottom">24</property>
+        <property name="hexpand">true</property>
+        <property name="vexpand">true</property>
 
+        <!-- Top Section: Header with Icon (pinned at top) -->
         <child>
             <object class="GtkBox">
                 <property name="orientation">vertical</property>
-                <property name="spacing">6</property>
-                <property name="margin-top">24</property>
-                <property name="margin-bottom">24</property>
+                <property name="spacing">16</property>
+                <property name="halign">center</property>
+                <property name="valign">start</property>
+                <property name="vexpand">false</property>
+
+                <child>
+                    <object class="GtkImage">
+                        <property name="icon-name">steam-symbolic</property>
+                        <property name="pixel-size">96</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+
                 <child>
                     <object class="GtkLabel">
                         <property name="label">Gamescope</property>
-                        <style>
-                            <class name="title-1"/>
-                        </style>
+                        <property name="css-classes">title-1</property>
+                        <property name="halign">center</property>
                     </object>
                 </child>
+
                 <child>
                     <object class="GtkLabel">
                         <property name="label">Generate gamescope commands quickly for Steam launch options</property>
-                        <style>
-                            <class name="dim-label"/>
-                        </style>
+                        <property name="css-classes">dim</property>
+                        <property name="halign">center</property>
+                        <property name="wrap">true</property>
+                        <property name="justify">center</property>
                     </object>
                 </child>
             </object>
         </child>
 
+        <!-- Main Content Section -->
         <child>
             <object class="GtkScrolledWindow">
                 <property name="vexpand">true</property>
@@ -42,6 +60,7 @@
                         <property name="margin-start">12</property>
                         <property name="margin-end">12</property>
                         <property name="margin-bottom">24</property>
+                        <property name="margin-top">24</property>
                         <child>
                             <object class="GtkBox">
                                 <property name="orientation">vertical</property>

@@ -74,13 +74,13 @@ pub const PAGES: &[PageConfig] = &[
         ui_resource: crate::config::resources::tabs::MULTIMEDIA_TOOLS,
         setup_handler: Some(pages::multimedia_tools::setup_handlers),
     },
-    // PageConfig {
-    //     id: "kernel_manager_scx",
-    //     title: "Kernel Manager/SCX",
-    //     icon: "hammer-symbolic",
-    //     ui_resource: "/xyz/xerolinux/xero-toolkit/ui/tabs/kernel_manager_scx.ui",
-    //     setup_handler: None,
-    // },
+    PageConfig {
+        id: "kernel_manager_scx",
+        title: "Kernel Manager",
+        icon: "hammer-symbolic",
+        ui_resource: crate::config::resources::tabs::KERNEL_MANAGER_SCX,
+        setup_handler: Some(pages::kernel_manager_scx::setup_handlers),
+    },
     PageConfig {
         id: "servicing_system_tweaks",
         title: "Servicing/System tweaks",

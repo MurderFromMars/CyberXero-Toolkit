@@ -164,6 +164,8 @@ pub mod resources {
         pub const DRIVERS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/drivers.ui";
         pub const GAMESCOPE: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/gamescope.ui";
         pub const GAMING_TOOLS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/gaming_tools.ui";
+        pub const KERNEL_MANAGER_SCX: &str =
+            "/xyz/xerolinux/xero-toolkit/ui/tabs/kernel_manager_scx.ui";
         pub const MAIN_PAGE: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/main_page.ui";
         pub const MULTIMEDIA_TOOLS: &str =
             "/xyz/xerolinux/xero-toolkit/ui/tabs/multimedia_tools.ui";

@@ -15,7 +15,7 @@ pub mod customization;
 pub mod drivers;
 pub mod gamescope;
 pub mod gaming_tools;
-pub mod kernel_manager_scx;
+pub mod kernel_manager;
 pub mod main_page;
 pub mod multimedia_tools;
 pub mod servicing;

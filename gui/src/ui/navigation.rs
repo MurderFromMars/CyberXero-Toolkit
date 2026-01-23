@@ -75,11 +75,11 @@ pub const PAGES: &[PageConfig] = &[
         setup_handler: Some(pages::multimedia_tools::setup_handlers),
     },
     PageConfig {
-        id: "kernel_manager_scx",
+        id: "kernel_manager",
         title: "Kernel Manager",
         icon: "hammer-symbolic",
-        ui_resource: crate::config::resources::tabs::KERNEL_MANAGER_SCX,
-        setup_handler: Some(pages::kernel_manager_scx::setup_handlers),
+        ui_resource: crate::config::resources::tabs::KERNEL_MANAGER,
+        setup_handler: Some(pages::kernel_manager::setup_handlers),
     },
     PageConfig {
         id: "servicing_system_tweaks",

@@ -343,10 +343,22 @@
                           <object class="AdwPreferencesGroup">
                             <property name="title">Configuration</property>
                             <child>
-                              <object class="AdwComboRow" id="scheduler_combo">
+                              <object class="AdwActionRow" id="scheduler_selection_row">
                                 <property name="title">Scheduler</property>
                                 <property name="subtitle">Select sched-ext scheduler</property>
                                 <property name="icon-name">gears-symbolic</property>
+                                <property name="activatable">true</property>
+                                <child>
+                                  <object class="GtkLabel" id="selected_scheduler_label">
+                                    <property name="valign">center</property>
+                                    <property name="label">None</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="icon-name">arrow-right-symbolic</property>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                             <child>

@@ -57,6 +57,7 @@
     <file compressed="true">icons/scalable/actions/circle-question-symbolic.svg</file>
     <file compressed="true">icons/scalable/actions/copy-symbolic.svg</file>
     <file compressed="true">icons/scalable/actions/arrows-rotate-symbolic.svg</file>
+    <file compressed="true">icons/scalable/actions/arrow-right-symbolic.svg</file>
     <file compressed="true">icons/scalable/apps/xero-toolkit.png</file>
   </gresource>
 </gresources>

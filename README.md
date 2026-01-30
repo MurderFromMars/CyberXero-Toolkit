@@ -2,7 +2,7 @@
 
 A GTK4 GUI application for managing system tools, configurations, and customizations on **any Arch-based distribution**.
 
-> **Fork Info:** This is a "jailbroken" version of [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) that removes the XeroLinux-only restriction, allowing it to work on Arch, EndeavourOS, Manjaro, CachyOS, and other Arch-based systems. adds a couple new improvements, and has been slightly rebranded to differentiatte itself from the original
+> **Fork Info:** This is a "jailbroken" version of [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) that removes the XeroLinux-only restriction, allowing it to work on Arch, EndeavourOS, Manjaro, CachyOS, and other Arch-based systems. adds a couple new improvements, and has been slightly rebranded to differentiate itself from the original
 
 
 ## 🎯 What It Does

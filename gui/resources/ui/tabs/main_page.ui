@@ -127,7 +127,7 @@
             <property name="margin-top">32</property>
             <child>
               <object class="GtkButton" id="link_discord">
-                <property name="tooltip-text">Discord - https://discord.xerolinux.xyz/</property>
+                <property name="tooltip-text">Discord</property>
                 <property name="width-request">48</property>
                 <property name="height-request">48</property>
                 <property name="css-classes">circular flat</property>
@@ -141,7 +141,7 @@
             </child>
             <child>
               <object class="GtkButton" id="link_youtube">
-                <property name="tooltip-text">YouTube - https://www.youtube.com/@XeroLinux</property>
+                <property name="tooltip-text">YouTube</property>
                 <property name="width-request">48</property>
                 <property name="height-request">48</property>
                 <property name="css-classes">circular flat</property>
@@ -154,8 +154,22 @@
               </object>
             </child>
             <child>
+              <object class="GtkButton" id="link_github">
+                <property name="tooltip-text">GitHub</property>
+                <property name="width-request">48</property>
+                <property name="height-request">48</property>
+                <property name="css-classes">circular flat</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="icon-name">globe-symbolic</property>
+                    <property name="pixel-size">24</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
               <object class="GtkButton" id="link_website">
-                <property name="tooltip-text">XeroLinux Website - https://xerolinux.xyz/</property>
+                <property name="tooltip-text">XeroLinux Website</property>
                 <property name="width-request">48</property>
                 <property name="height-request">48</property>
                 <property name="css-classes">circular flat</property>
@@ -169,7 +183,7 @@
             </child>
             <child>
               <object class="GtkButton" id="link_donate">
-                <property name="tooltip-text">Donate - https://ko-fi.com/xerolinux</property>
+                <property name="tooltip-text">Donate</property>
                 <property name="width-request">48</property>
                 <property name="height-request">48</property>
                 <property name="css-classes">circular flat</property>

@@ -1,9 +1,9 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=XeroLinux Toolkit
+Name=Xero Toolkit Open
 GenericName=Toolkit
-Comment=GTK4 GUI to manage XeroLinux specific tools and settings
+Comment=MurderFromMars' enhanced and jailbroken Xero Toolkit
 Exec=xero-toolkit
 Icon=xero-toolkit
 Terminal=false

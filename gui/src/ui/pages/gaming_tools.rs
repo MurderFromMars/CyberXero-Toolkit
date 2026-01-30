@@ -272,8 +272,53 @@ fn setup_falcond(builder: &Builder, window: &ApplicationWindow) {
     button.connect_clicked(move |_| {
         info!("Falcond button clicked");
 
-        let commands = CommandSequence::new()
-            .then(
+        // Check if falcond is available in repos (e.g., CachyOS repos)
+        let in_repos = crate::core::is_package_in_repos("falcond");
+        
+        let mut commands = CommandSequence::new();
+        
+        if in_repos {
+            // Install from official repos (CachyOS, etc.)
+            info!("Falcond found in repos, using pacman");
+            commands = commands.then(
+                Command::builder()
+                    .privileged()
+                    .program("pacman")
+                    .args(&[
+                        "-S",
+                        "--noconfirm",
+                        "--needed",
+                        "falcond",
+                        "falcond-profiles",
+                        "tuned-ppd",
+                    ])
+                    .description("Installing Falcond from repos...")
+                    .build(),
+            );
+            // Check if falcond-gui is also in repos
+            if crate::core::is_package_in_repos("falcond-gui") {
+                commands = commands.then(
+                    Command::builder()
+                        .privileged()
+                        .program("pacman")
+                        .args(&["-S", "--noconfirm", "--needed", "falcond-gui"])
+                        .description("Installing Falcond GUI from repos...")
+                        .build(),
+                );
+            } else {
+                // falcond-gui not in repos, try AUR
+                commands = commands.then(
+                    Command::builder()
+                        .aur()
+                        .args(&["-S", "--noconfirm", "--needed", "falcond-gui"])
+                        .description("Installing Falcond GUI from AUR...")
+                        .build(),
+                );
+            }
+        } else {
+            // Install from AUR
+            info!("Falcond not in repos, using AUR");
+            commands = commands.then(
                 Command::builder()
                     .aur()
                     .args(&[
@@ -283,10 +328,15 @@ fn setup_falcond(builder: &Builder, window: &ApplicationWindow) {
                         "falcond",
                         "falcond-gui",
                         "falcond-profiles",
+                        "tuned-ppd",
                     ])
-                    .description("Installing Falcond Gaming utility...")
+                    .description("Installing Falcond Gaming utility from AUR...")
                     .build(),
-            )
+            );
+        }
+        
+        // Common post-install setup
+        commands = commands
             .then(
                 Command::builder()
                     .privileged()
@@ -316,7 +366,7 @@ fn setup_falcond(builder: &Builder, window: &ApplicationWindow) {
                     .privileged()
                     .program("chown")
                     .args(&[":falcond", "/usr/share/falcond/profiles/user"])
-                    .description("Adding propper ownership permissions...")
+                    .description("Adding proper ownership permissions...")
                     .build(),
             )
             .then(
@@ -324,7 +374,7 @@ fn setup_falcond(builder: &Builder, window: &ApplicationWindow) {
                     .privileged()
                     .program("chmod")
                     .args(&["2775", "/usr/share/falcond/profiles/user"])
-                    .description("Adding propper executable permissions...")
+                    .description("Adding proper executable permissions...")
                     .build(),
             )
             .then(
@@ -334,9 +384,8 @@ fn setup_falcond(builder: &Builder, window: &ApplicationWindow) {
                     .args(&["enable", "--now", "falcond"])
                     .description("Enabling falcond background service...")
                     .build(),
-            )
-            .build();
+            );
 
-        task_runner::run(window.upcast_ref(), commands, "Falcond Installation");
+        task_runner::run(window.upcast_ref(), commands.build(), "Falcond Installation");
     });
 }

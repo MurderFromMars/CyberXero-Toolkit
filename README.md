@@ -106,17 +106,9 @@ The fork has been lightly rebranded to reflect its enhanced/jailbroken status:
 
 - **Updated About Dialog** - Reflects the fork's origin and enhancements
 - **Modified Links** - Discord and YouTube links updated (configurable in `gui/src/config.rs`)
-- **Logo** - Can be replaced at `gui/resources/icons/apps/xero-toolkit.png` (and create `gui/resources/icons/scalable/apps/` directory for the build)
+- **Logo** - changed to a more appropriate Arch logo 
 
-To customize links, edit `gui/src/config.rs`:
-```rust
-pub mod links {
-    pub const DISCORD: &str = "https://your-discord-link/";
-    pub const YOUTUBE: &str = "https://your-youtube-link/";
-    pub const WEBSITE: &str = "https://your-website/";
-    pub const DONATE: &str = "https://your-donate-link/";
-}
-```
+
 
 ## 📄 License
 

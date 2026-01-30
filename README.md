@@ -4,16 +4,6 @@ A GTK4 GUI application for managing system tools, configurations, and customizat
 
 > **Fork Info:** This is a "jailbroken" version of [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) that removes the XeroLinux-only restriction, allowing it to work on Arch, EndeavourOS, Manjaro, CachyOS, and other Arch-based systems.
 
-## 📸 Screenshots
-
-![Main Page](screenshots/main_page.png)
-*Main application window*
-
-![Installation Dialog](screenshots/installing_dialog.png)
-*Real-time progress tracking during package installation*
-
-![Selection Dialog](screenshots/selection_dialog.png)
-*Multi-select interface for choosing tools and applications to install*
 
 ## 🎯 What It Does
 
@@ -22,11 +12,11 @@ This tool lets you easily manage and customize your Arch-based system through a 
 * **Update your system** with a single click
 * **Install package managers** - Octopi, Bauh, Warehouse, Flatseal, and more
 * **Set up drivers** - GPU drivers (NVIDIA, AMD), Tailscale VPN, ASUS ROG tools
-* **Configure gaming** - Steam with dependencies, Lutris, Heroic, Bottles, Gamescope
+* **Configure gaming** - Steam with dependencies, Lutris, Heroic, Bottles, Gamescope, Falcond
 * **Customize your desktop** - ZSH setup, GRUB themes, Plymouth, desktop themes
 * **Manage containers & VMs** - Docker, Podman, VirtualBox, DistroBox, KVM/QEMU
 * **Install multimedia tools** - OBS Studio, Jellyfin, and more
-* **Service your system** - Clear caches, fix keyrings, update mirrors
+* **Service your system** - Clear caches, fix keyrings, update mirrors, add third-party repos
 
 ## 💻 Supported Distributions
 
@@ -91,13 +81,42 @@ Installed automatically by the installer:
 - `vte4`
 - `flatpak`
 - `polkit`
-- `scx-tool` (AUR)
+- `scx-scheds`
 
 ## ✨ Changes from Original
 
-- Removed XeroLinux distribution check
-- Added install.sh for easy building on any Arch-based distro
-- Added uninstall.sh
+### Distribution Freedom
+- Removed XeroLinux distribution check - works on any Arch-based distro
+- Added `install.sh` for easy building from source
+- Added `uninstall.sh` for clean removal
+
+### New Features: Third-Party Repository Installation
+Added buttons in the **Servicing / System Tweaks** page to easily add popular Arch repositories:
+
+- **Install CachyOS Repos** - Adds the [CachyOS](https://cachyos.org/) repositories, providing access to performance-optimized packages, kernels, and tools like Falcond
+- **Install Chaotic-AUR** - Adds the [Chaotic-AUR](https://aur.chaotic.cx/) repository, providing pre-built AUR packages for faster installation
+
+### Smart Package Installation
+- **Falcond Gaming Utility** - Now intelligently checks if packages are available in your configured repos (e.g., CachyOS) before falling back to AUR
+  - Installs `falcond`, `falcond-gui`, `falcond-profiles`, and `tuned-ppd`
+  - Automatically uses pacman for repo packages, AUR helper only when needed
+
+### Rebranding
+The fork has been lightly rebranded to reflect its enhanced/jailbroken status:
+
+- **Updated About Dialog** - Reflects the fork's origin and enhancements
+- **Modified Links** - Discord and YouTube links updated (configurable in `gui/src/config.rs`)
+- **Logo** - Can be replaced at `gui/resources/icons/apps/xero-toolkit.png` (and create `gui/resources/icons/scalable/apps/` directory for the build)
+
+To customize links, edit `gui/src/config.rs`:
+```rust
+pub mod links {
+    pub const DISCORD: &str = "https://your-discord-link/";
+    pub const YOUTUBE: &str = "https://your-youtube-link/";
+    pub const WEBSITE: &str = "https://your-website/";
+    pub const DONATE: &str = "https://your-donate-link/";
+}
+```
 
 ## 📄 License
 
@@ -107,3 +126,5 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 - Original [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) by [synsejse](https://github.com/synsejse)
 - [XeroLinux](https://xerolinux.xyz/) team
+- [CachyOS](https://cachyos.org/) for their optimized repositories
+- [Chaotic-AUR](https://aur.chaotic.cx/) for pre-built AUR packages

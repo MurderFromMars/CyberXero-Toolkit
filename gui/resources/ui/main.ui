@@ -1,142 +1,134 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk" version="4.0"/>
-  <requires lib="adw" version="1.4"/>
-  <object class="AdwApplicationWindow" id="app_window">
-    <property name="title">Xero Toolkit</property>
-    <property name="default-width">1100</property>
-    <property name="default-height">750</property>
+  <requires lib="adw" version="1.0"/>
+  <object class="AdwWindow" id="about_window">
+    <property name="title">About</property>
+    <property name="icon-name">xero-toolkit</property>
+    <property name="default-width">500</property>
+    <property name="default-height">400</property>
+    <property name="modal">true</property>
+    <property name="resizable">false</property>
     <property name="content">
       <object class="AdwToolbarView">
         <child type="top">
-          <object class="AdwHeaderBar" id="header_bar">
+          <object class="AdwHeaderBar">
             <property name="show-title">true</property>
-            <style>
-              <class name="flat"/>
-            </style>
-            <!-- Sidebar toggle button -->
-            <child type="start">
-              <object class="GtkToggleButton" id="sidebar_toggle_button">
-                <property name="icon-name">bars-symbolic</property>
-                <property name="tooltip-text">Toggle sidebar</property>
-                <property name="active">true</property>
-              </object>
-            </child>
-            <!-- Seasonal effects toggle button -->
-            <child type="end">
-              <object class="GtkToggleButton" id="seasonal_effects_toggle">
-                <property name="tooltip-text">Toggle seasonal effects</property>
-                <property name="icon-name">star-symbolic</property>
-                <property name="active">true</property>
-                <property name="visible">false</property>
-              </object>
-            </child>
-            <!-- About button -->
-            <child type="end">
-              <object class="GtkButton" id="about_button">
-                <property name="tooltip-text">About</property>
-                <!-- Use icon-name so the icon comes from the registered resources/icon theme -->
-                <property name="icon-name">heart</property>
-              </object>
-            </child>
+            <property name="show-end-title-buttons">true</property>
           </object>
         </child>
         <property name="content">
-          <!-- Main Split View (sidebar + content) -->
-          <object class="AdwOverlaySplitView" id="main_split_view">
-            <property name="show-sidebar">true</property>
-            <property name="sidebar-position">start</property>
-            <property name="collapsed">false</property>
-            <property name="max-sidebar-width">400</property>
-            <property name="min-sidebar-width">200</property>
-            <!-- Sidebar Content -->
-            <property name="sidebar">
-              <object class="GtkBox" id="sidebar">
+          <object class="GtkBox" id="main_box">
+            <property name="orientation">vertical</property>
+            <property name="spacing">20</property>
+            <property name="margin-top">30</property>
+            <property name="margin-bottom">30</property>
+            <property name="margin-start">30</property>
+            <property name="margin-end">30</property>
+            <!-- Title section with icon -->
+            <child>
+              <object class="GtkBox" id="title_box">
+                <property name="orientation">horizontal</property>
+                <property name="spacing">10</property>
+                <property name="halign">center</property>
+                <child>
+                  <object class="GtkImage" id="info_icon">
+                    <property name="icon-name">xero-toolkit</property>
+                    <property name="pixel-size">48</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="title_label">
+                    <property name="label">Xero Toolkit Open</property>
+                    <property name="halign">center</property>
+                    <style>
+                      <class name="title-2"/>
+                    </style>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <!-- Main description -->
+            <child>
+              <object class="GtkLabel" id="main_message">
+                <property name="label">MurderFromMars' enhanced and jailbroken Xero Toolkit</property>
+                <property name="halign">center</property>
+                <property name="wrap">true</property>
+                <property name="justify">center</property>
+                <property name="margin-top">10</property>
+              </object>
+            </child>
+            <!-- Credits Section -->
+            <child>
+              <object class="GtkBox" id="credits_box">
                 <property name="orientation">vertical</property>
-                <property name="hexpand">false</property>
+                <property name="spacing">15</property>
+                <property name="margin-top">10</property>
                 <property name="vexpand">true</property>
-                <property name="css-classes">sidebar</property>
-                <!-- Title at top of sidebar -->
+                <!-- UI Design Credit -->
                 <child>
-                  <object class="GtkLabel" id="sidebar_title">
-                    <property name="label">Toolkit</property>
-                    <property name="margin-top">16</property>
-                    <property name="margin-bottom">16</property>
-                    <property name="margin-start">12</property>
-                    <property name="margin-end">12</property>
-                    <property name="wrap">true</property>
-                    <property name="css-classes">section-title</property>
-                    <property name="xalign">0</property>
-                  </object>
-                </child>
-                <!-- Separator -->
-                <child>
-                  <object class="GtkSeparator">
-                    <property name="orientation">horizontal</property>
-                  </object>
-                </child>
-                <!-- Tab List -->
-                <child>
-                  <object class="GtkBox" id="tabs_container">
+                  <object class="GtkBox" id="ui_credit_box">
                     <property name="orientation">vertical</property>
-                    <property name="spacing">4</property>
-                    <property name="margin-top">8</property>
-                    <property name="margin-bottom">8</property>
-                    <property name="margin-start">8</property>
-                    <property name="margin-end">8</property>
-                    <property name="hexpand">true</property>
-                    <property name="vexpand">true</property>
-                    <property name="halign">fill</property>
-                    <property name="valign">start</property>
-                  </object>
-                </child>
-                <!-- Spacer to push autostart toggle to bottom -->
-                <child>
-                  <object class="GtkBox">
-                    <property name="vexpand">true</property>
-                  </object>
-                </child>
-                <!-- Autostart Toggle -->
-                <child>
-                  <object class="GtkBox">
-                    <property name="orientation">horizontal</property>
-                    <property name="spacing">8</property>
-                    <property name="margin-start">12</property>
-                    <property name="margin-end">12</property>
-                    <property name="margin-bottom">12</property>
+                    <property name="spacing">5</property>
+                    <property name="halign">center</property>
                     <child>
-                      <object class="GtkLabel">
-                        <property name="label">Start on Login</property>
-                        <property name="hexpand">true</property>
-                        <property name="xalign">0</property>
-                        <property name="css-classes">dim</property>
+                      <object class="GtkLabel" id="ui_credit_label">
+                        <property name="label">UI Design by DarkXero</property>
+                        <property name="halign">center</property>
+                        <style>
+                          <class name="title-4"/>
+                        </style>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkSwitch" id="switch_autostart">
-                        <property name="valign">center</property>
+                      <object class="GtkLabel" id="darkxero_donate_label">
+                        <property name="label">Support DarkXero: &lt;a href="https://fundrazr.com/xerolinux"&gt;fundrazr.com/xerolinux&lt;/a&gt;</property>
+                        <property name="use-markup">true</property>
+                        <property name="halign">center</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <!-- Backend Development Credit -->
+                <child>
+                  <object class="GtkBox" id="backend_credit_box">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <property name="halign">center</property>
+                    <child>
+                      <object class="GtkLabel" id="backend_credit_label">
+                        <property name="label">Backend Development by Synse</property>
+                        <property name="halign">center</property>
+                        <style>
+                          <class name="title-4"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="synse_donate_label">
+                        <property name="label">Support Synse: &lt;a href="https://paypal.me/scgxenos"&gt;paypal.me/scgxenos&lt;/a&gt;</property>
+                        <property name="use-markup">true</property>
+                        <property name="halign">center</property>
                       </object>
                     </child>
                   </object>
                 </child>
               </object>
-            </property>
-            <!-- Main Content Area: page stack -->
-            <property name="content">
-              <object class="GtkScrolledWindow" id="page_scroll">
-                <property name="hexpand">true</property>
-                <property name="vexpand">true</property>
-                <property name="hscrollbar-policy">never</property>
-                <property name="vscrollbar-policy">automatic</property>
+            </child>
+            <!-- Button section -->
+            <child>
+              <object class="GtkBox" id="button_box">
+                <property name="orientation">horizontal</property>
+                <property name="halign">center</property>
+                <property name="margin-top">20</property>
                 <child>
-                  <object class="GtkBox" id="right_container">
-                    <property name="orientation">vertical</property>
-                    <property name="hexpand">true</property>
-                    <!-- Stack will be dynamically created and inserted here -->
+                  <object class="GtkButton" id="close_button">
+                    <property name="label">Close</property>
+                    <property name="width-request">100</property>
                   </object>
                 </child>
               </object>
-            </property>
+            </child>
           </object>
         </property>
       </object>

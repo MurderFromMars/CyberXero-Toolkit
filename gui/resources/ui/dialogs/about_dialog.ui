@@ -5,9 +5,8 @@
 
   <object class="AdwWindow" id="about_window">
     <property name="title">About</property>
-    <property name="icon-name">xero-toolkit</property>
-    <property name="default-width">500</property>
-    <property name="default-height">400</property>
+    <property name="default-width">480</property>
+    <property name="default-height">320</property>
     <property name="modal">true</property>
     <property name="resizable">false</property>
 
@@ -17,7 +16,6 @@
         <child type="top">
           <object class="AdwHeaderBar">
             <property name="show-title">true</property>
-            <property name="show-end-title-buttons">true</property>
           </object>
         </child>
 
@@ -30,140 +28,49 @@
             <property name="margin-start">30</property>
             <property name="margin-end">30</property>
 
-            <!-- Title section -->
+            <!-- Title -->
             <child>
-              <object class="GtkBox" id="title_box">
-                <property name="orientation">horizontal</property>
-                <property name="spacing">10</property>
+              <object class="GtkLabel" id="title_label">
+                <property name="label">CyberXero Toolkit</property>
                 <property name="halign">center</property>
-
-                <child>
-                  <object class="GtkImage" id="info_icon">
-                    <property name="icon-name">xero-toolkit</property>
-                    <property name="pixel-size">48</property>
-                  </object>
-                </child>
-
-                <child>
-                  <object class="GtkLabel" id="title_label">
-                    <property name="label">Xero Toolkit Open</property>
-                    <property name="halign">center</property>
-                    <style>
-                      <class name="title-2"/>
-                    </style>
-                  </object>
-                </child>
+                <style>
+                  <class name="title-1"/>
+                </style>
               </object>
             </child>
 
-            <!-- Main description -->
+            <!-- Description -->
             <child>
-              <object class="GtkLabel" id="main_message">
-                <property name="label">MurderFromMars' enhanced and jailbroken Xero Toolkit</property>
+              <object class="GtkLabel" id="description_label">
+                <property name="label">A jailbroken and enhanced fork of Xero Toolkit.</property>
                 <property name="halign">center</property>
                 <property name="wrap">true</property>
                 <property name="justify">center</property>
-                <property name="margin-top">10</property>
               </object>
             </child>
 
-            <!-- Credits -->
+            <!-- Author -->
             <child>
-              <object class="GtkBox" id="credits_box">
-                <property name="orientation">vertical</property>
-                <property name="spacing">15</property>
-                <property name="margin-top">10</property>
-                <property name="vexpand">true</property>
+              <object class="GtkLabel" id="author_label">
+                <property name="label">Fork, jailbreaking, and enhancements by MurderFromMars</property>
+                <property name="halign">center</property>
+              </object>
+            </child>
 
-                <!-- UI Design Credit -->
-                <child>
-                  <object class="GtkBox" id="ui_credit_box">
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">5</property>
-                    <property name="halign">center</property>
-
-                    <child>
-                      <object class="GtkLabel" id="ui_credit_label">
-                        <property name="label">UI Design by DarkXero</property>
-                        <property name="halign">center</property>
-                        <style>
-                          <class name="title-4"/>
-                        </style>
-                      </object>
-                    </child>
-
-                    <child>
-                      <object class="GtkLinkButton" id="darkxero_donate_link">
-                        <property name="label">fundrazr.com/xerolinux</property>
-                        <property name="uri">https://fundrazr.com/xerolinux</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-
-                <!-- Backend Development Credit -->
-                <child>
-                  <object class="GtkBox" id="backend_credit_box">
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">5</property>
-                    <property name="halign">center</property>
-
-                    <child>
-                      <object class="GtkLabel" id="backend_credit_label">
-                        <property name="label">Backend Development by Synse</property>
-                        <property name="halign">center</property>
-                        <style>
-                          <class name="title-4"/>
-                        </style>
-                      </object>
-                    </child>
-
-                    <child>
-                      <object class="GtkLinkButton" id="synse_donate_link">
-                        <property name="label">paypal.me/scgxenos</property>
-                        <property name="uri">https://paypal.me/scgxenos</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-
-                <!-- CyberXero Toolkit Credit -->
-                <child>
-                  <object class="GtkBox" id="cyberxero_credit_box">
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">5</property>
-                    <property name="halign">center</property>
-
-                    <child>
-                      <object class="GtkLabel" id="cyberxero_credit_label">
-                        <property name="label">
-                          CyberXero Toolkit jailbreaking and enhancements by MurderFromMars
-                        </property>
-                        <property name="halign">center</property>
-                        <style>
-                          <class name="title-4"/>
-                        </style>
-                      </object>
-                    </child>
-
-                    <child>
-                      <object class="GtkLinkButton" id="murderfrommars_github_link">
-                        <property name="label">github.com/MurderFromMars</property>
-                        <property name="uri">https://github.com/MurderFromMars</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-
+            <!-- GitHub link -->
+            <child>
+              <object class="GtkLinkButton" id="github_link">
+                <property name="label">github.com/MurderFromMars</property>
+                <property name="uri">https://github.com/MurderFromMars</property>
+                <property name="halign">center</property>
               </object>
             </child>
 
             <!-- Close button -->
             <child>
-              <object class="GtkBox" id="button_box">
-                <property name="orientation">horizontal</property>
+              <object class="GtkBox">
                 <property name="halign">center</property>
-                <property name="margin-top">20</property>
+                <property name="margin-top">10</property>
 
                 <child>
                   <object class="GtkButton" id="close_button">

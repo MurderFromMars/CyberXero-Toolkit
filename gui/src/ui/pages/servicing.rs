@@ -377,3 +377,36 @@ fn setup_chaotic_aur(page_builder: &Builder, window: &ApplicationWindow) {
         task_runner::run(window.upcast_ref(), commands, "Install Chaotic-AUR Repository");
     });
 }
+fn setup_xero_repo(page_builder: &Builder, window: &ApplicationWindow) {
+    let btn_xero_repo = extract_widget::<gtk4::Button>(page_builder, "btn_xero_repo");
+    let window = window.clone();
+    btn_xero_repo.connect_clicked(move |_| {
+        info!("Servicing: Add Xero Linux Repository button clicked");
+        
+        // Xero Linux repository setup
+        // https://repos.xerolinux.xyz/
+        let commands = CommandSequence::new()
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("sh")
+                    .args(&[
+                        "-c",
+                        "grep -q '\\[xerolinux\\]' /etc/pacman.conf || echo -e '\\n[xerolinux]\\nSigLevel = Optional TrustAll\\nServer = https://repos.xerolinux.xyz/$repo/$arch' >> /etc/pacman.conf",
+                    ])
+                    .description("Adding Xero Linux repository to pacman.conf...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("pacman")
+                    .args(&["-Syy"])
+                    .description("Refreshing package databases...")
+                    .build(),
+            )
+            .build();
+
+        task_runner::run(window.upcast_ref(), commands, "Add Xero Linux Repository");
+    });
+}

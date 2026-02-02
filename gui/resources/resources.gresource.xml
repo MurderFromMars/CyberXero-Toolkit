@@ -4,6 +4,7 @@
     <!-- UI definitions -->
     <file preprocess="xml-stripblanks" compressed="true">ui/main.ui</file>
     <file preprocess="xml-stripblanks" compressed="true">ui/tabs/main_page.ui</file>
+    <file preprocess="xml-stripblanks" compressed="true">ui/tabs/biometrics.ui</file>
     <file preprocess="xml-stripblanks" compressed="true">ui/tabs/drivers.ui</file>
     <file preprocess="xml-stripblanks" compressed="true">ui/tabs/customization.ui</file>
     <file preprocess="xml-stripblanks" compressed="true">ui/tabs/gaming_tools.ui</file>
@@ -61,5 +62,7 @@
     <file compressed="true">icons/scalable/actions/arrow-right-symbolic.svg</file>
     <file compressed="true">icons/scalable/actions/circle-check-symbolic.svg</file>
     <file compressed="true">icons/scalable/apps/xero-toolkit.png</file>
+    <file compressed="true">icons/scalable/apps/xfprintd-gui.png</file>
+    <file compressed="true">icons/scalable/apps/xero-howdy-qt.png</file>
   </gresource>
 </gresources>

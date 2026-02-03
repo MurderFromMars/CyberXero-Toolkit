@@ -2,7 +2,7 @@
 //!
 //! Handles:
 //! - Fingerprint reader setup (xfprintd-gui)
-//! - Howdy facial recognition setup (xero-howdy-qt)
+//! - Howdy facial recognition setup (xero-howdy-qt - build from source)
 
 use crate::core;
 use crate::ui::task_runner::{self, Command, CommandSequence};
@@ -113,17 +113,59 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
                 error!("Failed to launch xero-howdy-qt: {}", e);
             }
         } else {
+            // Build and install Howdy Qt from source
             let commands = CommandSequence::new()
                 .then(
                     Command::builder()
                         .aur()
-                        .args(&["-S", "--noconfirm", "--needed", "xero-howdy-qt"])
-                        .description("Installing Xero Howdy Qt...")
+                        .args(&["-S", "--noconfirm", "--needed", "rust", "cargo", "clang", "qt6-base", "qt6-declarative", "howdy-bin"])
+                        .description("Installing build dependencies...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "rm -rf /tmp/xero-howdy-qt && git clone https://github.com/XeroLinuxDev/xero-howdy-qt.git /tmp/xero-howdy-qt",
+                        ])
+                        .description("Cloning Howdy Qt repository...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "cd /tmp/xero-howdy-qt && cargo build --release",
+                        ])
+                        .description("Building Howdy Qt (this may take a few minutes)...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "install -Dm755 /tmp/xero-howdy-qt/target/release/xero-howdy-qt /usr/bin/xero-howdy-qt",
+                        ])
+                        .description("Installing Howdy Qt to system...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("rm")
+                        .args(&["-rf", "/tmp/xero-howdy-qt"])
+                        .description("Cleaning up build directory...")
                         .build(),
                 )
                 .build();
 
-            task_runner::run(window.upcast_ref(), commands, "Install Xero Howdy Qt");
+            task_runner::run(window.upcast_ref(), commands, "Install Howdy Qt (Build from Source)");
         }
     });
 }

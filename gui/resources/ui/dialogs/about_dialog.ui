@@ -60,7 +60,7 @@
             <child>
               <object class="GtkLabel" id="main_message">
                 <property name="label">
-                  A fork of the original XeroLinux Toolkit, maintained and expanded by MurderFromMars.
+                Based on the awesome work by Synse and DarkXero  this is a fork of the original XeroLinux Toolkit, maintained and expanded by MurderFromMars.
                 </property>
                 <property name="halign">center</property>
                 <property name="wrap">true</property>

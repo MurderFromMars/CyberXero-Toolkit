@@ -2,6 +2,10 @@
 
 use crate::core::package;
 use crate::ui::utils::extract_widget;
+
+use adw::prelude::*;        // Needed for AdwWindow::present()
+use adw::Window as AdwWindow;
+
 use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{Builder, Button, Label, Window};
@@ -11,8 +15,8 @@ pub fn show_about_dialog(parent: &Window) {
     // Load the UI from resource
     let builder = Builder::from_resource(crate::config::resources::dialogs::ABOUT);
 
-    // Get the dialog window (AdwWindow is a subclass of gtk4::Window)
-    let dialog: Window = extract_widget(&builder, "about_window");
+    // FIX: AdwWindow is NOT a gtk4::Window. Use the correct type.
+    let dialog: AdwWindow = extract_widget(&builder, "about_window");
 
     // Get the close button
     let close_button: Button = extract_widget(&builder, "close_button");

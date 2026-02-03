@@ -88,6 +88,13 @@ pub const PAGES: &[PageConfig] = &[
         ui_resource: crate::config::resources::tabs::SERVICING_SYSTEM_TWEAKS,
         setup_handler: Some(pages::servicing::setup_handlers),
     },
+    PageConfig {
+        id: "biometrics",
+        title: "Biometrics",
+        icon: "xfprintd-gui",
+        ui_resource: crate::config::resources::tabs::BIOMETRICS,
+        setup_handler: Some(pages::biometrics::setup_handlers),
+    },
 ];
 
 /// Represents a single tab in the navigation sidebar.

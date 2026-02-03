@@ -84,15 +84,15 @@ fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
 fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
     let btn_howdy_setup = extract_widget::<gtk4::Button>(page_builder, "btn_howdy_setup");
 
-    // Initial check
-    let is_installed = core::is_package_installed("xero-howdy-qt");
+    // Initial check - check if binary exists instead of package
+    let is_installed = std::path::Path::new("/usr/bin/xero-howdy-qt").exists();
     update_button_state(&btn_howdy_setup, is_installed);
 
     // Update on window focus (e.g. after installation completes)
     let btn_clone = btn_howdy_setup.clone();
     window.connect_is_active_notify(move |window| {
         if window.is_active() {
-            let is_installed = core::is_package_installed("xero-howdy-qt");
+            let is_installed = std::path::Path::new("/usr/bin/xero-howdy-qt").exists();
             update_button_state(&btn_clone, is_installed);
         }
     });
@@ -101,8 +101,8 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
     btn_howdy_setup.connect_clicked(move |_| {
         info!("Biometrics: Howdy setup button clicked");
 
-        // Check again at click time
-        if core::is_package_installed("xero-howdy-qt") {
+        // Check again at click time - check if binary exists instead of package
+        if std::path::Path::new("/usr/bin/xero-howdy-qt").exists() {
             info!("Launching xero-howdy-qt...");
             if let Err(e) = StdCommand::new("xero-howdy-qt")
                 .stdin(Stdio::null())

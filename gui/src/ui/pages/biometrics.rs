@@ -118,7 +118,7 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
                 .then(
                     Command::builder()
                         .aur()
-                        .args(&["-S", "--noconfirm", "--needed", "rust", "cargo", "clang", "qt6-base", "qt6-declarative", "howdy-bin"])
+                        .args(&["-S", "--noconfirm", "--needed", "rust", "cargo", "python-dlib", "clang", "qt6-base", "qt6-declarative", "howdy-bin"])
                         .description("Installing build dependencies...")
                         .build(),
                 )

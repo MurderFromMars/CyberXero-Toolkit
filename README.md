@@ -108,6 +108,9 @@ The fork has been lightly rebranded to reflect its enhanced/jailbroken status:
 - **Modified Links** - Discord and YouTube links updated (configurable in `gui/src/config.rs`)
 - **Logo** - changed to a more appropriate Arch logo 
 
+### Updates
+imported biometrics updates from upstream development branch, including support for xero-howdy-qt  which required some creative thinking to sidestep upstream intentionally using broken dependencies only supported on XeroLinux
+
 
 
 ## 📄 License

@@ -109,7 +109,7 @@ The fork has been lightly rebranded to reflect its enhanced/jailbroken status:
 - **Logo** - changed to a more appropriate Arch logo 
 
 ### Updates
-imported biometrics updates from upstream development branch, including support for xero-howdy-qt  which required some creative thinking to sidestep upstream intentionally using broken dependencies only supported on XeroLinux
+imported biometrics updates from upstream development branch, including support for xero-howdy-qt this required me completely rewriting installation functionality to build the package from source, using howdy-git instead of the fundamentally broken howdy-bin 
 
 
 

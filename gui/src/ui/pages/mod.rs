@@ -10,7 +10,9 @@
 //! - `customization`: ZSH, themes, wallpapers
 //! - `kernel_schedulers`: Kernel Manager and SCX Scheduler (with subtabs)
 //! - `servicing`: System fixes and maintenance
+//! - `biometrics`: Fingerprint and facial recognition setup
 
+pub mod biometrics;
 pub mod containers_vms;
 pub mod customization;
 pub mod drivers;

@@ -6,8 +6,8 @@
   <object class="AdwWindow" id="about_window">
     <property name="title">About</property>
     <property name="icon-name">xero-toolkit</property>
-    <property name="default-width">500</property>
-    <property name="default-height">400</property>
+    <property name="default-width">480</property>
+    <property name="default-height">380</property>
     <property name="modal">true</property>
     <property name="resizable">false</property>
 
@@ -22,88 +22,87 @@
         </child>
 
         <property name="content">
-          <object class="GtkBox" id="main_box">
-            <property name="orientation">vertical</property>
-            <property name="spacing">20</property>
-            <property name="margin-top">30</property>
-            <property name="margin-bottom">30</property>
-            <property name="margin-start">30</property>
-            <property name="margin-end">30</property>
+          <object class="AdwClamp">
+            <property name="maximum-size">420</property>
+            <property name="tightening-threshold">300</property>
 
-            <!-- Title section -->
-            <child>
-              <object class="GtkBox" id="title_box">
-                <property name="orientation">horizontal</property>
-                <property name="spacing">10</property>
-                <property name="halign">center</property>
-
-                <child>
-                  <object class="GtkImage" id="info_icon">
-                    <property name="icon-name">xero-toolkit</property>
-                    <property name="pixel-size">48</property>
-                  </object>
-                </child>
-
-                <child>
-                  <object class="GtkLabel" id="title_label">
-                    <property name="label">CyberXero Toolkit</property>
-                    <property name="halign">center</property>
-                    <style>
-                      <class name="title-2"/>
-                    </style>
-                  </object>
-                </child>
-              </object>
-            </child>
-
-            <!-- Main description -->
-            <child>
-              <object class="GtkLabel" id="main_message">
-                <property name="label">
-                Based on the awesome work by Synse and DarkXero,  this is a fork of the original XeroLinux Toolkit, maintained and expanded by MurderFromMars.
-                </property>
-                <property name="halign">center</property>
-                <property name="wrap">true</property>
-                <property name="justify">center</property>
-                <property name="margin-top">10</property>
-              </object>
-            </child>
-
-            <!-- Documentation link -->
-            <child>
-              <object class="GtkLabel" id="docs_label">
-                <property name="label">
-                  Documentation: &lt;a href="https://github.com/MurderFromMars/CyberXero-Toolkit"&gt;github.com/MurderFromMars/CyberXero-Toolkit&lt;/a&gt;
-                </property>
-                <property name="use-markup">true</property>
-                <property name="halign">center</property>
-                <property name="wrap">true</property>
-              </object>
-            </child>
-
-            <!-- Spacer -->
             <child>
               <object class="GtkBox">
-                <property name="vexpand">true</property>
-              </object>
-            </child>
+                <property name="orientation">vertical</property>
+                <property name="spacing">24</property>
+                <property name="margin-top">32</property>
+                <property name="margin-bottom">32</property>
+                <property name="margin-start">32</property>
+                <property name="margin-end">32</property>
 
-            <!-- Close button -->
-            <child>
-              <object class="GtkBox" id="button_box">
-                <property name="orientation">horizontal</property>
-                <property name="halign">center</property>
-                <property name="margin-top">20</property>
-
+                <!-- Title section -->
                 <child>
-                  <object class="GtkButton" id="close_button">
-                    <property name="label">Close</property>
-                    <property name="width-request">100</property>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">8</property>
+                    <property name="halign">center</property>
+
+                    <child>
+                      <object class="GtkImage">
+                        <property name="icon-name">xero-toolkit</property>
+                        <property name="pixel-size">56</property>
+                      </object>
+                    </child>
+
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label">CyberXero Toolkit</property>
+                        <property name="halign">center</property>
+                        <style>
+                          <class name="title-2"/>
+                        </style>
+                      </object>
+                    </child>
                   </object>
                 </child>
+
+                <!-- Main description -->
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label">
+                      Based on the awesome work by Synse and DarkXero, this is a fork of the original XeroLinux Toolkit, maintained and expanded by MurderFromMars.
+                    </property>
+                    <property name="wrap">true</property>
+                    <property name="justify">center</property>
+                    <property name="halign">center</property>
+                  </object>
+                </child>
+
+                <!-- Documentation link -->
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label">
+                      Documentation: &lt;a href="https://github.com/MurderFromMars/CyberXero-Toolkit"&gt;github.com/MurderFromMars/CyberXero-Toolkit&lt;/a&gt;
+                    </property>
+                    <property name="use-markup">true</property>
+                    <property name="wrap">true</property>
+                    <property name="halign">center</property>
+                  </object>
+                </child>
+
+                <!-- Spacer -->
+                <child>
+                  <object class="GtkBox">
+                    <property name="vexpand">true</property>
+                  </object>
+                </child>
+
+                <!-- Close button -->
+                <child>
+                  <object class="GtkButton">
+                    <property name="label">Close</property>
+                    <property name="halign">center</property>
+                    <property name="width-request">110</property>
+                  </object>
+                </child>
+
               </object>
             </child>
-
           </object>
         </property>
 

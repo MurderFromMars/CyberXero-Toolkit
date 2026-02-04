@@ -35,6 +35,23 @@ fn update_button_state(
     }
 }
 
+/// Check if howdy is installed (either howdy-bin or howdy-git)
+fn is_howdy_installed() -> bool {
+    core::is_package_installed("howdy-bin") || core::is_package_installed("howdy-git")
+}
+
+/// Check if howdy-bin is available in system repos (not AUR)
+fn is_howdy_bin_in_repos() -> bool {
+    let output = StdCommand::new("pacman")
+        .args(&["-Si", "howdy-bin"])
+        .output();
+    
+    match output {
+        Ok(result) => result.status.success(),
+        Err(_) => false,
+    }
+}
+
 fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
     let btn_fingerprint_setup =
         extract_widget::<gtk4::Button>(page_builder, "btn_fingerprint_setup");
@@ -148,15 +165,42 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
                 error!("Failed to launch xero-howdy-qt: {}", e);
             }
         } else {
+            // Determine which howdy package to install
+            let howdy_package = if is_howdy_installed() {
+                info!("Howdy already installed, skipping installation");
+                None
+            } else if is_howdy_bin_in_repos() {
+                info!("howdy-bin found in repos, will install from there");
+                Some("howdy-bin")
+            } else {
+                info!("howdy-bin not in repos, will install howdy-git from AUR");
+                Some("howdy-git")
+            };
+
             // Build and install Howdy Qt from source
-            let commands = CommandSequence::new()
-                .then(
+            let mut commands = CommandSequence::new();
+
+            // Install dependencies including the appropriate howdy package
+            if let Some(howdy_pkg) = howdy_package {
+                commands = commands.then(
                     Command::builder()
                         .aur()
-                        .args(&["-S", "--noconfirm", "--needed", "rust", "cargo", "clang", "qt6-base", "qt6-declarative", "howdy-git"])
+                        .args(&["-S", "--noconfirm", "--needed", "rust", "cargo", "clang", "qt6-base", "qt6-declarative", howdy_pkg])
+                        .description("Installing build dependencies and Howdy...")
+                        .build(),
+                );
+            } else {
+                // Howdy already installed, just install build dependencies
+                commands = commands.then(
+                    Command::builder()
+                        .aur()
+                        .args(&["-S", "--noconfirm", "--needed", "rust", "cargo", "clang", "qt6-base", "qt6-declarative"])
                         .description("Installing build dependencies...")
                         .build(),
-                )
+                );
+            }
+
+            commands = commands
                 .then(
                     Command::builder()
                         .normal()
@@ -209,7 +253,8 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
     btn_howdy_uninstall.connect_clicked(move |_| {
         info!("Biometrics: Howdy uninstall button clicked");
 
-        let commands = CommandSequence::new()
+        // Build uninstall commands - remove binary and whichever howdy package is installed
+        let mut commands = CommandSequence::new()
             .then(
                 Command::builder()
                     .privileged()
@@ -217,15 +262,28 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
                     .args(&["-f", "/usr/bin/xero-howdy-qt"])
                     .description("Removing Howdy Qt binary...")
                     .build(),
-            )
-            .then(
+            );
+
+        // Remove whichever howdy package is installed
+        if core::is_package_installed("howdy-bin") {
+            commands = commands.then(
+                Command::builder()
+                    .aur()
+                    .args(&["-Rns", "--noconfirm", "howdy-bin"])
+                    .description("Uninstalling Howdy (howdy-bin)...")
+                    .build(),
+            );
+        } else if core::is_package_installed("howdy-git") {
+            commands = commands.then(
                 Command::builder()
                     .aur()
                     .args(&["-Rns", "--noconfirm", "howdy-git"])
-                    .description("Uninstalling Howdy...")
+                    .description("Uninstalling Howdy (howdy-git)...")
                     .build(),
-            )
-            .build();
+            );
+        }
+
+        let commands = commands.build();
 
         task_runner::run(
             window_clone.upcast_ref(),

@@ -36,6 +36,14 @@
       <widget name="btn_howdy_setup"/>
     </widgets>
   </object>
+  <!-- 5. Ensure uninstall buttons are the same size -->
+  <object class="GtkSizeGroup">
+    <property name="mode">both</property>
+    <widgets>
+      <widget name="btn_fingerprint_uninstall"/>
+      <widget name="btn_howdy_uninstall"/>
+    </widgets>
+  </object>
 
   <object class="GtkBox" id="page_biometrics">
     <property name="orientation">vertical</property>
@@ -162,12 +170,28 @@
                           </object>
                         </child>
                         <child>
-                          <object class="GtkButton" id="btn_fingerprint_setup">
-                            <property name="label">Setup / Enable</property>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">8</property>
                             <property name="halign">center</property>
                             <property name="margin-top">12</property>
-                            <property name="width-request">140</property>
-                            <property name="css-classes">suggested-action pill</property>
+                            <child>
+                              <object class="GtkButton" id="btn_fingerprint_setup">
+                                <property name="label">Setup / Enable</property>
+                                <property name="halign">center</property>
+                                <property name="width-request">140</property>
+                                <property name="css-classes">suggested-action pill</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="btn_fingerprint_uninstall">
+                                <property name="label">Uninstall</property>
+                                <property name="halign">center</property>
+                                <property name="width-request">140</property>
+                                <property name="css-classes">destructive-action pill</property>
+                                <property name="visible">false</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>
@@ -222,12 +246,28 @@
                           </object>
                         </child>
                         <child>
-                          <object class="GtkButton" id="btn_howdy_setup">
-                            <property name="label">Setup / Enable</property>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">8</property>
                             <property name="halign">center</property>
                             <property name="margin-top">12</property>
-                            <property name="width-request">140</property>
-                            <property name="css-classes">suggested-action pill</property>
+                            <child>
+                              <object class="GtkButton" id="btn_howdy_setup">
+                                <property name="label">Setup / Enable</property>
+                                <property name="halign">center</property>
+                                <property name="width-request">140</property>
+                                <property name="css-classes">suggested-action pill</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="btn_howdy_uninstall">
+                                <property name="label">Uninstall</property>
+                                <property name="halign">center</property>
+                                <property name="width-request">140</property>
+                                <property name="css-classes">destructive-action pill</property>
+                                <property name="visible">false</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>

@@ -1,7 +1,7 @@
 //! Biometrics page button handlers.
 //!
 //! Handles:
-//! - Fingerprint reader setup (xfprintd-gui)
+//! - Fingerprint reader setup (xfprintd-gui - jailbroken edition from source)
 //! - Howdy facial recognition setup (xero-howdy-qt - build from source)
 
 use crate::core;
@@ -40,26 +40,14 @@ fn is_howdy_installed() -> bool {
     core::is_package_installed("howdy-bin") || core::is_package_installed("howdy-git")
 }
 
-/// Check if howdy-bin is available in system repos (not AUR)
-fn is_howdy_bin_in_repos() -> bool {
-    let output = StdCommand::new("pacman")
-        .args(&["-Si", "howdy-bin"])
-        .output();
-    
-    match output {
-        Ok(result) => result.status.success(),
-        Err(_) => false,
-    }
-}
-
 fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
     let btn_fingerprint_setup =
         extract_widget::<gtk4::Button>(page_builder, "btn_fingerprint_setup");
     let btn_fingerprint_uninstall =
         extract_widget::<gtk4::Button>(page_builder, "btn_fingerprint_uninstall");
 
-    // Initial check
-    let is_installed = core::is_package_installed("xfprintd-gui");
+    // Initial check - check if binary exists instead of package
+    let is_installed = std::path::Path::new("/usr/bin/xfprintd-gui").exists();
     update_button_state(&btn_fingerprint_setup, &btn_fingerprint_uninstall, is_installed);
 
     // Update on window focus (e.g. after installation completes)
@@ -67,7 +55,7 @@ fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
     let btn_uninstall_clone = btn_fingerprint_uninstall.clone();
     window.connect_is_active_notify(move |window| {
         if window.is_active() {
-            let is_installed = core::is_package_installed("xfprintd-gui");
+            let is_installed = std::path::Path::new("/usr/bin/xfprintd-gui").exists();
             update_button_state(&btn_setup_clone, &btn_uninstall_clone, is_installed);
         }
     });
@@ -77,8 +65,8 @@ fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
     btn_fingerprint_setup.connect_clicked(move |_| {
         info!("Biometrics: Fingerprint setup button clicked");
 
-        // Check again at click time
-        if core::is_package_installed("xfprintd-gui") {
+        // Check again at click time - check if binary exists instead of package
+        if std::path::Path::new("/usr/bin/xfprintd-gui").exists() {
             info!("Launching xfprintd-gui...");
             if let Err(e) = StdCommand::new("xfprintd-gui")
                 .stdin(Stdio::null())
@@ -89,12 +77,43 @@ fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
                 error!("Failed to launch xfprintd-gui: {}", e);
             }
         } else {
+            // Build and install xfprintd-gui from jailbroken fork
             let commands = CommandSequence::new()
                 .then(
                     Command::builder()
                         .aur()
-                        .args(&["-S", "--noconfirm", "--needed", "xfprintd-gui"])
-                        .description("Installing Fingerprint GUI Tool...")
+                        .args(&["-S", "--noconfirm", "--needed", "rust", "cargo", "gtk4", "libadwaita", "glib2", "pkgconf", "polkit", "fprintd", "base-devel"])
+                        .description("Installing build dependencies...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "rm -rf /tmp/xfprintd-jailbreak && git clone https://github.com/MurderFromMars/xfprintd-gui.git /tmp/xfprintd-jailbreak",
+                        ])
+                        .description("Cloning XFPrintD GUI Jailbroken Edition...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "cd /tmp/xfprintd-jailbreak && sh /tmp/xfprintd-jailbreak/install.sh",
+                        ])
+                        .description("Building and installing Fingerprint GUI (Jailbroken Edition)...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("rm")
+                        .args(&["-rf", "/tmp/xfprintd-jailbreak"])
+                        .description("Cleaning up build directory...")
                         .build(),
                 )
                 .build();
@@ -102,7 +121,7 @@ fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
             task_runner::run(
                 window_clone.upcast_ref(),
                 commands,
-                "Install Fingerprint GUI Tool",
+                "Install XFPrintD GUI (Jailbroken Edition)",
             );
         }
     });
@@ -112,12 +131,46 @@ fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
     btn_fingerprint_uninstall.connect_clicked(move |_| {
         info!("Biometrics: Fingerprint uninstall button clicked");
 
+        // Build uninstall commands - remove all installed files
         let commands = CommandSequence::new()
             .then(
                 Command::builder()
-                    .aur()
-                    .args(&["-Rns", "--noconfirm", "xfprintd-gui"])
-                    .description("Uninstalling Fingerprint GUI Tool...")
+                    .privileged()
+                    .program("rm")
+                    .args(&["-rf", "/opt/xfprintd-gui"])
+                    .description("Removing XFPrintD GUI installation directory...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("rm")
+                    .args(&["-f", "/usr/bin/xfprintd-gui"])
+                    .description("Removing XFPrintD GUI binary symlink...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("rm")
+                    .args(&["-f", "/usr/share/applications/xfprintd-gui.desktop"])
+                    .description("Removing desktop entry...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("rm")
+                    .args(&["-f", "/usr/share/icons/hicolor/scalable/apps/xfprintd-gui.svg"])
+                    .description("Removing application icon...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .normal()
+                    .program("gtk-update-icon-cache")
+                    .args(&["-q", "-t", "-f", "/usr/share/icons/hicolor"])
+                    .description("Updating icon cache...")
                     .build(),
             )
             .build();
@@ -125,7 +178,7 @@ fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
         task_runner::run(
             window_clone.upcast_ref(),
             commands,
-            "Uninstall Fingerprint GUI Tool",
+            "Uninstall XFPrintD GUI (Jailbroken Edition)",
         );
     });
 }
@@ -179,35 +232,14 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
 
             // Then install Howdy if not already installed
             if !is_howdy_installed() {
-                // Install python-dlib first (required dependency for Howdy)
+                info!("Installing howdy-git from AUR");
                 commands = commands.then(
                     Command::builder()
                         .aur()
-                        .args(&["-S", "--noconfirm", "--needed", "python-dlib"])
-                        .description("Installing python-dlib dependency...")
+                        .args(&["-S", "--noconfirm", "--needed", "howdy-git"])
+                        .description("Installing Howdy from AUR...")
                         .build(),
                 );
-
-                if is_howdy_bin_in_repos() {
-                    info!("howdy-bin found in repos, installing from there");
-                    commands = commands.then(
-                        Command::builder()
-                            .privileged()
-                            .program("pacman")
-                            .args(&["-S", "--noconfirm", "--needed", "howdy-bin"])
-                            .description("Installing Howdy from system repos...")
-                            .build(),
-                    );
-                } else {
-                    info!("howdy-bin not in repos, installing howdy-git from AUR");
-                    commands = commands.then(
-                        Command::builder()
-                            .aur()
-                            .args(&["-S", "--noconfirm", "--needed", "howdy-git"])
-                            .description("Installing Howdy from AUR...")
-                            .build(),
-                    );
-                }
             } else {
                 info!("Howdy already installed, skipping Howdy installation");
             }
@@ -265,8 +297,8 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
     btn_howdy_uninstall.connect_clicked(move |_| {
         info!("Biometrics: Howdy uninstall button clicked");
 
-        // Build uninstall commands - remove binary and whichever howdy package is installed
-        let mut commands = CommandSequence::new()
+        // Build uninstall commands - remove binary, howdy-git package, and python dependencies
+        let commands = CommandSequence::new()
             .then(
                 Command::builder()
                     .privileged()
@@ -274,37 +306,22 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
                     .args(&["-f", "/usr/bin/xero-howdy-qt"])
                     .description("Removing Howdy Qt binary...")
                     .build(),
-            );
-
-        // Remove whichever howdy package is installed
-        if core::is_package_installed("howdy-bin") {
-            commands = commands.then(
-                Command::builder()
-                    .aur()
-                    .args(&["-Rns", "--noconfirm", "howdy-bin"])
-                    .description("Uninstalling Howdy (howdy-bin)...")
-                    .build(),
-            );
-        } else if core::is_package_installed("howdy-git") {
-            commands = commands.then(
+            )
+            .then(
                 Command::builder()
                     .aur()
                     .args(&["-Rns", "--noconfirm", "howdy-git"])
                     .description("Uninstalling Howdy (howdy-git)...")
                     .build(),
-            );
-        }
-
-        // Remove python-dlib
-        commands = commands.then(
-            Command::builder()
-                .aur()
-                .args(&["-Rns", "--noconfirm", "python-dlib"])
-                .description("Uninstalling python-dlib...")
-                .build(),
-        );
-
-        let commands = commands.build();
+            )
+            .then(
+                Command::builder()
+                    .aur()
+                    .args(&["-Rns", "--noconfirm", "python-dlib"])
+                    .description("Uninstalling Python dependencies...")
+                    .build(),
+            )
+            .build();
 
         task_runner::run(
             window_clone.upcast_ref(),

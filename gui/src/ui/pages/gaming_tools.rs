@@ -44,6 +44,7 @@ fn setup_steam_aio(builder: &Builder, window: &ApplicationWindow) {
                         "mangohud",
                         "mangoverlay",
                         "lib32-mangohud",
+                        "protonplus",
                         "wine-meta",
                         "wine-nine",
                         "ttf-liberation",

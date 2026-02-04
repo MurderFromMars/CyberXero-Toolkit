@@ -179,6 +179,15 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
 
             // Then install Howdy if not already installed
             if !is_howdy_installed() {
+                // Install python-dlib first (required dependency for Howdy)
+                commands = commands.then(
+                    Command::builder()
+                        .aur()
+                        .args(&["-S", "--noconfirm", "--needed", "python-dlib"])
+                        .description("Installing python-dlib dependency...")
+                        .build(),
+                );
+
                 if is_howdy_bin_in_repos() {
                     info!("howdy-bin found in repos, installing from there");
                     commands = commands.then(

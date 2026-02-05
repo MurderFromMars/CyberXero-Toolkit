@@ -167,7 +167,7 @@ fn setup_fingerprint(page_builder: &Builder, window: &ApplicationWindow) {
             )
             .then(
                 Command::builder()
-                    .normal()
+                    .privileged()
                     .program("gtk-update-icon-cache")
                     .args(&["-q", "-t", "-f", "/usr/share/icons/hicolor"])
                     .description("Updating icon cache...")

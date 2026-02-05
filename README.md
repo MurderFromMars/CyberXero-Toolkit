@@ -4,7 +4,7 @@ A GTK4 GUI application for managing system tools, configurations, and customizat
 
 > **Fork Info:** I previously collaborated with DarkXero and have always appreciated the quality of the XeroLinux project. I wanted a version that was minimal enough to use as my daily system, but after discussing the idea with him, it became clear that he did not plan to create a minimal edition or make the toolkit available outside the official distribution. Because of that, I decided to take on the work myself and bring XeroLinux features to a minimal Arch installation.
 >
-> This fork fulfills that goal by providing an installation process that removes the distribution check and introduces additional features — including **fully unlocked biometric authentication** that upstream has attempted to restrict.
+> This fork fulfills that goal by providing an installation process that removes the distribution check and introduces additional features
 
 ---
 
@@ -145,4 +145,4 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - [XeroLinux](https://xerolinux.xyz/) project
 - [CachyOS](https://cachyos.org/) for their optimized repositories
 - [Chaotic-AUR](https://aur.chaotic.cx/) for pre-built AUR packages
-- [XFPrintD GUI](https://github.com/BananikXenos/xfprintd-gui) original by BananikXenos
+

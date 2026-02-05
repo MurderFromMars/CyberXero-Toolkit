@@ -40,13 +40,17 @@ fn setup_clr_pacman(page_builder: &Builder, window: &ApplicationWindow) {
     let window = window.clone();
     btn_clr_pacman.connect_clicked(move |_| {
         info!("Servicing: Clear Pacman Cache button clicked");
-        // Use terminal dialog for interactive pacman cache clearing
-        terminal::show_terminal_dialog(
-            window.upcast_ref(),
-            "Clear Pacman Cache",
-            "pkexec",
-            &["pacman", "-Scc"],
-        );
+        let commands = CommandSequence::new()
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("pacman")
+                    .args(&["-Scc", "--noconfirm"])
+                    .description("Clearing Pacman cache...")
+                    .build(),
+            )
+            .build();
+        task_runner::run(window.upcast_ref(), commands, "Clear Pacman Cache");
     });
 }
 

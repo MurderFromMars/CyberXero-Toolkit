@@ -314,13 +314,6 @@ fn setup_howdy(page_builder: &Builder, window: &ApplicationWindow) {
                     .description("Uninstalling Howdy (howdy-git)...")
                     .build(),
             )
-            .then(
-                Command::builder()
-                    .aur()
-                    .args(&["-Rns", "--noconfirm", "python-dlib"])
-                    .description("Uninstalling Python dependencies...")
-                    .build(),
-            )
             .build();
 
         task_runner::run(

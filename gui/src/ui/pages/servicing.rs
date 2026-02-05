@@ -12,9 +12,6 @@
 //! - Parallel downloads adjustment
 
 use crate::core;
-use crate::ui::dialogs::selection::{
-    show_selection_dialog, SelectionDialogConfig, SelectionOption, SelectionType,
-};
 use crate::ui::dialogs::terminal;
 use crate::ui::task_runner::{self, Command, CommandSequence};
 use crate::ui::utils::extract_widget;
@@ -184,55 +181,50 @@ fn setup_update_mirrorlist(page_builder: &Builder, window: &ApplicationWindow) {
     let window = window.clone();
     btn_update_mirrorlist.connect_clicked(move |_| {
         info!("Servicing: Update Mirrorlist button clicked");
-        let window_ref = window.upcast_ref();
 
-                let rate_mirrors_installed = core::is_package_installed("rate-mirrors");
-                let config = SelectionDialogConfig::new(
-                    "Update Mirrorlist",
-                    "Select which mirrorlists to update. rate-mirrors will be installed if needed.",
-                )
-                .selection_type(SelectionType::Single)
-                .selection_required(false)
-                .add_option(SelectionOption::new(
-                    "chaotic",
-                    "Chaotic-AUR Mirrorlist",
-                    "Also update Chaotic-AUR mirrorlist (optional)",
-                    false,
-                ))
-                .confirm_label("Update");
+        let rate_mirrors_installed = core::is_package_installed("rate-mirrors");
 
-                let window_for_closure = window.clone();
-                show_selection_dialog(window_ref, config, move |selected_ids| {
-                    let mut commands = CommandSequence::new();
+        // Mapping of mirrorlist files to rate-mirrors repository identifiers
+        // rate-mirrors supports: arch, artix, cachyos, chaotic-aur, endeavouros, manjaro, rebornos
+        let mirror_mappings: Vec<(&str, &str, &str)> = vec![
+            ("/etc/pacman.d/mirrorlist", "arch", "Arch"),
+            ("/etc/pacman.d/chaotic-mirrorlist", "chaotic-aur", "Chaotic-AUR"),
+            ("/etc/pacman.d/cachyos-mirrorlist", "cachyos", "CachyOS"),
+            ("/etc/pacman.d/endeavouros-mirrorlist", "endeavouros", "EndeavourOS"),
+            ("/etc/pacman.d/manjaro-mirrorlist", "manjaro", "Manjaro"),
+            ("/etc/pacman.d/rebornos-mirrorlist", "rebornos", "RebornOS"),
+            ("/etc/pacman.d/artix-mirrorlist", "artix", "Artix"),
+        ];
 
-                    if !rate_mirrors_installed {
-                        commands = commands.then(Command::builder()
-                             .aur()
-                             .args(&["-S", "--needed", "--noconfirm", "rate-mirrors"])
-                             .description("Installing rate-mirrors utility...")
-                             .build());
-                    }
+        let mut commands = CommandSequence::new();
 
-                    commands = commands.then(Command::builder()
-                        .privileged()
-                        .program("sh")
-                        .args(&["-c", "rate-mirrors --allow-root --protocol https arch | tee /etc/pacman.d/mirrorlist"])
-                        .description("Updating Arch mirrorlist...")
-                        .build());
+        // Install rate-mirrors if needed
+        if !rate_mirrors_installed {
+            commands = commands.then(Command::builder()
+                .aur()
+                .args(&["-S", "--needed", "--noconfirm", "rate-mirrors"])
+                .description("Installing rate-mirrors utility...")
+                .build());
+        }
 
-                    if selected_ids.iter().any(|s| s == "chaotic") {
-                        commands = commands.then(Command::builder()
-                            .privileged()
-                            .program("sh")
-                            .args(&["-c", "rate-mirrors --allow-root --protocol https chaotic-aur | tee /etc/pacman.d/chaotic-mirrorlist"])
-                            .description("Updating Chaotic-AUR mirrorlist...")
-                            .build());
-                    }
+        // Check each mirrorlist and add update command if it exists
+        for (file_path, repo_id, repo_name) in mirror_mappings {
+            if std::path::Path::new(file_path).exists() {
+                let cmd = format!(
+                    "rate-mirrors --allow-root --protocol https {} | tee {}",
+                    repo_id, file_path
+                );
+                let description = format!("Updating {} mirrorlist...", repo_name);
+                commands = commands.then(Command::builder()
+                    .privileged()
+                    .program("sh")
+                    .args(&["-c", &cmd])
+                    .description(&description)
+                    .build());
+            }
+        }
 
-                    if !commands.is_empty() {
-                        task_runner::run(window_for_closure.upcast_ref(), commands.build(), "Update System Mirrorlist");
-                    }
-                });
+        task_runner::run(window.upcast_ref(), commands.build(), "Update System Mirrorlists");
     });
 }
 

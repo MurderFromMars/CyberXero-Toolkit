@@ -183,6 +183,39 @@
             </child>
           </object>
         </child>
+        <!-- Row 5: xPackageManager -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="btn_xpackagemanager">
+                <property name="label">Install</property>
+                <property name="width-request">200</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label">xPackageManager</property>
+                <property name="css-classes">heading</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_xpackagemanager_uninstall">
+                <property name="label">Uninstall</property>
+                <property name="width-request">200</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">destructive-action pill</property>
+                <property name="visible">false</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
   </object>

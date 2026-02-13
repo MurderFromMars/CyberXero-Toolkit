@@ -111,6 +111,10 @@ Bringing the latest upstream toolkit updates, with none of the restrictions!
 
 **Install AND uninstall buttons** for easy removal, another added feature unique to this fork
 
+### xPacksgeManager integration
+
+Added a forked version of the new xPacksgeManager that has had distro check removed and repo hard coding replaced with a dynamic system that allows itnto work with any repos on the system, 
+
 ### Smart Mirror Updates
 - **Auto-detects all installed repositories** and updates their mirrorlists automatically
 - Supports: Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, Artix

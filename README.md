@@ -49,13 +49,22 @@ When you install packages or run system operations, you'll see live updates show
 
 ## 💻 System Requirements
 
-- **XeroLinux** (specifically designed for XeroLinux)
+- **XeroLinux** — primary supported platform. The tool may run on other distributions, but those will receive a limited‑support notice at startup; support for non‑XeroLinux systems is best‑effort and not guaranteed.
 - **AUR Helper** - Paru or Yay (required for most features)
 - **Flatpak** - optional but recommended
 
-This tool is specifically designed for **XeroLinux only** and will not work on other Linux distributions.
+This tool is designed primarily for XeroLinux. It may run on other distributions, but you will receive a limited-support notice at startup and some features may not behave as expected. Because some features depend on distribution-specific components, the app enforces critical dependency checks at startup and will prompt you to resolve any missing requirements before you can continue.
+
+## Forks, affiliation & support
+
+This repository is the original source of the project. Community forks and rebranded copies exist independently and are not affiliated with this repository or its maintainers — if you're using one, please direct support requests to the respective fork's maintainers.
+
+### Why distribution checks exist
+The startup dependency checks and limited-support notice are there to set clear expectations: this tool is built and maintained primarily for XeroLinux, and some features rely on distribution-specific components. These checks help avoid hard-to-diagnose issues that fall outside the scope of the project.
+
+### What's supported
+Official support, bug fixes, and releases target XeroLinux. Running the tool on other distributions may work, and we'll help where practical, but this is a hobby project — support for non-XeroLinux systems is best-effort and not guaranteed.
 
 ## 📄 License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
-

@@ -247,6 +247,12 @@ fn setup_pkg_manager(builder: &Builder, window: &ApplicationWindow) {
         .selection_type(SelectionType::Multi)
         .selection_required(true)
         .add_option(SelectionOption::new(
+            "xpackagemanager",
+            "xPackage Manager",
+            "Modern Pacman & Flatpak GUI for XeroLinux",
+            core::is_package_installed("xpackagemanager"),
+        ))
+        .add_option(SelectionOption::new(
             "octopi",
             "Octopi",
             "Powerful Pacman GUI with AUR support",
@@ -302,6 +308,16 @@ fn setup_pkg_manager(builder: &Builder, window: &ApplicationWindow) {
 /// Build commands for selected package managers.
 fn build_pkg_manager_commands(selected: &[String]) -> CommandSequence {
     let mut commands = CommandSequence::new();
+
+    if selected.iter().any(|s| s == "xpackagemanager") {
+        commands = commands.then(
+            Command::builder()
+                .aur()
+                .args(&["-S", "--noconfirm", "--needed", "xpackagemanager"])
+                .description("Installing xPackage Manager...")
+                .build(),
+        );
+    }
 
     if selected.iter().any(|s| s == "octopi") {
         commands = commands.then(

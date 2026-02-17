@@ -33,6 +33,13 @@ sudo rm -f /usr/share/applications/xero-toolkit.desktop
 print_status "Removing icon..."
 sudo rm -f /usr/share/icons/hicolor/scalable/apps/xero-toolkit.png
 
+# Remove extra scripts
+EXTRA_SCRIPTS=(gcm getcider keyfix opr-drv pacup pmpd rddav rpipe upd xpm)
+print_status "Removing extra scripts..."
+for name in "${EXTRA_SCRIPTS[@]}"; do
+    sudo rm -f "/usr/local/bin/$name"
+done
+
 # Update icon cache
 print_status "Updating icon cache..."
 sudo gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true

@@ -156,6 +156,35 @@ sudo install -Dm644 "gui/resources/icons/scalable/apps/xero-toolkit.png" \
 print_status "Updating icon cache..."
 sudo gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
 
+# Install extra scripts
+EXTRA_SCRIPTS_DIR="$SCRIPT_DIR/extra-scripts/usr/local/bin"
+
+if [[ -d "$EXTRA_SCRIPTS_DIR" ]]; then
+    print_status "Installing extra scripts to /usr/local/bin..."
+
+    extra_installed=0
+    extra_failed=0
+
+    for script in "$EXTRA_SCRIPTS_DIR"/*; do
+        [[ -f "$script" ]] || continue
+        name="$(basename "$script")"
+        if sudo install -Dm755 "$script" "/usr/local/bin/$name"; then
+            ((extra_installed++))
+        else
+            print_warning "Failed to install: $name"
+            ((extra_failed++))
+        fi
+    done
+
+    if [[ $extra_failed -eq 0 ]]; then
+        print_success "Installed $extra_installed extra scripts"
+    else
+        print_warning "Installed $extra_installed extra scripts ($extra_failed failed)"
+    fi
+else
+    print_warning "Extra scripts directory not found, skipping"
+fi
+
 print_success "Installation complete!"
 
 echo ""

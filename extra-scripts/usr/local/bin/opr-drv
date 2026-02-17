@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+echo "==> Installing & Enabling OpenRazer…"
+echo
+sudo pacman -S --noconfirm --needed openrazer-driver-dkms openrazer-daemon
+echo
+echo "Adding user to group & enabling service"
+echo
+sudo groupadd -f plugdev && sudo usermod -aG plugdev "$USER"
+echo
+systemctl --user enable --now openrazer-daemon.service
+echo
+echo "==> OpenRazer setup complete."
+sleep 6

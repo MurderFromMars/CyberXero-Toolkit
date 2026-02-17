@@ -1,0 +1,31 @@
+#!/bin/bash
+#set -e
+echo "###################################################"
+echo "This is Licensed Software, Purchase a License 1st !"
+echo "###################################################"
+sleep 3
+xdg-open "https://cidercollective.itch.io/cider" > /dev/null 2>&1
+sleep 3
+echo
+echo "Step 1 - Signing Cider Key"
+echo "##########################"
+sleep 2
+echo
+curl -s https://repo.cider.sh/ARCH-GPG-KEY | sudo pacman-key --add -
+sudo pacman-key --lsign-key A0CD6B993438E22634450CDD2A236C3F42A61682
+sleep 3
+echo
+echo "Step 2 - Adding Cider Repo"
+echo "##########################"
+sleep 2
+echo -e '\n[cidercollective]\nSigLevel = Required TrustedOnly\nServer = https://repo.cider.sh/arch' | sudo tee -a /etc/pacman.conf
+sleep 3
+echo
+echo "Step 3 - Grabbing Cider Package"
+echo "###############################"
+sleep 2
+echo
+sudo pacman -Sy --noconfirm cider
+echo
+echo "All done, enjoy Cider !"
+sleep 6

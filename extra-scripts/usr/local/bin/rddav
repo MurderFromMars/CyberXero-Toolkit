@@ -1,0 +1,142 @@
+#!/bin/bash
+# =====================================================================
+#   Real-Debrid WebDAV Automount (Rclone + Systemd) — Arch Linux
+# =====================================================================
+#   • Prompts for username + password
+#   • Creates rclone remote "realdebrid" for both USER and ROOT
+#   • Creates /mnt/RealDebrid mount point
+#   • Builds a system-wide systemd service for auto-mounting
+#   • Uses VFS caching so copying files *always works*
+#   • Loads automatically at boot for all users
+# =====================================================================
+
+clear
+echo "=============================================================="
+echo "      Real-Debrid WebDAV Automount Installer (Rclone)"
+echo "=============================================================="
+echo
+
+# ---------------------------------------------------------------------
+# STEP 1 — Prompt for credentials
+# ---------------------------------------------------------------------
+echo "[ STEP 1 ] Enter your Real-Debrid WebDAV credentials"
+echo
+
+read -p "Username: " RDUSER
+read -s -p "Password/Secret: " RDPASS
+echo
+echo
+
+# ---------------------------------------------------------------------
+# STEP 2 — Install rclone
+# ---------------------------------------------------------------------
+echo "[ STEP 2 ] Installing rclone..."
+echo
+sudo pacman -S --noconfirm rclone fuse3
+echo
+
+# ---------------------------------------------------------------------
+# STEP 3 — Create rclone remote configuration for USER + ROOT
+# ---------------------------------------------------------------------
+echo "[ STEP 3 ] Creating rclone remote: realdebrid"
+echo
+
+ENCRYPTED_PASS=$(rclone obscure "$RDPASS")
+
+# USER config
+mkdir -p ~/.config/rclone
+tee ~/.config/rclone/rclone.conf >/dev/null <<EOF
+[realdebrid]
+type = webdav
+url = https://dav.real-debrid.com/
+vendor = other
+user = $RDUSER
+pass = $ENCRYPTED_PASS
+EOF
+
+# ROOT config
+sudo mkdir -p /root/.config/rclone
+sudo tee /root/.config/rclone/rclone.conf >/dev/null <<EOF
+[realdebrid]
+type = webdav
+url = https://dav.real-debrid.com/
+vendor = other
+user = $RDUSER
+pass = $ENCRYPTED_PASS
+EOF
+
+sudo chmod 600 /root/.config/rclone/rclone.conf
+
+echo "Rclone remote 'realdebrid' configured for both user and root."
+echo
+
+# ---------------------------------------------------------------------
+# STEP 4 — Create mount point
+# ---------------------------------------------------------------------
+echo "[ STEP 4 ] Creating mount directory..."
+echo
+sudo mkdir -p /mnt/RealDebrid
+sudo chmod 755 /mnt/RealDebrid
+echo "Mount point: /mnt/RealDebrid"
+echo
+
+# ---------------------------------------------------------------------
+# STEP 5 — Create systemd service
+# ---------------------------------------------------------------------
+echo "[ STEP 5 ] Creating systemd service..."
+echo
+
+sudo tee /etc/systemd/system/realdebrid.service >/dev/null <<EOF
+[Unit]
+Description=Real-Debrid WebDAV (rclone mount)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/bin/rclone mount realdebrid: /mnt/RealDebrid \\
+    --vfs-cache-mode full \\
+    --vfs-cache-max-size 5G \\
+    --vfs-cache-max-age 24h \\
+    --buffer-size 32M \\
+    --dir-cache-time 12h \\
+    --poll-interval 1m \\
+    --use-mmap \\
+    --allow-other \\
+    --allow-non-empty
+ExecStop=/bin/fusermount -u /mnt/RealDebrid
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "Systemd service created: /etc/systemd/system/realdebrid.service"
+echo
+
+# ---------------------------------------------------------------------
+# STEP 6 — Enable + start the mount
+# ---------------------------------------------------------------------
+echo "[ STEP 6 ] Enabling + starting Real-Debrid mount service..."
+echo
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now realdebrid.service
+
+echo
+echo "=============================================================="
+echo "   Installation Complete!"
+echo "=============================================================="
+echo
+echo "Your Real-Debrid WebDAV is now mounted at:"
+echo "    /mnt/RealDebrid"
+echo
+echo "It will auto-mount at every boot."
+echo "You can check status using:"
+echo "    systemctl status realdebrid.service"
+echo
+echo "Enjoy your new Real-Debrid mount!"
+echo

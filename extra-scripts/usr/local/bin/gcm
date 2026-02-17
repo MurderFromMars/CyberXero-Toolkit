@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+
+# -------------------------------------------------------------
+#        XeroLinux — Git Credential Helper Wizard
+#   Plaintext freedom or full cleanup. Choose your destiny.
+# -------------------------------------------------------------
+
+# --- Colors ---
+RED="\e[31m"
+GREEN="\e[32m"
+BLUE="\e[34m"
+YELLOW="\e[33m"
+CYAN="\e[36m"
+RESET="\e[0m"
+
+clear
+
+# --- Detect AUR helper ---
+detect_aur_helper() {
+    for helper in paru yay trizen aurman pikaur; do
+        if command -v "$helper" >/dev/null 2>&1; then
+            echo "$helper"
+            return
+        fi
+    done
+    echo ""   # nothing found
+}
+
+AUR_HELPER="$(detect_aur_helper)"
+
+if [[ -z "$AUR_HELPER" ]]; then
+    echo -e "${RED}"
+    echo "#############################################################"
+    echo "   No AUR helper detected! Install paru or yay first."
+    echo "#############################################################"
+    echo -e "${RESET}"
+    exit 1
+fi
+
+# --- Header ---
+echo -e "${CYAN}"
+echo "#############################################################"
+echo "            XeroLinux — Git Credential Wizard"
+echo "#############################################################"
+echo -e "${RESET}"
+echo -e "${BLUE}Hello $USER, choose what you want to do:${RESET}"
+echo
+
+echo -e "  ${GREEN}1)${RESET} Configure Git Credentials (Store mode)"
+echo -e "  ${GREEN}2)${RESET} Remove and Wipe Git Credentials (Fresh Start)"
+echo
+echo -e "  ${YELLOW}x)${RESET} Do nothing & exit"
+echo
+
+read -rp "Your choice: " choice
+echo
+
+case "$choice" in
+
+    1)
+        echo -e "${CYAN}>>> Using AUR helper: ${YELLOW}$AUR_HELPER${RESET}"
+        echo -e "${CYAN}>>> Installing git-credential-manager-bin...${RESET}"
+        $AUR_HELPER -S --noconfirm git-credential-manager-bin
+
+        echo
+        echo -e "${GREEN}>>> Configuring plaintext credential store${RESET}"
+        git config --global --unset-all credential.helper 2>/dev/null
+        git config --global credential.helper store
+
+        echo
+        echo -e "${GREEN}>>> Removing previous plaintext credentials file${RESET}"
+        rm -f ~/.git-credentials
+
+        echo
+        echo -e "${GREEN}Installation complete!${RESET}"
+        echo -e "Next time you push, Git will save your token permanently in:"
+        echo -e "${YELLOW}~/.git-credentials${RESET}"
+        echo
+        ;;
+
+    2)
+        echo -e "${RED}>>> Using AUR helper: ${YELLOW}$AUR_HELPER${RESET}"
+        echo -e "${RED}>>> Removing git-credential-manager-bin...${RESET}"
+        $AUR_HELPER -Rns --noconfirm git-credential-manager-bin
+
+        echo
+        echo -e "${RED}>>> Unsetting ALL credential helpers${RESET}"
+        git config --global --unset-all credential.helper 2>/dev/null
+
+        echo
+        echo -e "${RED}>>> Deleting plaintext credentials file${RESET}"
+        rm -f ~/.git-credentials
+
+        echo
+        echo -e "${GREEN}Cleanup complete.${RESET}"
+        echo "Your Git system is now credential-free."
+        echo
+        ;;
+
+    x|X)
+        echo -e "${YELLOW}Exiting. Nothing changed.${RESET}"
+        echo
+        exit 0
+        ;;
+
+    *)
+        echo -e "${RED}Invalid option. Exiting.${RESET}"
+        echo
+        exit 1
+        ;;
+esac
+
+echo
+echo -e "${CYAN}#############################################################${RESET}"
+echo -e "${CYAN}           Operation complete — continue coding!${RESET}"
+echo -e "${CYAN}#############################################################${RESET}"
+echo

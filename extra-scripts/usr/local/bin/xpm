@@ -1,0 +1,379 @@
+#!/usr/bin/env bash
+# ==========================================================
+#   Arch Linux Plymouth Wizard – FINAL XeroLinux Edition
+# ==========================================================
+
+set -euo pipefail && clear
+
+# =========================[ COLORS ]========================
+RESET="\e[0m"
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+MAGENTA="\e[35m"
+CYAN="\e[36m"
+BOLD="\e[1m"
+
+# =====================[ Section Header ]=====================
+section() {
+    local text="$1"
+    local width=47
+    local padding=$(( (width - ${#text}) / 2 ))
+
+    printf "\n${MAGENTA}${BOLD}───────────────────────────────────────────────\n"
+    printf "%*s%s%*s\n" "$padding" "" "$text" "$padding" ""
+    printf "───────────────────────────────────────────────${RESET}\n\n"
+}
+
+# =========================[ HELPERS ]========================
+info()   { printf "${CYAN}➜ %s${RESET}\n\n" "$1"; }
+ok()     { printf "${GREEN}✔ %s${RESET}\n\n" "$1"; }
+warn()   { printf "${YELLOW}⚠ %s${RESET}\n\n" "$1"; }
+error()  { printf "${RED}✖ %s${RESET}\n\n" "$1"; exit 1; }
+
+BACKUP_DIR="/etc/plymouth-backups"
+TIME_STAMP="$(date +%Y%m%d_%H%M%S)"
+
+# ==========================================================
+# Humanize package names
+# ==========================================================
+humanize_pkg_name() {
+    local pkg="$1"
+    local name="${pkg#plymouth-theme-}"
+    name="${name%-git}"
+    name="${name//-/ }"
+    name="${name//_/ }"
+
+    local final=""
+    for word in $name; do
+        final+="$(tr '[:lower:]' '[:upper:]' <<< "${word:0:1}")${word:1} "
+    done
+    echo "${final::-1}"
+}
+
+# ==========================================================
+# Multi-column display
+# ==========================================================
+print_indexed_columns() {
+    local -n labels_ref=$1
+    local count=${#labels_ref[@]}
+    (( count == 0 )) && return
+
+    local cols=$(tput cols 2>/dev/null || echo 80)
+
+    local max_len=0
+    for label in "${labels_ref[@]}"; do
+        (( ${#label} > max_len )) && max_len=${#label}
+    done
+
+    local col_width=$((max_len + 8))
+    local num_cols=1
+
+    if (( cols >= col_width * 3 )); then
+        num_cols=3
+    elif (( cols >= col_width * 2 )); then
+        num_cols=2
+    fi
+
+    for ((i = 0; i < count; i++)); do
+        printf "%-*s" "$col_width" "[$i] ${labels_ref[$i]}"
+        if ((( (i + 1) % num_cols == 0 ))); then
+            printf "\n"
+        fi
+    done
+
+    printf "\n\n"
+}
+
+# ==========================================================
+# Append flags to existing GRUB line (NEVER modify anything else)
+# ==========================================================
+append_kernel_flags() {
+    sudo sed -i "/^GRUB_CMDLINE_LINUX_DEFAULT=/s/'$/ splash rd.udev.log_priority=3 vt.global_cursor_default=0'/" /etc/default/grub
+    ok "GRUB updated."
+}
+
+
+# ==========================================================
+# Backup configurations
+# ==========================================================
+backup_configs() {
+    info "Creating backups of mkinitcpio.conf and grub…"
+
+    sudo mkdir -p "$BACKUP_DIR"
+    sudo cp /etc/mkinitcpio.conf "$BACKUP_DIR/mkinitcpio.conf.bak_$TIME_STAMP"
+    sudo cp /etc/default/grub "$BACKUP_DIR/grub.bak_$TIME_STAMP"
+
+    ok "Backups saved."
+}
+
+# ==========================================================
+# Fix mkinitcpio HOOKS
+# ==========================================================
+fix_mkinitcpio_hooks() {
+
+    local file="/etc/mkinitcpio.conf"
+    local hooks_line raw
+    hooks_line=$(grep "^HOOKS=" "$file" || true)
+    [[ -z "$hooks_line" ]] && error "Cannot find HOOKS= line."
+
+    raw="${hooks_line#HOOKS=(}"
+    raw="${raw%)}"
+
+    IFS=' ' read -r -a hooks <<< "$raw"
+
+    local cleaned=()
+    for h in "${hooks[@]}"; do
+        [[ "$h" != "plymouth" ]] && cleaned+=("$h")
+    done
+
+    local final=()
+    local inserted=false
+
+    for h in "${cleaned[@]}"; do
+        final+=("$h")
+        if [[ "$h" == "udev" ]]; then
+            final+=("plymouth")
+            inserted=true
+        fi
+    done
+
+    if ! $inserted; then
+        final=("udev" "plymouth" "${cleaned[@]}")
+    fi
+
+    sudo sed -i "s|^HOOKS=.*|HOOKS=(${final[*]})|" "$file"
+
+    ok "mkinitcpio HOOKS updated."
+}
+
+# ==========================================================
+# List theme packages
+# ==========================================================
+get_theme_pkg_list() {
+    THEMES_PKGS=()
+    THEMES_NAMES=()
+
+    while IFS= read -r ref; do
+        local pkg="${ref#*/}"
+        pkg="${pkg%% *}"
+
+        THEMES_PKGS+=("$pkg")
+        THEMES_NAMES+=("$(humanize_pkg_name "$pkg")")
+    done < <(pacman -Ss plymouth-theme | awk '/^[^/]+\/plymouth-theme/ {print $1}')
+}
+
+# ==========================================================
+# Detect installed themes
+# ==========================================================
+select_theme_from_fs() {
+    local plyfiles=()
+    THEME_IDS=()
+    THEME_TITLES=()
+
+    mapfile -t plyfiles < <(find /usr/share/plymouth/themes -type f -name '*.plymouth')
+
+    (( ${#plyfiles[@]} == 0 )) && error "No installed themes found."
+
+    for file in "${plyfiles[@]}"; do
+        local id name
+        id=$(basename "${file%.plymouth}")
+        name=$(grep -m1 "^Name=" "$file" | cut -d'=' -f2-)
+        [[ -z "$name" ]] && name="$id"
+
+        THEME_IDS+=("$id")
+        THEME_TITLES+=("$name")
+    done
+
+    printf "${BOLD}Installed Themes:${RESET}\n\n"
+    print_indexed_columns THEME_TITLES
+
+    printf "${YELLOW}Choose theme (number) or 'm' to return:${RESET} "
+    read -r idx
+
+    [[ "$idx" =~ ^[mM]$ ]] && return 1
+
+    if ! [[ "$idx" =~ ^[0-9]+$ ]] || (( idx < 0 || idx >= ${#THEME_IDS[@]} )); then
+        error "Invalid selection."
+    fi
+
+    THEME_NAME="${THEME_IDS[$idx]}"
+}
+
+# ==========================================================
+# INSTALL & ACTIVATE PLYMOUTH
+# ==========================================================
+install_plymouth_step() {
+    clear
+    section "STEP 1 — INSTALL & ACTIVATE PLYMOUTH"
+
+    backup_configs
+
+    info "Installing plymouth & plymouth-kcm…"
+    sudo pacman -Sy --needed --noconfirm plymouth
+
+    info "Fixing mkinitcpio HOOKS…"
+    fix_mkinitcpio_hooks
+
+    info "Appending kernel flags to GRUB…"
+    append_kernel_flags
+    echo
+
+    info "Rebuilding mkinitcpio…"
+    sudo mkinitcpio -P
+
+    info "Regenerating GRUB config…"
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+    ok "Plymouth installed successfully."
+
+    printf "${YELLOW}Press Enter to return to Main Menu...${RESET}"
+    read -r
+}
+
+# ==========================================================
+# INSTALL THEME PACKAGE
+# ==========================================================
+theme_install_step() {
+    clear
+    section "THEMES — INSTALL NEW THEME PACKAGE"
+
+    get_theme_pkg_list
+
+    printf "${BOLD}Available Plymouth Themes :${RESET}\n\n"
+    print_indexed_columns THEMES_NAMES
+
+    printf "${YELLOW}Choose package (number) or 'm' to return:${RESET} "
+    read -r idx
+
+    [[ "$idx" =~ ^[mM]$ ]] && return
+
+    if ! [[ "$idx" =~ ^[0-9]+$ ]] || (( idx < 0 || idx >= ${#THEMES_PKGS[@]} )); then
+        error "Invalid selection."
+    fi
+
+    local pkg="${THEMES_PKGS[$idx]}"
+
+    info "Installing '$pkg'…"
+    sudo pacman -Sy --needed --noconfirm "$pkg"
+
+    ok "Theme '$pkg' installed."
+
+    printf "${YELLOW}Press Enter to return to Theme Management...${RESET}"
+    read -r
+}
+
+# ==========================================================
+# APPLY THEME
+# ==========================================================
+theme_apply_step() {
+    clear
+    section "THEMES — APPLY INSTALLED THEME"
+
+    if ! select_theme_from_fs; then
+        return
+    fi
+
+    info "Setting '$THEME_NAME' as default…"
+    sudo plymouth-set-default-theme -R "$THEME_NAME"
+
+    ok "Theme applied."
+
+    printf "${YELLOW}Press Enter to return to Theme Management...${RESET}"
+    read -r
+}
+
+# ==========================================================
+# THEME MANAGEMENT SUBMENU
+# ==========================================================
+theme_management_menu() {
+    while true; do
+        clear
+        section "THEME MANAGEMENT"
+
+        printf "💡 ${YELLOW}Some themes include preview images.\n"
+        printf "   Others do not. Only way is to apply & test.\n\n"
+
+        printf "${GREEN}   a)${RESET} Install a New Plymouth Theme.\n"
+        printf "${GREEN}   b)${RESET} Apply/Change Current Plymouth Theme.\n"
+        printf "${GREEN}   p)${RESET} Open Theme Preview Page (Default Browser).\n\n"
+        printf "${RED}   m)${RESET} Back to Main Menu\n\n"
+
+        printf "${YELLOW}Choose option:${RESET} "
+        read -r opt
+
+        case "$opt" in
+            a|A) theme_install_step ;;
+            b|B) theme_apply_step ;;
+            p|P) xdg-open "https://github.com/adi1090x/plymouth-themes#previews" >/dev/null 2>&1 & ;;
+            m|M) return ;;
+            *) warn "Invalid selection." ;;
+        esac
+    done
+}
+
+# ==========================================================
+# RESTORE SYSTEM
+# ==========================================================
+restore_step() {
+    clear
+    section "STEP 3 — RESTORE SYSTEM"
+
+    local mk gr
+    mk=$(ls -1t "$BACKUP_DIR"/mkinitcpio.conf.bak_* | head -n1 || true)
+    gr=$(ls -1t "$BACKUP_DIR"/grub.bak_* | head -n1 || true)
+
+    [[ -z "$mk" || -z "$gr" ]] && error "No backups found."
+
+    info "Removing all plymouth packages…"
+    local pkgs
+    pkgs=$(pacman -Qq | grep '^plymouth' || true)
+    [[ -n "$pkgs" ]] && sudo pacman -Rns --noconfirm $pkgs
+    echo
+    info "Restoring mkinitcpio.conf…"
+    sudo cp "$mk" /etc/mkinitcpio.conf
+
+    info "Restoring grub file…"
+    sudo cp "$gr" /etc/default/grub
+
+    info "Rebuilding mkinitcpio…"
+    sudo mkinitcpio -P
+    echo
+    info "Regenerating GRUB…"
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+    echo
+    ok "System restored."
+
+    printf "${YELLOW}Press Enter to return to Main Menu...${RESET}"
+    read -r
+}
+
+# ==========================================================
+# MAIN MENU
+# ==========================================================
+while true; do
+    clear
+    section "PLYMOUTH WIZARD — MAIN MENU"
+
+    printf "💡 ${YELLOW}Plymouth provides a Cool/G33ky boot animation.\n\n"
+    printf "►  Use this wizard to install, manage themes.\n"
+    printf "   Or restore your system by undoing all changes.\n\n${RESET}"
+
+    printf "${MAGENTA}Greetings ${RED}$USER${MAGENTA}. The Grid awaits your command :${RESET}\n\n"
+
+    printf "${GREEN} 1)${RESET} Install & Activate Plymouth.\n"
+    printf "${GREEN} 2)${RESET} Plymouth Theme Management System.\n"
+    printf "${GREEN} 3)${RESET} Restore System to Pre-Plymouth State.\n\n"
+    printf "${RED} 4)${RESET} Exit Wizard\n\n"
+
+    printf "${YELLOW}Choose option:${RESET} "
+    read -r choice
+
+    case "$choice" in
+        1) install_plymouth_step ;;
+        2) theme_management_menu ;;
+        3) restore_step ;;
+        4) info "Goodbye!"; exit 0 ;;
+        *) warn "Invalid selection." ;;
+    esac
+done

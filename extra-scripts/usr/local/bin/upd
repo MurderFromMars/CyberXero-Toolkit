@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# XeroLinux System Updater
+# CyberXero System Updater
 # ---------------------------------------
 # - Updates system packages (Pacman, Yay, or Paru)
 # - Updates Flatpak applications
@@ -11,11 +11,11 @@
 # - Provides clean, colorful prompts with emojis
 # - Old-school [ OK ] reboot status style
 # ---------------------------------------
-# Written for a smoother, safer update experience 🚀
+# CyberXero Toolkit — System Update Protocol 🚀
 
 set -e
 
-# Colors
+# Colors — CyberXero palette
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
@@ -25,6 +25,7 @@ BOLD='\033[1m'
 MAGENTA='\033[0;35m'
 ORANGE='\033[0;33m'
 LIGHT_GREEN='\033[1;32m'
+DIM='\033[2m'
 RESET='\033[0m'
 
 skipped_updates=false
@@ -40,15 +41,16 @@ is_vm() {
 
 print_title() {
   clear
-  echo -e "${BOLD}${BLUE}"
+  echo -e "${BOLD}${CYAN}"
   if command -v figlet &>/dev/null; then
-    figlet -f small "XeroLinux Updater"
+    figlet -f small "CyberXero Update"
   else
     echo "╔════════════════════════════════════════════════════╗"
-    echo "║              XeroLinux System Updater              ║"
+    echo "║            CyberXero System Updater               ║"
     echo "╚════════════════════════════════════════════════════╝"
   fi
-  echo -e "${RESET}"
+  echo -e "${DIM}${CYAN}              ── CyberXero Toolkit ──${RESET}"
+  echo
 }
 
 if ! command -v figlet &>/dev/null; then
@@ -70,10 +72,10 @@ else
   PKG_MANAGER="pacman"
 fi
 
-read -rp "$(echo -e "${CYAN}🚀 Update protocol ready. Execute ? (Y/n): ${RESET}")" confirm_update
+read -rp "$(echo -e "${CYAN}⚡ Update protocol ready. Execute ? (Y/n): ${RESET}")" confirm_update
 echo
 if [[ -z "$confirm_update" || "$confirm_update" =~ ^[Yy]$ ]]; then
-  echo -e "${MAGENTA}📦 Updating system packages...${RESET}"
+  echo -e "${MAGENTA}📦 Syncing system packages...${RESET}"
 echo
   if [[ "$PKG_MANAGER" == "pacman" ]]; then
     sudo pacman -Syyu
@@ -86,7 +88,7 @@ else
 fi
 
 if command -v flatpak &>/dev/null; then
-  read -rp "$(echo -e "\n${CYAN}📦 Flatpak node online. Sync app containers now ? (Y/n): ${RESET}")" update_flatpak
+  read -rp "$(echo -e "\n${CYAN}📦 Flatpak node online. Sync app containers ? (Y/n): ${RESET}")" update_flatpak
 echo
   if [[ -z "$update_flatpak" || "$update_flatpak" =~ ^[Yy]$ ]]; then
     echo -e "${MAGENTA}📦 Updating Flatpak apps...${RESET}"
@@ -100,7 +102,7 @@ else
 fi
 
 if command -v rustup &>/dev/null; then
-  read -rp "$(echo -e "\n${CYAN}🦀 Rustup found. Sync toolchain update ? (Y/n): ${RESET}")" update_rust
+  read -rp "$(echo -e "\n${CYAN}🦀 Rustup detected. Sync toolchain ? (Y/n): ${RESET}")" update_rust
   if [[ -z "$update_rust" || "$update_rust" =~ ^[Yy]$ ]]; then
     echo -e "${MAGENTA}🦀 Updating Rust toolchain...${RESET}"
     rustup update
@@ -111,16 +113,16 @@ if command -v rustup &>/dev/null; then
 fi
 
 if is_vm; then
-  echo -e "\n${CYAN}🖥️ VM shell detected-firmware patch sequence suspended.${RESET}"
+  echo -e "\n${CYAN}🖥️ VM detected — firmware sequence suspended.${RESET}"
   echo
 else
   if command -v fwupdmgr >/dev/null 2>&1; then
-    read -rp "$(echo -e "\n${CYAN}🧩 fwupd daemon active. Deploy firmware update sequence ? (Y/n): ${RESET}")" confirm_fwupd
+    read -rp "$(echo -e "\n${CYAN}🧩 fwupd active. Deploy firmware updates ? (Y/n): ${RESET}")" confirm_fwupd
 echo
     if [[ -z "$confirm_fwupd" || "$confirm_fwupd" =~ ^[Yy]$ ]]; then
       echo -e "${MAGENTA}🔄 Refreshing firmware metadata...${RESET}"
       sudo fwupdmgr refresh --force || true
-      echo -e "${MAGENTA}⚙️  Checking and applying available firmware updates...${RESET}"
+      echo -e "${MAGENTA}⚙️  Checking and applying firmware updates...${RESET}"
       sudo fwupdmgr update || true
       if fwupdmgr get-devices --no-metadata-refresh | grep -q "Requires reboot"; then
         echo -e "${RED}⚡ Firmware update requires a reboot to complete!${RESET}"
@@ -137,9 +139,9 @@ echo
 fi
 
 if [ "$skipped_updates" = true ]; then
-  echo -e "${ORANGE}💡 Some updates bypassed. Stability needs updates !${RESET}"
+  echo -e "${ORANGE}💡 Some updates bypassed — run again when ready.${RESET}"
 else
-  echo -e "\n${LIGHT_GREEN}✅ Update’s in. Sync’s locked.${RESET}"
+  echo -e "\n${LIGHT_GREEN}✅ All updates synced and locked.${RESET}"
 fi
 
 current_kernel=$(uname -r)
@@ -156,18 +158,18 @@ if [ "$must_reboot" = true ]; then
 fi
 
 if [ "$need_reboot" = true ]; then
-  read -rp "$(echo -e "\n${CYAN}🔄 Core changes in place. Reboot to seal the deal ? (Y/n): ${RESET}")" confirm_reboot
+  read -rp "$(echo -e "\n${CYAN}🔄 Core changes applied. Reboot now ? (Y/n): ${RESET}")" confirm_reboot
   if [[ -z "$confirm_reboot" || "$confirm_reboot" =~ ^[Yy]$ ]]; then
     echo -e "${MAGENTA}♻️ Rebooting system...${RESET}"
     sleep 3
     sudo reboot
   else
-    echo -e "${RED}⚠️ Critical update queued! Reboot when possible !${RESET}"
+    echo -e "${RED}⚠️ Reboot pending — restart when possible.${RESET}"
   fi
 fi
 
 if [ "$need_reboot" = false ]; then
-  echo -e "\n${LIGHT_GREEN}[  OK  ]${RESET} All systems synced and firing on all cylinders."
+  echo -e "\n${LIGHT_GREEN}[  OK  ]${RESET} CyberXero — all systems nominal."
 echo
 fi
 

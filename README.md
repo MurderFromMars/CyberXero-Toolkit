@@ -39,7 +39,7 @@ Any **Arch-based** distribution:
 
 - **AUR Helper** - Paru or Yay (required for most features)
 - **Flatpak** - optional but recommended
-
+- **extra-scripts** - from the xerolinux repo, many functions depend on these scripts. and some rely on specific xerolinux metapackages. biometrics, and xpackagemanager have all ad custom solutioooons built to bypass restrictions, i'm looking into integrating the scripts with this fork so the package isn't needed. in the meantime i have added a function to install the xerolinux repo 
 ## 📦 Installation
 
 **One-liner:**

@@ -39,7 +39,8 @@ Any **Arch-based** distribution:
 
 - **AUR Helper** - Paru or Yay (required for most features)
 - **Flatpak** - optional but recommended
-- **extra-scripts** - from the xerolinux repo, many functions depend on these scripts. and some rely on specific xerolinux metapackages. biometrics, and xpackagemanager have all ad custom solutioooons built to bypass restrictions, i'm looking into integrating the scripts with this fork so the package isn't needed. in the meantime i have added a function to install the xerolinux repo 
+- **XeroLinux Repo FOR A COUPLE FINCTIONS*** - a couple functions need access to metapackages on the xerolinux repo. (like some the VM stuff,) I'm looking into resolving this but for now the forked toolkit does have ability to add the xerolinux repo to your system 
+
 ## 📦 Installation
 
 **One-liner:**
@@ -131,6 +132,10 @@ Added buttons in the **Servicing / System Tweaks** page to easily add popular Ar
 ### Smart Package Installation
 - **Falcond Gaming Utility** - Intelligently checks if packages are available in your configured repos before falling back to AUR
 - Automatically uses pacman for repo packages, AUR helper only when needed **Also added the new falcond-gui app to this**
+
+### Bundles XeroLinux Extra-scriots package
+
+these are various scripts needed for things like the updater to work etc included in this repo.snd installed automatically alongside the toolkit 
 
 ### Rebranding
 - **Updated About Dialog** - Reflects the fork's origin and enhancements

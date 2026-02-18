@@ -53,18 +53,44 @@ pub fn setup_application_ui(app: &Application) {
     // appears empty at a small size before the WM tiles it.
     window.present();
 
-    // Perform system checks after UI is ready
-    let window_clone = window.clone();
-    glib::idle_add_local(move || {
-        info!("Checking system dependencies");
-        if !core::check_system_requirements(&window_clone) {
-            warn!("Dependency check failed - application will not continue");
+    // Perform system checks off the main thread so they don't block
+    // window rendering. Results are sent back via a GLib channel.
+    let (sender, receiver) = glib::MainContext::channel::<(bool, Option<core::system_check::DependencyCheckResult>, bool)>(glib::Priority::DEFAULT);
+
+    std::thread::spawn(move || {
+        info!("Checking system dependencies (background thread)");
+
+        let is_xero = core::system_check::check_xerolinux_distribution();
+        let (dep_result, aur_ok) = if is_xero {
+            let deps = core::system_check::check_dependencies();
+            let aur = if !deps.has_missing_dependencies() {
+                core::aur::init()
+            } else {
+                false
+            };
+            (Some(deps), aur)
         } else {
-            // Initialize AUR helper after dependency checks pass
-            if core::aur::init() {
-                info!("AUR helper initialized successfully");
+            (None, false)
+        };
+
+        let _ = sender.send((is_xero, dep_result, aur_ok));
+    });
+
+    let window_clone = window.clone();
+    receiver.attach(None, move |(is_xero, dep_result, aur_ok)| {
+        if !is_xero {
+            warn!("Dependency check failed - not running on XeroLinux");
+            core::system_check::show_xerolinux_error_dialog(&window_clone);
+        } else if let Some(ref result) = dep_result {
+            if result.has_missing_dependencies() {
+                warn!("Dependency check failed - missing dependencies");
+                core::system_check::show_dependency_error_dialog(&window_clone, result);
+            } else {
+                if aur_ok {
+                    info!("AUR helper initialized successfully");
+                }
+                info!("All dependency checks passed");
             }
-            info!("Dependency check passed");
         }
         glib::ControlFlow::Break
     });

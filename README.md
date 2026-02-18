@@ -90,16 +90,16 @@ Installed automatically by the installer:
 
 ---
 ### ✨ Changes from Original
-Distribution Freedom
+Distribution Freedom 
 
 Removed XeroLinux distribution check at the source level — the check is fully deleted from the codebase, not patched at runtime. Works cleanly on any Arch-based distro with no hacks.
 The old install.sh patched a sed expression over the binary check at build time. This was fragile and broke when the upstream code restructured. The check is now simply gone from the source.
 Added install.sh for easy building from source
 Added uninstall.sh for clean removal
 
-### 🔧 Build & Dependency Fixes
+### 🔧 Under the hood improvements
 
-Migrated from deprecated glib::MainContext::channel API to async_channel — the old synchronous GLib channel API was removed in glib-rs 0.19. System dependency checks now run on a background thread and report back via an async channel, keeping the UI responsive during startup.
+Migrated from deprecated glib::MainContext::channel API to async_channel — the old synchronous GLib channel API was removed in glib-rs 0.19. System dependency checks now run on a background thread and report back via an async channel, keeping the UI responsive during startup. the old design was showing it's flaws with the addition of biometrics (in\ the original application as well currently, with slower startup and hitching) this only increased in severity with the additions i've been making to functions (uninstall and package detection. particularly on the overhauled VM stuff the vm page will momentarily lag when you switch to it the first time after you open the app. but i find this preferable to the whole app lagging when you launch it. i'm working on a solution but it may just be the price of admission for the features.)
 Added async-channel = "2" dependency to gui/Cargo.toml
 Removed dead code — cleaned up unused re-exports and constants (check_system_requirements, XEROLINUX_CHECK) that were left over after the distribution check removal, eliminating all compiler warnings
 Window presentation fix — the main window now only presents after the full UI is assembled, preventing a visible resize/flash on tiling window managers

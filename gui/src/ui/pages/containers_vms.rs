@@ -60,16 +60,76 @@ fn removable_packages(candidates: &[&str]) -> Vec<String> {
         .collect()
 }
 
+/// Check all install states off the main thread, then update all button pairs
+/// at once. Called on initial page load and on window refocus — never blocks
+/// the GTK main loop.
+fn async_refresh_states(
+    docker: (Button, Button),
+    podman: (Button, Button),
+    vbox: (Button, Button),
+    distrobox: (Button, Button),
+    kvm: (Button, Button),
+    ipa: (Button, Button),
+) {
+    let (tx, rx) = async_channel::bounded::<(bool, bool, bool, bool, bool, bool)>(1);
+
+    std::thread::spawn(move || {
+        let _ = tx.send_blocking((
+            core::is_package_installed("docker"),
+            core::is_package_installed("podman"),
+            core::is_package_installed("virtualbox"),
+            core::is_package_installed("distrobox"),
+            core::is_package_installed("virt-manager"),
+            core::is_flatpak_installed("dev.khcrysalis.PlumeImpactor"),
+        ));
+    });
+
+    gtk4::glib::MainContext::default().spawn_local(async move {
+        if let Ok((d, p, v, db, k, ipa_ok)) = rx.recv().await {
+            update_button_state(&docker.0, &docker.1, d, "Docker");
+            update_button_state(&podman.0, &podman.1, p, "Podman");
+            update_button_state(&vbox.0, &vbox.1, v, "Virtual Box");
+            update_button_state(&distrobox.0, &distrobox.1, db, "DistroBox");
+            update_button_state(&kvm.0, &kvm.1, k, "Qemu Virtual Manager");
+            update_button_state(&ipa.0, &ipa.1, ipa_ok, "iOS iPA Sideloader");
+        }
+    });
+}
+
 // ─── Page entry point ───────────────────────────────────────────────────────
 
 /// Set up all button handlers for the containers/VMs page.
 pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &ApplicationWindow) {
-    setup_docker(page_builder, window);
-    setup_podman(page_builder, window);
-    setup_vbox(page_builder, window);
-    setup_distrobox(page_builder, window);
-    setup_kvm(page_builder, window);
-    setup_ipa_sideloader(page_builder, window);
+    let docker_btns = setup_docker(page_builder, window);
+    let podman_btns = setup_podman(page_builder, window);
+    let vbox_btns = setup_vbox(page_builder, window);
+    let distrobox_btns = setup_distrobox(page_builder, window);
+    let kvm_btns = setup_kvm(page_builder, window);
+    let ipa_btns = setup_ipa_sideloader(page_builder, window);
+
+    // Single async pass to set initial button states — no main-thread blocking.
+    async_refresh_states(
+        docker_btns.clone(),
+        podman_btns.clone(),
+        vbox_btns.clone(),
+        distrobox_btns.clone(),
+        kvm_btns.clone(),
+        ipa_btns.clone(),
+    );
+
+    // Refresh states whenever the user returns focus to the window.
+    window.connect_is_active_notify(move |w| {
+        if w.is_active() {
+            async_refresh_states(
+                docker_btns.clone(),
+                podman_btns.clone(),
+                vbox_btns.clone(),
+                distrobox_btns.clone(),
+                kvm_btns.clone(),
+                ipa_btns.clone(),
+            );
+        }
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -79,23 +139,9 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
 /// Core packages for a working Docker setup.
 const DOCKER_PACKAGES: &[&str] = &["docker", "docker-compose", "docker-buildx"];
 
-fn is_docker_installed() -> bool {
-    core::is_package_installed("docker")
-}
-
-fn setup_docker(builder: &Builder, window: &ApplicationWindow) {
+fn setup_docker(builder: &Builder, window: &ApplicationWindow) -> (Button, Button) {
     let btn_install = extract_widget::<Button>(builder, "btn_docker");
     let btn_uninstall = extract_widget::<Button>(builder, "btn_docker_uninstall");
-
-    update_button_state(&btn_install, &btn_uninstall, is_docker_installed(), "Docker");
-
-    let btn_i = btn_install.clone();
-    let btn_u = btn_uninstall.clone();
-    window.connect_is_active_notify(move |w| {
-        if w.is_active() {
-            update_button_state(&btn_i, &btn_u, is_docker_installed(), "Docker");
-        }
-    });
 
     // ── Install ──────────────────────────────────────────────────────────
     let window_clone = window.clone();
@@ -193,6 +239,8 @@ fn setup_docker(builder: &Builder, window: &ApplicationWindow) {
 
         task_runner::run(window_clone.upcast_ref(), commands.build(), "Docker Uninstall");
     });
+
+    (btn_install, btn_uninstall)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -202,23 +250,9 @@ fn setup_docker(builder: &Builder, window: &ApplicationWindow) {
 const PODMAN_PACKAGES: &[&str] = &["podman", "podman-docker"];
 const PODMAN_DESKTOP_FLATPAK: &str = "io.podman_desktop.PodmanDesktop";
 
-fn is_podman_installed() -> bool {
-    core::is_package_installed("podman")
-}
-
-fn setup_podman(builder: &Builder, window: &ApplicationWindow) {
+fn setup_podman(builder: &Builder, window: &ApplicationWindow) -> (Button, Button) {
     let btn_install = extract_widget::<Button>(builder, "btn_podman");
     let btn_uninstall = extract_widget::<Button>(builder, "btn_podman_uninstall");
-
-    update_button_state(&btn_install, &btn_uninstall, is_podman_installed(), "Podman");
-
-    let btn_i = btn_install.clone();
-    let btn_u = btn_uninstall.clone();
-    window.connect_is_active_notify(move |w| {
-        if w.is_active() {
-            update_button_state(&btn_i, &btn_u, is_podman_installed(), "Podman");
-        }
-    });
 
     // ── Install ──────────────────────────────────────────────────────────
     let window_clone = window.clone();
@@ -333,6 +367,8 @@ fn setup_podman(builder: &Builder, window: &ApplicationWindow) {
             "Podman Uninstall",
         );
     });
+
+    (btn_install, btn_uninstall)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -346,10 +382,6 @@ const VBOX_HOST_VARIANTS: &[&str] = &[
     "virtualbox-host-modules-lts",
     "virtualbox-host-dkms",
 ];
-
-fn is_vbox_installed() -> bool {
-    core::is_package_installed("virtualbox")
-}
 
 /// Detect which host modules packages are needed for VirtualBox based on
 /// the running kernel (`uname -r`):
@@ -394,19 +426,9 @@ fn detect_vbox_host_packages() -> Vec<String> {
     }
 }
 
-fn setup_vbox(builder: &Builder, window: &ApplicationWindow) {
+fn setup_vbox(builder: &Builder, window: &ApplicationWindow) -> (Button, Button) {
     let btn_install = extract_widget::<Button>(builder, "btn_vbox");
     let btn_uninstall = extract_widget::<Button>(builder, "btn_vbox_uninstall");
-
-    update_button_state(&btn_install, &btn_uninstall, is_vbox_installed(), "Virtual Box");
-
-    let btn_i = btn_install.clone();
-    let btn_u = btn_uninstall.clone();
-    window.connect_is_active_notify(move |w| {
-        if w.is_active() {
-            update_button_state(&btn_i, &btn_u, is_vbox_installed(), "Virtual Box");
-        }
-    });
 
     // ── Install ──────────────────────────────────────────────────────────
     //
@@ -477,6 +499,8 @@ fn setup_vbox(builder: &Builder, window: &ApplicationWindow) {
             "VirtualBox Uninstall",
         );
     });
+
+    (btn_install, btn_uninstall)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -485,28 +509,9 @@ fn setup_vbox(builder: &Builder, window: &ApplicationWindow) {
 
 const BOXBUDDY_FLATPAK: &str = "io.github.dvlv.boxbuddyrs";
 
-fn is_distrobox_installed() -> bool {
-    core::is_package_installed("distrobox")
-}
-
-fn setup_distrobox(builder: &Builder, window: &ApplicationWindow) {
+fn setup_distrobox(builder: &Builder, window: &ApplicationWindow) -> (Button, Button) {
     let btn_install = extract_widget::<Button>(builder, "btn_distrobox");
     let btn_uninstall = extract_widget::<Button>(builder, "btn_distrobox_uninstall");
-
-    update_button_state(
-        &btn_install,
-        &btn_uninstall,
-        is_distrobox_installed(),
-        "DistroBox",
-    );
-
-    let btn_i = btn_install.clone();
-    let btn_u = btn_uninstall.clone();
-    window.connect_is_active_notify(move |w| {
-        if w.is_active() {
-            update_button_state(&btn_i, &btn_u, is_distrobox_installed(), "DistroBox");
-        }
-    });
 
     // ── Install ──────────────────────────────────────────────────────────
     let window_clone = window.clone();
@@ -569,6 +574,8 @@ fn setup_distrobox(builder: &Builder, window: &ApplicationWindow) {
             "DistroBox Uninstall",
         );
     });
+
+    (btn_install, btn_uninstall)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -600,11 +607,6 @@ const KVM_PACKAGES: &[&str] = &[
     "swtpm",
 ];
 
-fn is_kvm_installed() -> bool {
-    // Check for the main GUI — this is what the user actually interacts with.
-    core::is_package_installed("virt-manager")
-}
-
 /// Detect CPU vendor and return the correct modprobe option for nested
 /// virtualisation. Intel → `kvm-intel`, AMD → `kvm-amd`.
 fn detect_kvm_nested_conf() -> (&'static str, &'static str) {
@@ -618,24 +620,9 @@ fn detect_kvm_nested_conf() -> (&'static str, &'static str) {
     }
 }
 
-fn setup_kvm(builder: &Builder, window: &ApplicationWindow) {
+fn setup_kvm(builder: &Builder, window: &ApplicationWindow) -> (Button, Button) {
     let btn_install = extract_widget::<Button>(builder, "btn_kvm");
     let btn_uninstall = extract_widget::<Button>(builder, "btn_kvm_uninstall");
-
-    update_button_state(
-        &btn_install,
-        &btn_uninstall,
-        is_kvm_installed(),
-        "Qemu Virtual Manager",
-    );
-
-    let btn_i = btn_install.clone();
-    let btn_u = btn_uninstall.clone();
-    window.connect_is_active_notify(move |w| {
-        if w.is_active() {
-            update_button_state(&btn_i, &btn_u, is_kvm_installed(), "Qemu Virtual Manager");
-        }
-    });
 
     // ── Install ──────────────────────────────────────────────────────────
     let window_clone = window.clone();
@@ -792,6 +779,8 @@ fn setup_kvm(builder: &Builder, window: &ApplicationWindow) {
             "KVM / QEMU Uninstall",
         );
     });
+
+    (btn_install, btn_uninstall)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -800,33 +789,9 @@ fn setup_kvm(builder: &Builder, window: &ApplicationWindow) {
 
 const PLUME_FLATPAK: &str = "dev.khcrysalis.PlumeImpactor";
 
-fn is_ipa_sideloader_installed() -> bool {
-    core::is_flatpak_installed(PLUME_FLATPAK)
-}
-
-fn setup_ipa_sideloader(builder: &Builder, window: &ApplicationWindow) {
+fn setup_ipa_sideloader(builder: &Builder, window: &ApplicationWindow) -> (Button, Button) {
     let btn_install = extract_widget::<Button>(builder, "btn_ipa_sideloader");
     let btn_uninstall = extract_widget::<Button>(builder, "btn_ipa_sideloader_uninstall");
-
-    update_button_state(
-        &btn_install,
-        &btn_uninstall,
-        is_ipa_sideloader_installed(),
-        "iOS iPA Sideloader",
-    );
-
-    let btn_i = btn_install.clone();
-    let btn_u = btn_uninstall.clone();
-    window.connect_is_active_notify(move |w| {
-        if w.is_active() {
-            update_button_state(
-                &btn_i,
-                &btn_u,
-                is_ipa_sideloader_installed(),
-                "iOS iPA Sideloader",
-            );
-        }
-    });
 
     // ── Install ──────────────────────────────────────────────────────────
     let window_clone = window.clone();
@@ -869,4 +834,6 @@ fn setup_ipa_sideloader(builder: &Builder, window: &ApplicationWindow) {
             "iOS iPA Sideloader Uninstall",
         );
     });
+
+    (btn_install, btn_uninstall)
 }

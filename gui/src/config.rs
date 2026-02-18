@@ -174,8 +174,6 @@ pub mod resources {
         pub const TASK_LIST: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/task_list_dialog.ui";
         pub const TERMINAL: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/terminal_dialog.ui";
         pub const WARNING: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/warning_dialog.ui";
-        pub const XEROLINUX_CHECK: &str =
-            "/xyz/xerolinux/xero-toolkit/ui/dialogs/xerolinux_check_dialog.ui";
     }
 
     /// Page/tab UI resources.

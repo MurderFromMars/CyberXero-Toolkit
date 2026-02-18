@@ -89,58 +89,91 @@ Installed automatically by the installer:
 - `polkit`
 
 ---
+✨ Changes from Original
+Distribution Freedom
 
-## ✨ Changes from Original
+Removed XeroLinux distribution check at the source level — the check is fully deleted from the codebase, not patched at runtime. Works cleanly on any Arch-based distro with no hacks.
+The old install.sh patched a sed expression over the binary check at build time. This was fragile and broke when the upstream code restructured. The check is now simply gone from the source.
+Added install.sh for easy building from source
+Added uninstall.sh for clean removal
 
-### Distribution Freedom
-- **Removed XeroLinux distribution check** - works on any Arch-based distro
-- Added `install.sh` for easy building from source
-- Added `uninstall.sh` for clean removal
+🔧 Build & Dependency Fixes
 
-### 🔓 Biometrics — Jailbroken Edition
+Migrated from deprecated glib::MainContext::channel API to async_channel — the old synchronous GLib channel API was removed in glib-rs 0.19. System dependency checks now run on a background thread and report back via an async channel, keeping the UI responsive during startup.
+Added async-channel = "2" dependency to gui/Cargo.toml
+Removed dead code — cleaned up unused re-exports and constants (check_system_requirements, XEROLINUX_CHECK) that were left over after the distribution check removal, eliminating all compiler warnings
+Window presentation fix — the main window now only presents after the full UI is assembled, preventing a visible resize/flash on tiling window managers
+
+🔓 Biometrics — Jailbroken Edition
 Bringing the latest upstream toolkit updates, with none of the restrictions!
+Fingerprint Authentication (XFPrintD GUI)
 
-**Fingerprint Authentication (XFPrintD GUI)**
-- Builds from source using a [jailbroken fork](https://github.com/MurderFromMars/xfprintd-gui) that bypasses upstream lockdowns
-- Removed distribution checks that blocked installation on non-XeroLinux systems
-- Full functionality — enroll fingerprints, manage PAM integration, works with any fprintd-compatible reader
+Builds from source using a jailbroken fork that bypasses upstream lockdowns
+Removed distribution checks that blocked installation on non-XeroLinux systems
+Full functionality — enroll fingerprints, manage PAM integration, works with any fprintd-compatible reader
 
-**Facial Recognition (Howdy Qt)**
-- First fully working integration  was able to get the jump on upstream due to them packaging it while we build from source
-- Fixed broken dependencies — upstream pointed to `howdy-bin` which fails to build; we use `howdy-git` instead
-- Builds [xero-howdy-qt](https://github.com/XeroLinuxDev/xero-howdy-qt) from source with correct dependencies
+Facial Recognition (Howdy Qt)
 
-**Install AND uninstall buttons** for easy removal, another added feature unique to this fork
+First fully working integration — able to get the jump on upstream due to them packaging it while we build from source
+Fixed broken dependencies — upstream pointed to howdy-bin which fails to build; we use howdy-git instead
+Builds xero-howdy-qt from source with correct dependencies
 
-### xPacksgeManager integration
+Install AND uninstall buttons for easy removal, another added feature unique to this fork
+xPackageManager Integration
+Added a forked version of the new xPackageManager that has had the distro check removed and repo hard coding replaced with a dynamic system that allows it to work with any repos on the system.
+Smart Mirror Updates
 
-Added a forked version of the new xPacksgeManager that has had distro check removed and repo hard coding replaced with a dynamic system that allows itnto work with any repos on the system, 
+Auto-detects all installed repositories and updates their mirrorlists automatically
+Supports: Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, Artix
+Uses rate-mirrors for optimal mirror selection
+No manual selection needed — just click and all detected mirrorlists are updated
 
-### Smart Mirror Updates
-- **Auto-detects all installed repositories** and updates their mirrorlists automatically
-- Supports: Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, Artix
-- Uses `rate-mirrors` for optimal mirror selection
-- No manual selection needed — just click and all detected mirrorlists are updated
+Third-Party Repository Installation
+Added buttons in the Servicing / System Tweaks page to easily add popular Arch repositories:
 
-### Third-Party Repository Installation
-Added buttons in the **Servicing / System Tweaks** page to easily add popular Arch repositories:
+Install CachyOS Repos - Adds the CachyOS repositories for performance-optimized packages and kernels
+Install Chaotic-AUR - Adds the Chaotic-AUR repository for pre-built AUR packages
+Add XeroLinux Repo - Access to XeroLinux packages without running XeroLinux
 
-- **Install CachyOS Repos** - Adds the [CachyOS](https://cachyos.org/) repositories for performance-optimized packages and kernels
-- **Install Chaotic-AUR** - Adds the [Chaotic-AUR](https://aur.chaotic.cx/) repository for pre-built AUR packages
-- **Add XeroLinux Repo** - Access to XeroLinux packages without running XeroLinux
+Smart Package Installation
 
-### Smart Package Installation
-- **Falcond Gaming Utility** - Intelligently checks if packages are available in your configured repos before falling back to AUR
-- Automatically uses pacman for repo packages, AUR helper only when needed **Also added the new falcond-gui app to this**
+Falcond Gaming Utility - Intelligently checks if packages are available in your configured repos before falling back to AUR
+Automatically uses pacman for repo packages, AUR helper only when needed. Also added the new falcond-gui app.
 
-### Bundles XeroLinux Extra-scriots package
+Containers & VMs — Fully Rewritten
+The entire Containers & VMs page has been overhauled to remove dependency on XeroLinux meta-packages and add proper install/uninstall support for every tool.
+No more meta-packages — the original used virtualbox-meta and virt-manager-meta which are XeroLinux-specific and unavailable on other distros. Every tool now installs an explicit, documented package list that works on any Arch-based system.
+Uninstall buttons added for every tool — Docker, Podman, VirtualBox, DistroBox, KVM/QEMU, and the iOS iPA Sideloader all have a dedicated uninstall button that properly cleans up services, groups, and packages.
+Smart state tracking — install buttons grey out with a ✓ when a tool is already installed and refresh automatically when you return to the window, so the UI always reflects reality.
+VirtualBox — kernel-aware host modules
+The old code just ran virtualbox-meta. The new code reads uname -r at install time and selects the right host module:
 
-these are various scripts needed for things like the updater to work etc included in this repo.snd installed automatically alongside the toolkit 
+-arch kernel → virtualbox-host-modules-arch (prebuilt)
+-lts kernel → virtualbox-host-modules-lts (prebuilt)
+Any custom kernel (zen, cachyos, hardened, etc.) → virtualbox-host-dkms + matching kernel headers auto-detected from the version string
 
-### Rebranding
-- **Updated About Dialog** - Reflects the fork's origin and enhancements
-- **Modified Links** - Discord and YouTube links updated (configurable in `gui/src/config.rs`)
-- **Logo** - Changed to a more appropriate Arch logo
+Uninstall dynamically detects whichever host module variant is present and removes it cleanly.
+KVM/QEMU — explicit packages, conflict resolution, CPU-aware nested virt
+Replaces virt-manager-meta with a full explicit package list: qemu-desktop, libvirt, virt-manager, virt-viewer, edk2-ovmf, dnsmasq, iptables-nft, openbsd-netcat, swtpm.
+Notable additions:
+
+Detects and resolves iptables / gnu-netcat conflicts before installing (these clash with iptables-nft and openbsd-netcat)
+Reads /proc/cpuinfo to write the correct nested virtualisation config (kvm-intel vs kvm-amd)
+Adds the user to the libvirt group automatically
+Enables and starts libvirtd.service as part of the install sequence
+swtpm included for Windows 11 VM compatibility (TPM 2.0)
+
+Uninstall stops and disables all libvirtd services/sockets, removes the user from the libvirt group, and cleans up nested virt modprobe configs.
+Docker — uninstall properly stops services and removes user from docker group before removing packages.
+Podman — uninstall stops the podman socket, removes Podman Desktop flatpak if present, then removes packages.
+DistroBox — uninstall removes BoxBuddy flatpak if present before removing the package.
+Bundles XeroLinux Extra-Scripts Package
+Various scripts needed for things like the updater to work are included in this repo and installed automatically alongside the toolkit.
+Rebranding
+
+Updated About Dialog - Reflects the fork's origin and enhancements
+Modified Links - Discord and YouTube links updated (configurable in gui/src/config.rs)
+Logo - Changed to a more appropriate Arch logo
 
 ---
 

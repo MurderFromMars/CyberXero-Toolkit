@@ -89,7 +89,7 @@ Installed automatically by the installer:
 - `polkit`
 
 ---
-✨ Changes from Original
+### ✨ Changes from Original
 Distribution Freedom
 
 Removed XeroLinux distribution check at the source level — the check is fully deleted from the codebase, not patched at runtime. Works cleanly on any Arch-based distro with no hacks.
@@ -97,14 +97,14 @@ The old install.sh patched a sed expression over the binary check at build time.
 Added install.sh for easy building from source
 Added uninstall.sh for clean removal
 
-🔧 Build & Dependency Fixes
+### 🔧 Build & Dependency Fixes
 
 Migrated from deprecated glib::MainContext::channel API to async_channel — the old synchronous GLib channel API was removed in glib-rs 0.19. System dependency checks now run on a background thread and report back via an async channel, keeping the UI responsive during startup.
 Added async-channel = "2" dependency to gui/Cargo.toml
 Removed dead code — cleaned up unused re-exports and constants (check_system_requirements, XEROLINUX_CHECK) that were left over after the distribution check removal, eliminating all compiler warnings
 Window presentation fix — the main window now only presents after the full UI is assembled, preventing a visible resize/flash on tiling window managers
 
-🔓 Biometrics — Jailbroken Edition
+### 🔓 Biometrics — Jailbroken Edition
 Bringing the latest upstream toolkit updates, with none of the restrictions!
 Fingerprint Authentication (XFPrintD GUI)
 
@@ -112,7 +112,7 @@ Builds from source using a jailbroken fork that bypasses upstream lockdowns
 Removed distribution checks that blocked installation on non-XeroLinux systems
 Full functionality — enroll fingerprints, manage PAM integration, works with any fprintd-compatible reader
 
-Facial Recognition (Howdy Qt)
+## Facial Recognition (Howdy Qt)
 
 First fully working integration — able to get the jump on upstream due to them packaging it while we build from source
 Fixed broken dependencies — upstream pointed to howdy-bin which fails to build; we use howdy-git instead
@@ -128,24 +128,24 @@ Supports: Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, Artix
 Uses rate-mirrors for optimal mirror selection
 No manual selection needed — just click and all detected mirrorlists are updated
 
-Third-Party Repository Installation
+## Third-Party Repository Installation
 Added buttons in the Servicing / System Tweaks page to easily add popular Arch repositories:
 
 Install CachyOS Repos - Adds the CachyOS repositories for performance-optimized packages and kernels
 Install Chaotic-AUR - Adds the Chaotic-AUR repository for pre-built AUR packages
 Add XeroLinux Repo - Access to XeroLinux packages without running XeroLinux
 
-Smart Package Installation
+## Smart Package Installation
 
 Falcond Gaming Utility - Intelligently checks if packages are available in your configured repos before falling back to AUR
 Automatically uses pacman for repo packages, AUR helper only when needed. Also added the new falcond-gui app.
 
-Containers & VMs — Fully Rewritten
+## Containers & VMs   Fully Rewritten
 The entire Containers & VMs page has been overhauled to remove dependency on XeroLinux meta-packages and add proper install/uninstall support for every tool.
-No more meta-packages — the original used virtualbox-meta and virt-manager-meta which are XeroLinux-specific and unavailable on other distros. Every tool now installs an explicit, documented package list that works on any Arch-based system.
-Uninstall buttons added for every tool — Docker, Podman, VirtualBox, DistroBox, KVM/QEMU, and the iOS iPA Sideloader all have a dedicated uninstall button that properly cleans up services, groups, and packages.
-Smart state tracking — install buttons grey out with a ✓ when a tool is already installed and refresh automatically when you return to the window, so the UI always reflects reality.
-VirtualBox — kernel-aware host modules
+No more meta-packages, the original used virtualbox-meta and virt-manager-meta which are XeroLinux-specific and unavailable on other distros. Every tool now installs an explicit, documented package list that works on any Arch-based system.
+Uninstall buttons added for every tool, Docker, Podman, VirtualBox, DistroBox, KVM/QEMU, and the iOS iPA Sideloader all have a dedicated uninstall button that properly cleans up services, groups, and packages.
+Smart state tracking: install buttons grey out with a ✓ when a tool is already installed and refresh automatically when you return to the window, so the UI always reflects reality.
+VirtualBox: kernel-aware host modules
 The old code just ran virtualbox-meta. The new code reads uname -r at install time and selects the right host module:
 
 -arch kernel → virtualbox-host-modules-arch (prebuilt)
@@ -169,7 +169,7 @@ Podman — uninstall stops the podman socket, removes Podman Desktop flatpak if 
 DistroBox — uninstall removes BoxBuddy flatpak if present before removing the package.
 Bundles XeroLinux Extra-Scripts Package
 Various scripts needed for things like the updater to work are included in this repo and installed automatically alongside the toolkit.
-Rebranding
+## Rebranding
 
 Updated About Dialog - Reflects the fork's origin and enhancements
 Modified Links - Discord and YouTube links updated (configurable in gui/src/config.rs)

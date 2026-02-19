@@ -43,6 +43,64 @@ fi
 
 print_success "Detected Arch-based system"
 
+# ── AUR Helper Check ─────────────────────────────────────────────────────────
+install_aur_helper() {
+    local helper="$1"
+    local repo_url=""
+
+    case "$helper" in
+        paru) repo_url="https://aur.archlinux.org/paru.git" ;;
+        yay)  repo_url="https://aur.archlinux.org/yay.git"  ;;
+    esac
+
+    print_status "Installing $helper from the AUR..."
+
+    # Ensure git is available
+    if ! command -v git &> /dev/null; then
+        print_status "git not found — installing..."
+        sudo pacman -S --needed --noconfirm git || die "Failed to install git"
+    fi
+
+    local tmp_dir
+    tmp_dir="$(mktemp -d)" || die "Failed to create temp directory"
+    trap "rm -rf '$tmp_dir'" RETURN
+
+    git clone "$repo_url" "$tmp_dir/$helper" || die "Failed to clone $helper repository"
+    (cd "$tmp_dir/$helper" && makepkg -si --noconfirm) || die "Failed to build/install $helper"
+
+    print_success "$helper installed successfully"
+}
+
+check_aur_helper() {
+    if command -v paru &> /dev/null; then
+        print_success "AUR helper found: paru"
+        return
+    elif command -v yay &> /dev/null; then
+        print_success "AUR helper found: yay"
+        return
+    fi
+
+    print_warning "No AUR helper (paru or yay) was found on this system."
+    echo ""
+    echo -e "  ${BOLD}1)${NC} Install paru  ${CYAN}(Rust-based, recommended)${NC}"
+    echo -e "  ${BOLD}2)${NC} Install yay   ${CYAN}(Go-based, widely used)${NC}"
+    echo -e "  ${BOLD}3)${NC} Skip          ${YELLOW}(continue without an AUR helper)${NC}"
+    echo ""
+
+    while true; do
+        read -rp "Choose an option [1/2/3]: " aur_choice
+        case "$aur_choice" in
+            1) install_aur_helper paru; break ;;
+            2) install_aur_helper yay;  break ;;
+            3) print_warning "Skipping AUR helper installation."; break ;;
+            *) print_warning "Invalid choice, please enter 1, 2, or 3." ;;
+        esac
+    done
+}
+
+check_aur_helper
+# ─────────────────────────────────────────────────────────────────────────────
+
 # Check dependencies
 print_status "Checking build dependencies..."
 

@@ -1,10 +1,10 @@
 # CyberXero Toolkit
 
-**The Xero Toolkit, unchained.** A GTK4/libadwaita system management application for *any* Arch-based distribution — not just one.
+**The Xero Toolkit, unchained.** A GTK4/libadwaita system management application for *any* Arch-based distribution, not just one.
 
-Built in Rust. Ships with 11 system utility scripts. Adds an entire new feature page. Rewrites two others from the ground up. Strips out every distribution lock. And it does all of this while fixing the upstream codebase's deprecation warnings and async architecture.
+Built in Rust. Ships with 11 system utility scripts. Adds an entire new feature page. Rewrites two others from the ground up. Strips out every distribution lock. And it does all of this while fixing the upstream codebase's ineffecient architecture.
 
-> **Origin:** This is a hard fork of the [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) by Synse and DarkZero. The original is a competent tool — if you happen to be running XeroLinux. If you aren't, it refuses to start. CyberXero removes that restriction at the source level, then goes dramatically further: rewriting entire subsystems, adding hundreds of features the original never shipped, and delivering a toolkit that treats every Arch-based system as a first-class citizen.
+> **Origin:** This is a hard fork of the [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) by Synse and DarkZero. The original is a competent tool, if you happen to be running XeroLinux. If you aren't, it refuses to start. CyberXero removes that restriction at the source level, then goes dramatically further: rewriting entire subsystems, adding several features the original never shipped, and delivering a toolkit that treats every Arch-based system as a first class citizen.
 
 ---
 
@@ -14,9 +14,8 @@ This is not a cosmetic fork. Here is what the numbers look like:
 
 | Metric | Original Toolkit | CyberXero Toolkit |
 |---|---|---|
-| Total codebase (Rust + Bash + UI) | ~13,000 lines | **~15,200 lines** |
+| Total codebase (Rust + Bash + UI) | 13,000 lines | **15,200 lines** |
 | Rust source | 9,749 lines | **11,258 lines** |
-| Feature pages | 9 tabs | **10 tabs** (+Multimedia Tools) |
 | Containers & VMs page | 290 lines | **839 lines** (complete rewrite) |
 | Servicing & System Tweaks page | 250 lines | **1,261 lines** (5× expansion) |
 | Biometrics page | 136 lines | **325 lines** (jailbroken + uninstall) |
@@ -25,16 +24,13 @@ This is not a cosmetic fork. Here is what the numbers look like:
 | Uninstall support for installed tools | Partial | **Every single tool** |
 | Install/uninstall scripts for the toolkit itself | None | **Both included** |
 
-The original toolkit will not run on your system unless it reads "XeroLinux" from `/etc/os-release`. CyberXero doesn't patch around this at build time with a fragile `sed` expression — the check is **deleted from the source**. There is no runtime gate. There is no workaround. The code simply isn't there.
+The original toolkit will not run on your system unless it reads "XeroLinux" from `/etc/os-release`. the check is **deleted from the source**. There is no runtime gate. There is no workaround. The code simply isn't there.
 
 ---
 
-## Feature Breakdown
+## Feature Breakdown.
 
-### Distribution Freedom
-The XeroLinux distribution check is removed at the source level — not patched, not bypassed, *gone*. Dead code left behind by the removal (`check_system_requirements`, `XEROLINUX_CHECK`, unused re-exports) has been cleaned up, eliminating every compiler warning the original ships with.
-
-### Containers & VMs — Fully Rewritten
+### Containers & VMs, Fully Rewritten
 The original Containers & VMs page relies on `virtualbox-meta` and `virt-manager-meta`, which are XeroLinux-specific metapackages that **do not exist** on any other distribution. CyberXero replaces every single one with explicit, documented package lists that work everywhere.
 
 What this means in practice:
@@ -44,21 +40,16 @@ What this means in practice:
 - **Every tool** (Docker, Podman, VirtualBox, DistroBox, KVM/QEMU, iOS iPA Sideloader) now has a dedicated **uninstall button** that properly stops services, removes group memberships, and cleans up packages.
 - **Smart state tracking**: install buttons grey out with a checkmark when a tool is already detected, and refresh automatically when you return to the page.
 
-### Servicing & System Tweaks — 5× Expansion
+### Servicing & System Tweaks  5× Expansion
 The original servicing page has 7 functions. CyberXero has **15**, including:
 
 - **Third-party repo installation**: one-click buttons for CachyOS repos, Chaotic-AUR, and the XeroLinux repo (so you can access XeroLinux packages without running XeroLinux).
 - **Smart mirror updates**: auto-detects every installed repository and updates all mirrorlists using `rate-mirrors`. Supports Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, and Artix out of the box.
-- **xPackageManager integration**: a forked version with the distro check removed and hardcoded repo references replaced with dynamic detection — works with whatever repos you actually have configured.
-- **Toolkit self-update**: checks the upstream commit hash and rebuilds from source when a new version is available.
+- **xPackageManager integration**: a forked version with the distro check removed and hardcoded repo references replaced with dynamic detection, works with whatever repos you actually have configured.
+- **Toolkit self update**: checks the upstream commit hash and rebuilds from source when a new version is available.
 
-### Multimedia Tools — Entirely New Page
-The original toolkit mentions multimedia tools in its README. CyberXero actually ships a dedicated page for them:
-
-- **OBS Studio** installs via Flatpak with a selection dialog offering six plugin groups: Wayland Hotkeys, Graphics Capture (VkCapture, GStreamer, VA-API), Transitions & Effects, Streaming Tools (WebSocket, Scene Switcher, DroidCam), Audio/Video Enhancement (Waveform, Vertical Canvas, Background Removal), and V4L2 virtual camera with kernel module auto-configuration.
-- **Kdenlive** video editor installation.
-- **Jellyfin** server with automatic service enablement.
-- **GPU Screen Recorder** with smart repo detection — installs from official repos when available, falls back to AUR when not.
+### Multimedia Page Addition
+- **GPU Screen Recorder** with smart repo detection  installs from official repos when available, falls back to AUR when not.
 
 ### Biometrics — Jailbroken Edition
 The original ships biometric support that is locked to XeroLinux. CyberXero jailbreaks it:
@@ -68,7 +59,7 @@ The original ships biometric support that is locked to XeroLinux. CyberXero jail
 - Both features ship with **install and uninstall buttons** — the original has no uninstall path.
 
 ### 11 Bundled System Scripts
-The original toolkit calls out to scripts that are packaged separately on XeroLinux — scripts that simply don't exist on any other distribution. 10 of these 11 are those XeroLinux-packaged utilities, bundled directly into this repo so that every feature they power actually works regardless of what distro you're on. The 11th, `cyberxero-theme`, is entirely new:
+The original toolkit calls out to scripts that are packaged separately on XeroLinux  scripts that simply don't exist on any other distribution. 10 of these 11 are those XeroLinux packaged utilities, bundled directly into this repo so that every feature they power actually works regardless of what distro you're on. The 11th, `cyberxero-theme`, is entirely new:
 
 | Script | Purpose |
 |---|---|
@@ -88,8 +79,8 @@ All scripts are installed to `/usr/local/bin` automatically and removed cleanly 
 
 ### Under the Hood
 
-- **Async channel migration**: the original uses the deprecated `glib::MainContext::channel` API, which was removed in `glib-rs` 0.19. CyberXero migrates to `async_channel`, putting system dependency checks on a background thread. The result is a responsive UI during startup — the original hitches noticeably, and it gets worse the more features you add.
-- **Window presentation fix**: the main window now only presents after the full UI is assembled, preventing the visible resize flash that plagued tiling window manager users.
+- **Async channel migration**: the original uses the deprecated `glib::MainContext::channel` API, which was removed in `glib-rs` 0.19. CyberXero migrates to `async_channel`, putting system dependency checks on a background thread. The result is a responsive UI during startup, the original hitches noticeably, and it got worse the more features I added, so this rewrite was much needed.
+- **Window presentation fix**: the main window now only presents after the full UI is assembled, preventing the visible resize flash that plagued tiling window manager/krohnkite users.
 - **Smart package detection**: Falcond and other tools check if packages exist in your configured repos before falling back to AUR, using `pacman` for repo packages and your AUR helper only when necessary.
 
 ---

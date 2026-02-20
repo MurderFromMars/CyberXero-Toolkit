@@ -47,7 +47,7 @@ The original servicing page has 7 functions. CyberXero has **15**, including:
 - **Smart mirror updates**: auto-detects every installed repository and updates all mirrorlists using `rate-mirrors`. Supports Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, and Artix out of the box.
 - **xPackageManager integration**: a forked version with the distro check removed and hardcoded repo references replaced with dynamic detection, works with whatever repos you actually have configured.
 - **Toolkit self update**: checks the upstream commit hash and rebuilds from source when a new version is available.
-
+- **Remove Orphaned Packages** checks for orphaned packages and presents a list the user can choose to remove some or all of 
 ### Multimedia Page Addition
 - **GPU Screen Recorder** with smart repo detection  installs from official repos when available, falls back to AUR when not.
 

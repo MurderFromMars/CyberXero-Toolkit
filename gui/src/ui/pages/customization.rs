@@ -193,20 +193,13 @@ fn setup_grub_theme(builder: &Builder, window: &ApplicationWindow) {
     button.connect_clicked(move |_| {
         info!("GRUB Theme button clicked");
 
-        let home = crate::config::env::get().home.clone();
-        let repo_path = format!("{}/xero-grubs", home);
-
-        // Run everything in terminal - clone if needed, then run interactive installation script
-        let install_command = format!(
-            "if [ ! -d \"{}\" ]; then git clone --depth 1 https://github.com/xerolinux/xero-grubs \"{}\"; fi && pkexec sh -c 'cd \"{}\" && ./install.sh'",
-            repo_path, repo_path, repo_path
-        );
+        let install_command = "python3 <(curl -fsSL 'https://xerolinux.xyz/script/grubs/xero-grubs.py')";
 
         terminal::show_terminal_dialog(
             window.upcast_ref(),
             "XeroLinux GRUB Theme Installation",
-            "sh",
-            &["-c", &install_command],
+            "bash",
+            &["-c", install_command],
         );
     });
 }

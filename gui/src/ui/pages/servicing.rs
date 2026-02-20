@@ -1,6 +1,7 @@
 //! Servicing and system tweaks page button handlers.
 
 use adw::prelude::*;
+use crate::config;
 use crate::core;
 use crate::ui::dialogs::terminal;
 use crate::ui::task_runner::{self, Command, CommandSequence};
@@ -28,6 +29,7 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_chaotic_aur(page_builder, window);
     setup_xero_repo(page_builder, window);
     setup_xpackagemanager(page_builder, window);
+    setup_update_toolkit(page_builder, window);
 }
 
 fn setup_clr_pacman(page_builder: &Builder, window: &ApplicationWindow) {
@@ -920,5 +922,340 @@ EOF"#,
             commands,
             "Uninstall xPackageManager",
         );
+    });
+}
+
+/// Get the latest remote commit hash from the toolkit GitHub repository.
+fn get_remote_commit() -> Option<String> {
+    std::process::Command::new("git")
+        .args(["ls-remote", config::links::TOOLKIT_REPO, "HEAD"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .split_whitespace()
+                .next()
+                .map(|s| s.to_string())
+        })
+}
+
+/// Get the locally stored commit hash from the last toolkit install/update.
+fn get_local_commit() -> Option<String> {
+    std::fs::read_to_string("/opt/xero-toolkit/.commit")
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
+    let btn = extract_widget::<gtk4::Button>(page_builder, "btn_update_toolkit");
+    let window = window.clone();
+
+    btn.connect_clicked(move |btn| {
+        info!("Servicing: Update Toolkit button clicked");
+
+        // Disable button while checking
+        btn.set_sensitive(false);
+        let btn_clone = btn.clone();
+
+        // Check for updates
+        let remote = get_remote_commit();
+        let local = get_local_commit();
+
+        btn_clone.set_sensitive(true);
+
+        // If we can't reach GitHub, warn the user
+        let remote_hash = match remote {
+            Some(hash) => hash,
+            None => {
+                let dialog = adw::Window::new();
+                dialog.set_title(Some("Xero Toolkit - Update"));
+                dialog.set_default_size(420, 200);
+                dialog.set_modal(true);
+                dialog.set_transient_for(Some(&window));
+
+                let toolbar = adw::ToolbarView::new();
+                let header = adw::HeaderBar::new();
+                toolbar.add_top_bar(&header);
+
+                let content = GtkBox::new(Orientation::Vertical, 16);
+                content.set_margin_top(24);
+                content.set_margin_bottom(24);
+                content.set_margin_start(24);
+                content.set_margin_end(24);
+                content.set_halign(gtk4::Align::Center);
+                content.set_valign(gtk4::Align::Center);
+
+                let icon = gtk4::Image::from_icon_name("network-error-symbolic");
+                icon.set_pixel_size(48);
+                content.append(&icon);
+
+                let label = Label::new(Some(
+                    "Could not reach GitHub to check for updates.\nPlease check your internet connection.",
+                ));
+                label.set_halign(gtk4::Align::Center);
+                label.set_justify(gtk4::Justification::Center);
+                content.append(&label);
+
+                let ok_btn = gtk4::Button::with_label("OK");
+                ok_btn.add_css_class("suggested-action");
+                ok_btn.add_css_class("pill");
+                ok_btn.set_halign(gtk4::Align::Center);
+                let dialog_clone = dialog.clone();
+                ok_btn.connect_clicked(move |_| dialog_clone.close());
+                content.append(&ok_btn);
+
+                toolbar.set_content(Some(&content));
+                dialog.set_content(Some(&toolbar));
+                dialog.present();
+                return;
+            }
+        };
+
+        // Check if already up to date
+        let is_up_to_date = local
+            .as_ref()
+            .map(|l| l == &remote_hash)
+            .unwrap_or(false);
+
+        if is_up_to_date {
+            let dialog = adw::Window::new();
+            dialog.set_title(Some("Xero Toolkit - Update"));
+            dialog.set_default_size(420, 200);
+            dialog.set_modal(true);
+            dialog.set_transient_for(Some(&window));
+
+            let toolbar = adw::ToolbarView::new();
+            let header = adw::HeaderBar::new();
+            toolbar.add_top_bar(&header);
+
+            let content = GtkBox::new(Orientation::Vertical, 16);
+            content.set_margin_top(24);
+            content.set_margin_bottom(24);
+            content.set_margin_start(24);
+            content.set_margin_end(24);
+            content.set_halign(gtk4::Align::Center);
+            content.set_valign(gtk4::Align::Center);
+
+            let icon = gtk4::Image::from_icon_name("emblem-ok-symbolic");
+            icon.set_pixel_size(48);
+            content.append(&icon);
+
+            let label = Label::new(Some("CyberXero Toolkit is already up to date!"));
+            label.set_halign(gtk4::Align::Center);
+            label.set_justify(gtk4::Justification::Center);
+            content.append(&label);
+
+            let hash_label = Label::new(Some(&format!("Commit: {}", &remote_hash[..12])));
+            hash_label.add_css_class("dim-label");
+            hash_label.add_css_class("caption");
+            hash_label.set_halign(gtk4::Align::Center);
+            content.append(&hash_label);
+
+            let ok_btn = gtk4::Button::with_label("OK");
+            ok_btn.add_css_class("suggested-action");
+            ok_btn.add_css_class("pill");
+            ok_btn.set_halign(gtk4::Align::Center);
+            let dialog_clone = dialog.clone();
+            ok_btn.connect_clicked(move |_| dialog_clone.close());
+            content.append(&ok_btn);
+
+            toolbar.set_content(Some(&content));
+            dialog.set_content(Some(&toolbar));
+            dialog.present();
+            return;
+        }
+
+        // Updates available — show confirmation with commit info, then run update
+        let dialog = adw::Window::new();
+        dialog.set_title(Some("Xero Toolkit - Update Available"));
+        dialog.set_default_size(480, 280);
+        dialog.set_modal(true);
+        dialog.set_transient_for(Some(&window));
+
+        let toolbar = adw::ToolbarView::new();
+        let header = adw::HeaderBar::new();
+        toolbar.add_top_bar(&header);
+
+        let content = GtkBox::new(Orientation::Vertical, 16);
+        content.set_margin_top(24);
+        content.set_margin_bottom(24);
+        content.set_margin_start(24);
+        content.set_margin_end(24);
+        content.set_halign(gtk4::Align::Center);
+        content.set_valign(gtk4::Align::Center);
+
+        let icon = gtk4::Image::from_icon_name("software-update-available-symbolic");
+        icon.set_pixel_size(48);
+        content.append(&icon);
+
+        let title_label = Label::new(Some("A new version is available!"));
+        title_label.add_css_class("title-3");
+        title_label.set_halign(gtk4::Align::Center);
+        content.append(&title_label);
+
+        let info_text = match &local {
+            Some(l) => format!(
+                "Current: {}\nLatest:  {}",
+                &l[..l.len().min(12)],
+                &remote_hash[..12]
+            ),
+            None => format!("Latest: {}", &remote_hash[..12]),
+        };
+        let info_label = Label::new(Some(&info_text));
+        info_label.add_css_class("dim-label");
+        info_label.add_css_class("monospace");
+        info_label.set_halign(gtk4::Align::Center);
+        content.append(&info_label);
+
+        let note_label = Label::new(Some(
+            "This will download, build, and install the latest version.\nThe toolkit will need to be restarted after updating.",
+        ));
+        note_label.set_wrap(true);
+        note_label.set_halign(gtk4::Align::Center);
+        note_label.set_justify(gtk4::Justification::Center);
+        content.append(&note_label);
+
+        let button_box = GtkBox::new(Orientation::Horizontal, 12);
+        button_box.set_halign(gtk4::Align::Center);
+
+        let cancel_btn = gtk4::Button::with_label("Cancel");
+        cancel_btn.add_css_class("pill");
+        cancel_btn.set_width_request(120);
+        let dialog_cancel = dialog.clone();
+        cancel_btn.connect_clicked(move |_| dialog_cancel.close());
+        button_box.append(&cancel_btn);
+
+        let update_btn = gtk4::Button::with_label("Update Now");
+        update_btn.add_css_class("suggested-action");
+        update_btn.add_css_class("pill");
+        update_btn.set_width_request(120);
+
+        let window_clone = window.clone();
+        let dialog_update = dialog.clone();
+        let remote_hash_clone = remote_hash.clone();
+        update_btn.connect_clicked(move |_| {
+            dialog_update.close();
+
+            let repo_url = config::links::TOOLKIT_REPO;
+            let commit_store_cmd = format!(
+                "echo '{}' | sudo tee /opt/xero-toolkit/.commit > /dev/null",
+                remote_hash_clone
+            );
+
+            let commands = CommandSequence::new()
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            &format!(
+                                "rm -rf /tmp/xero-toolkit-update && git clone --depth 1 {} /tmp/xero-toolkit-update",
+                                repo_url
+                            ),
+                        ])
+                        .description("Cloning latest CyberXero Toolkit from GitHub...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("sh")
+                        .args(&["-c", "cd /tmp/xero-toolkit-update && cargo build --release"])
+                        .description("Building CyberXero Toolkit (this may take a few minutes)...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "install -Dm755 /tmp/xero-toolkit-update/target/release/xero-toolkit /opt/xero-toolkit/xero-toolkit",
+                        ])
+                        .description("Installing updated xero-toolkit binary...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "install -Dm755 /tmp/xero-toolkit-update/target/release/xero-authd /opt/xero-toolkit/xero-authd",
+                        ])
+                        .description("Installing updated xero-authd binary...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "install -Dm755 /tmp/xero-toolkit-update/target/release/xero-auth /opt/xero-toolkit/xero-auth",
+                        ])
+                        .description("Installing updated xero-auth binary...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "cp -f /tmp/xero-toolkit-update/sources/scripts/* /opt/xero-toolkit/sources/scripts/ && \
+                             chmod 755 /opt/xero-toolkit/sources/scripts/* && \
+                             cp -f /tmp/xero-toolkit-update/sources/systemd/* /opt/xero-toolkit/sources/systemd/",
+                        ])
+                        .description("Updating scripts and systemd units...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "if [ -d /tmp/xero-toolkit-update/extra-scripts/usr/local/bin ]; then \
+                                cp -f /tmp/xero-toolkit-update/extra-scripts/usr/local/bin/* /usr/local/bin/ 2>/dev/null; \
+                                chmod 755 /usr/local/bin/upd /usr/local/bin/grubup 2>/dev/null; \
+                             fi; true",
+                        ])
+                        .description("Updating extra scripts...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&["-c", &commit_store_cmd])
+                        .description("Recording update version...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .normal()
+                        .program("rm")
+                        .args(&["-rf", "/tmp/xero-toolkit-update"])
+                        .description("Cleaning up temporary files...")
+                        .build(),
+                )
+                .build();
+
+            task_runner::run(
+                window_clone.upcast_ref(),
+                commands,
+                "Update CyberXero Toolkit",
+            );
+        });
+        button_box.append(&update_btn);
+
+        content.append(&button_box);
+        toolbar.set_content(Some(&content));
+        dialog.set_content(Some(&toolbar));
+        dialog.present();
     });
 }

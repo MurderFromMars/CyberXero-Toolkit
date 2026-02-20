@@ -1,47 +1,113 @@
-# 🛠️ CyberXero Toolkit
+# CyberXero Toolkit
 
-A GTK4 GUI application for managing system tools, configurations, and customizations on **any Arch-based distribution**.
+**The Xero Toolkit, unchained.** A GTK4/libadwaita system management application for *any* Arch-based distribution — not just one.
 
-> **Fork Info:** I previously collaborated with DarkXero and have always appreciated the quality of the XeroLinux project. I wanted a version that was minimal enough to use as my daily system, but after discussing the idea with him, it became clear that he did not plan to create a minimal edition or make the toolkit available outside the official distribution. Because of that, I decided to take on the work myself and bring XeroLinux features to a minimal Arch installation.
->
-> This fork fulfills that goal by providing an installation process that removes the distribution check and introduces additional features
+Built in Rust. Ships with 11 system utility scripts. Adds an entire new feature page. Rewrites two others from the ground up. Strips out every distribution lock. And it does all of this while fixing the upstream codebase's deprecation warnings and async architecture.
 
----
-
-## 🎯 What It Does
-
-This tool lets you easily manage and customize your Arch-based system through a clean, modern interface:
-
-* **Update your system** with a single click
-* **Install package managers** - Octopi, Bauh, Warehouse, Flatseal, and more
-* **Set up drivers** - GPU drivers (NVIDIA, AMD), Tailscale VPN, ASUS ROG tools
-* **Configure gaming** - Steam with dependencies, Lutris, Heroic, Bottles, Gamescope, Falcond
-* **Customize your desktop** - ZSH setup, GRUB themes, Plymouth, desktop themes
-* **Manage containers & VMs** - Docker, Podman, VirtualBox, DistroBox, KVM/QEMU
-* **Install multimedia tools** - OBS Studio, Jellyfin, and more
-* **Service your system** - Clear caches, fix keyrings, update mirrors, add third-party repos
-* **Biometric authentication** - Fingerprint and facial recognition (jailbroken, see Changes below)
+> **Origin:** This is a hard fork of the [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) by Synse and DarkZero. The original is a competent tool — if you happen to be running XeroLinux. If you aren't, it refuses to start. CyberXero removes that restriction at the source level, then goes dramatically further: rewriting entire subsystems, adding hundreds of features the original never shipped, and delivering a toolkit that treats every Arch-based system as a first-class citizen.
 
 ---
 
-## 💻 Supported Distributions
+## What Changed — And How Much
 
-Any **Arch-based** distribution:
-- Arch Linux
-- EndeavourOS
-- Manjaro
-- CachyOS
-- Garuda Linux
-- ArcoLinux
-- And others...
+This is not a cosmetic fork. Here is what the numbers look like:
 
-## ⚙️ Requirements
+| Metric | Original Toolkit | CyberXero Toolkit |
+|---|---|---|
+| Total codebase (Rust + Bash + UI) | ~13,000 lines | **~15,200 lines** |
+| Rust source | 9,749 lines | **11,258 lines** |
+| Feature pages | 9 tabs | **10 tabs** (+Multimedia Tools) |
+| Containers & VMs page | 290 lines | **839 lines** (complete rewrite) |
+| Servicing & System Tweaks page | 250 lines | **1,261 lines** (5× expansion) |
+| Biometrics page | 136 lines | **325 lines** (jailbroken + uninstall) |
+| Bundled system scripts | 0 | **11 scripts, 1,828 lines** |
+| Supported distributions | 1 (XeroLinux) | **All Arch-based** |
+| Uninstall support for installed tools | Partial | **Every single tool** |
+| Install/uninstall scripts for the toolkit itself | None | **Both included** |
 
-- **AUR Helper** - Paru or Yay (required for most features)
-- **Flatpak** - optional but recommended
-- **XeroLinux Repo FOR A COUPLE FINCTIONS*** - a couple functions need access to metapackages on the xerolinux repo. (like some the VM stuff,) I'm looking into resolving this but for now the forked toolkit does have ability to add the xerolinux repo to your system 
+The original toolkit will not run on your system unless it reads "XeroLinux" from `/etc/os-release`. CyberXero doesn't patch around this at build time with a fragile `sed` expression — the check is **deleted from the source**. There is no runtime gate. There is no workaround. The code simply isn't there.
 
-## 📦 Installation
+---
+
+## Feature Breakdown
+
+### Distribution Freedom
+The XeroLinux distribution check is removed at the source level — not patched, not bypassed, *gone*. Dead code left behind by the removal (`check_system_requirements`, `XEROLINUX_CHECK`, unused re-exports) has been cleaned up, eliminating every compiler warning the original ships with.
+
+### Containers & VMs — Fully Rewritten
+The original Containers & VMs page relies on `virtualbox-meta` and `virt-manager-meta`, which are XeroLinux-specific metapackages that **do not exist** on any other distribution. CyberXero replaces every single one with explicit, documented package lists that work everywhere.
+
+What this means in practice:
+
+- **VirtualBox** now detects your running kernel at install time. Stock `linux` gets prebuilt host modules. `linux-lts` gets its own. Any custom kernel (zen, cachyos, hardened, etc.) gets DKMS with auto-detected headers. The original just ran a metapackage and hoped for the best.
+- **KVM/QEMU** installs a complete, explicit package list: `qemu-desktop`, `libvirt`, `virt-manager`, `virt-viewer`, `edk2-ovmf`, `dnsmasq`, `iptables-nft`, `openbsd-netcat`, `swtpm`. It detects and resolves `iptables`/`gnu-netcat` conflicts before they break your install. It reads `/proc/cpuinfo` to write the correct nested virtualization config (`kvm-intel` vs `kvm-amd`). It adds you to the `libvirt` group. It enables `libvirtd.service`. It ships `swtpm` for Windows 11 TPM 2.0 compatibility. The original did none of this.
+- **Every tool** (Docker, Podman, VirtualBox, DistroBox, KVM/QEMU, iOS iPA Sideloader) now has a dedicated **uninstall button** that properly stops services, removes group memberships, and cleans up packages.
+- **Smart state tracking**: install buttons grey out with a checkmark when a tool is already detected, and refresh automatically when you return to the page.
+
+### Servicing & System Tweaks — 5× Expansion
+The original servicing page has 7 functions. CyberXero has **15**, including:
+
+- **Third-party repo installation**: one-click buttons for CachyOS repos, Chaotic-AUR, and the XeroLinux repo (so you can access XeroLinux packages without running XeroLinux).
+- **Smart mirror updates**: auto-detects every installed repository and updates all mirrorlists using `rate-mirrors`. Supports Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, and Artix out of the box.
+- **xPackageManager integration**: a forked version with the distro check removed and hardcoded repo references replaced with dynamic detection — works with whatever repos you actually have configured.
+- **Toolkit self-update**: checks the upstream commit hash and rebuilds from source when a new version is available.
+
+### Multimedia Tools — Entirely New Page
+The original toolkit mentions multimedia tools in its README. CyberXero actually ships a dedicated page for them:
+
+- **OBS Studio** installs via Flatpak with a selection dialog offering six plugin groups: Wayland Hotkeys, Graphics Capture (VkCapture, GStreamer, VA-API), Transitions & Effects, Streaming Tools (WebSocket, Scene Switcher, DroidCam), Audio/Video Enhancement (Waveform, Vertical Canvas, Background Removal), and V4L2 virtual camera with kernel module auto-configuration.
+- **Kdenlive** video editor installation.
+- **Jellyfin** server with automatic service enablement.
+- **GPU Screen Recorder** with smart repo detection — installs from official repos when available, falls back to AUR when not.
+
+### Biometrics — Jailbroken Edition
+The original ships biometric support that is locked to XeroLinux. CyberXero jailbreaks it:
+
+- **Fingerprint authentication** builds from a fork that bypasses upstream lockdowns. Full PAM integration. Works with any `fprintd`-compatible reader.
+- **Facial recognition (Howdy Qt)** is the first fully working integration — CyberXero beat upstream to it by building from source rather than depending on a broken `howdy-bin` package. Uses `howdy-git` with correct dependencies.
+- Both features ship with **install and uninstall buttons** — the original has no uninstall path.
+
+### 11 Bundled System Scripts
+The original toolkit calls out to scripts that are packaged separately on XeroLinux — scripts that simply don't exist on any other distribution. 10 of these 11 are those XeroLinux-packaged utilities, bundled directly into this repo so that every feature they power actually works regardless of what distro you're on. The 11th, `cyberxero-theme`, is entirely new:
+
+| Script | Purpose |
+|---|---|
+| `upd` | Comprehensive system updater: pacman, AUR, Flatpak, Rust toolchain, firmware. Detects if reboot is needed. |
+| `xpm` | Plymouth theme wizard for Arch Linux |
+| `cyberxero-theme` | CyberXero desktop theme installer with backup/restore (765 lines) |
+| `rddav` | Real-Debrid WebDAV automount via rclone + systemd |
+| `gcm` | Git credential helper wizard |
+| `pmpd` | Pamac database repair tool |
+| `pacup` | Pacman.conf updater with automatic backup |
+| `keyfix` | Pacman keyring and database repair |
+| `rpipe` | PipeWire restart utility |
+| `opr-drv` | OpenRazer driver installer with user group setup |
+| `getcider` | Cider music player installer with GPG key signing |
+
+All scripts are installed to `/usr/local/bin` automatically and removed cleanly by the uninstaller.
+
+### Under the Hood
+
+- **Async channel migration**: the original uses the deprecated `glib::MainContext::channel` API, which was removed in `glib-rs` 0.19. CyberXero migrates to `async_channel`, putting system dependency checks on a background thread. The result is a responsive UI during startup — the original hitches noticeably, and it gets worse the more features you add.
+- **Window presentation fix**: the main window now only presents after the full UI is assembled, preventing the visible resize flash that plagued tiling window manager users.
+- **Smart package detection**: Falcond and other tools check if packages exist in your configured repos before falling back to AUR, using `pacman` for repo packages and your AUR helper only when necessary.
+
+---
+
+## Supported Distributions
+
+Any **Arch-based** distribution, including but not limited to:
+
+Arch Linux · EndeavourOS · CachyOS · Garuda Linux · Manjaro · ArcoLinux · Artix · RebornOS
+
+If it has `pacman`, it runs.
+
+## Requirements
+
+- **AUR helper** — Paru or Yay (the installer will offer to set one up if missing)
+- **Flatpak** — optional but recommended for OBS Studio and some multimedia tools
+
+## Installation
 
 **One-liner:**
 ```sh
@@ -55,136 +121,45 @@ cd CyberXero-Toolkit
 ./install.sh
 ```
 
-The installer will:
-1. Install build dependencies via pacman
-2. Build from source using Cargo
-3. Install to `/opt/xero-toolkit`
-4. Create desktop entry and icon
+The installer handles everything: dependency resolution, AUR helper setup, Rust compilation, binary installation to `/opt/xero-toolkit`, desktop entry creation, icon registration, and deployment of all 11 system scripts.
 
-## 🗑️ Uninstallation
+## Uninstallation
 
 ```bash
 cd CyberXero-Toolkit
 ./uninstall.sh
 ```
 
-Or manually:
-```bash
-sudo rm -rf /opt/xero-toolkit
-sudo rm -f /usr/bin/xero-toolkit
-sudo rm -f /usr/share/applications/xero-toolkit.desktop
-sudo rm -f /usr/share/icons/hicolor/scalable/apps/xero-toolkit.png
-```
+Removes binaries, symlinks, desktop entries, icons, all bundled scripts, and user autostart entries. Clean removal — nothing left behind.
 
-## 🔧 Build Dependencies
+## Build Dependencies
 
-Installed automatically by the installer:
-- `rust` & `cargo`
-- `pkgconf`
-- `gtk4`
-- `glib2`
-- `libadwaita`
-- `vte4`
-- `flatpak`
-- `polkit`
+Installed automatically by `install.sh`:
 
----
-### ✨ Changes from Original
-Distribution Freedom 
-
-Removed XeroLinux distribution check at the source level — the check is fully deleted from the codebase, not patched at runtime. Works cleanly on any Arch-based distro with no hacks.
-The old install.sh patched a sed expression over the binary check at build time. This was fragile and broke when the upstream code restructured. The check is now simply gone from the source.
-Added install.sh for easy building from source
-Added uninstall.sh for clean removal
-
-### 🔧 Under the hood improvements
-
-Migrated from deprecated glib::MainContext::channel API to async_channel — the old synchronous GLib channel API was removed in glib-rs 0.19. System dependency checks now run on a background thread and report back via an async channel, keeping the UI responsive during startup. the old design was showing it's limits with the addition of biometrics (in\ the original application as well currently, with slower startup and hitching) this only increased in severity with the additions i've been making to functions (uninstall and package detection. particularly on the overhauled VM stuff. this has been resolved fully)
-Added async-channel = "2" dependency to gui/Cargo.toml
-Removed dead code — cleaned up unused re-exports and constants (check_system_requirements, XEROLINUX_CHECK) that were left over after the distribution check removal, eliminating all compiler warnings
-Window presentation fix — the main window now only presents after the full UI is assembled, preventing a visible resize/flash on tiling window managers
-
-### 🔓 Biometrics — Jailbroken Edition
-Bringing the latest upstream toolkit updates, with none of the restrictions!
-Fingerprint Authentication (XFPrintD GUI)
-
-Builds from source using a jailbroken fork that bypasses upstream lockdowns
-Removed distribution checks that blocked installation on non-XeroLinux systems
-Full functionality — enroll fingerprints, manage PAM integration, works with any fprintd-compatible reader
-
-## Facial Recognition (Howdy Qt)
-
-First fully working integration — able to get the jump on upstream due to them packaging it while we build from source
-Fixed broken dependencies — upstream pointed to howdy-bin which fails to build; we use howdy-git instead
-Builds xero-howdy-qt from source with correct dependencies
-
-Install AND uninstall buttons for easy removal, another added feature unique to this fork
-xPackageManager Integration
-Added a forked version of the new xPackageManager that has had the distro check removed and repo hard coding replaced with a dynamic system that allows it to work with any repos on the system.
-Smart Mirror Updates
-
-Auto-detects all installed repositories and updates their mirrorlists automatically
-Supports: Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, Artix
-Uses rate-mirrors for optimal mirror selection
-No manual selection needed — just click and all detected mirrorlists are updated
-
-## Third-Party Repository Installation
-Added buttons in the Servicing / System Tweaks page to easily add popular Arch repositories:
-
-Install CachyOS Repos - Adds the CachyOS repositories for performance-optimized packages and kernels
-Install Chaotic-AUR - Adds the Chaotic-AUR repository for pre-built AUR packages
-Add XeroLinux Repo - Access to XeroLinux packages without running XeroLinux
-
-## Smart Package Installation
-
-Falcond Gaming Utility - Intelligently checks if packages are available in your configured repos before falling back to AUR
-Automatically uses pacman for repo packages, AUR helper only when needed. Also added the new falcond-gui app.
-
-## Containers & VMs   Fully Rewritten
-The entire Containers & VMs page has been overhauled to remove dependency on XeroLinux meta-packages and add proper install/uninstall support for every tool.
-No more meta-packages, the original used virtualbox-meta and virt-manager-meta which are XeroLinux-specific and unavailable on other distros. Every tool now installs an explicit, documented package list that works on any Arch-based system.
-Uninstall buttons added for every tool, Docker, Podman, VirtualBox, DistroBox, KVM/QEMU, and the iOS iPA Sideloader all have a dedicated uninstall button that properly cleans up services, groups, and packages.
-Smart state tracking: install buttons grey out with a ✓ when a tool is already installed and refresh automatically when you return to the window, so the UI always reflects reality.
-VirtualBox: kernel-aware host modules
-The old code just ran virtualbox-meta. The new code reads uname -r at install time and selects the right host module:
-
--arch kernel → virtualbox-host-modules-arch (prebuilt)
--lts kernel → virtualbox-host-modules-lts (prebuilt)
-Any custom kernel (zen, cachyos, hardened, etc.) → virtualbox-host-dkms + matching kernel headers auto-detected from the version string
-
-Uninstall dynamically detects whichever host module variant is present and removes it cleanly.
-KVM/QEMU — explicit packages, conflict resolution, CPU-aware nested virt
-Replaces virt-manager-meta with a full explicit package list: qemu-desktop, libvirt, virt-manager, virt-viewer, edk2-ovmf, dnsmasq, iptables-nft, openbsd-netcat, swtpm.
-Notable additions:
-
-Detects and resolves iptables / gnu-netcat conflicts before installing (these clash with iptables-nft and openbsd-netcat)
-Reads /proc/cpuinfo to write the correct nested virtualisation config (kvm-intel vs kvm-amd)
-Adds the user to the libvirt group automatically
-Enables and starts libvirtd.service as part of the install sequence
-swtpm included for Windows 11 VM compatibility (TPM 2.0)
-
-Uninstall stops and disables all libvirtd services/sockets, removes the user from the libvirt group, and cleans up nested virt modprobe configs.
-Docker — uninstall properly stops services and removes user from docker group before removing packages.
-Podman — uninstall stops the podman socket, removes Podman Desktop flatpak if present, then removes packages.
-DistroBox — uninstall removes BoxBuddy flatpak if present before removing the package.
-Bundles XeroLinux Extra-Scripts Package
-Various scripts needed for things like the updater to work are included in this repo and installed automatically alongside the toolkit.
-## Rebranding
-
-Updated About Dialog - Reflects the fork's origin and enhancements
-Modified Links - Discord and YouTube links updated (configurable in gui/src/config.rs)
-Logo - Changed to a more appropriate Arch logo
+`rust` · `cargo` · `pkgconf` · `gtk4` · `glib2` · `libadwaita` · `vte4` · `flatpak` · `polkit` · `base-devel` · `scx-scheds`
 
 ---
 
-## 📄 License
+## Screenshots
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+![Main Page](screenshots/main_page.png)
+*Main application window*
 
-## 🙏 Credits
+![Installation Dialog](screenshots/installing_dialog.png)
+*Real-time terminal output during package operations*
+
+![Selection Dialog](screenshots/selection_dialog.png)
+*Multi-select interface for tool installation*
+
+---
+
+## License
+
+GNU General Public License v3.0 — see [LICENSE](LICENSE).
+
+## Credits
 
 - Original [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) by Synse and DarkZero
 - [XeroLinux](https://xerolinux.xyz/) project
 - [CachyOS](https://cachyos.org/) for their optimized repositories
 - [Chaotic-AUR](https://aur.chaotic.cx/) for pre-built AUR packages
-

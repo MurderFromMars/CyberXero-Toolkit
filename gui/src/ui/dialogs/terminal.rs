@@ -102,11 +102,15 @@ pub fn show_terminal_dialog(
     let close_button_clone = close_button.clone();
     let close_button_error = close_button.clone();
     let terminal_error = terminal.clone();
+    let env_vars: Vec<String> = std::env::vars()
+        .map(|(k, v)| format!("{k}={v}"))
+        .collect();
+    let env_refs: Vec<&str> = env_vars.iter().map(|s| s.as_str()).collect();
     terminal.spawn_async(
         vte4::PtyFlags::DEFAULT,
         None,
         &argv_refs,
-        &[],
+        &env_refs,
         gtk4::glib::SpawnFlags::SEARCH_PATH,
         || {}, // child setup
         -1,

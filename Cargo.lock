@@ -2994,7 +2994,7 @@ dependencies = [
 
 [[package]]
 name = "xero-auth"
-version = "0.1.0"
+version = "0.1.9"
 dependencies = [
  "anyhow",
  "clap",
@@ -3008,7 +3008,7 @@ dependencies = [
 
 [[package]]
 name = "xero-toolkit"
-version = "0.1.0"
+version = "0.1.9"
 dependencies = [
  "anyhow",
  "dirs",

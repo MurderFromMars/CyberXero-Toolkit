@@ -99,3 +99,58 @@
     font-feature-settings: "tnum";
     font-variant-numeric: tabular-nums;
 }
+
+
+/* ============================================
+   Servicing Page Section Labels
+   ============================================ */
+
+.svc-section-label {
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+}
+
+/* ============================================
+   Servicing Page Action Buttons
+   ============================================ */
+
+.svc-btn {
+    border-radius: 8px;
+    font-size: 0.9em;
+}
+
+/* ============================================
+   Optimization Toggle Buttons
+   ============================================ */
+
+.opt-toggle {
+    border-radius: 12px;
+    padding: 4px;
+    transition: all 0.18s ease;
+}
+
+.opt-toggle .opt-toggle-title {
+    font-weight: 600;
+    font-size: 0.95em;
+}
+
+.opt-toggle .opt-toggle-subtitle {
+    opacity: 0.7;
+    font-size: 0.82em;
+}
+
+.opt-toggle:checked {
+    background-color: @accent_bg_color;
+    color: @accent_fg_color;
+}
+
+.opt-toggle:checked .opt-toggle-title {
+    color: @accent_fg_color;
+}
+
+.opt-toggle:checked .opt-toggle-subtitle {
+    color: @accent_fg_color;
+    opacity: 0.85;
+}

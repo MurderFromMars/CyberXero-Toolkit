@@ -63,7 +63,7 @@
             <property name="halign">center</property>
             <child>
               <object class="GtkButton" id="btn_gaming_meta">
-                <property name="label">Gaming Meta</property>
+                <property name="label">Gaming Suite</property>
                 <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>

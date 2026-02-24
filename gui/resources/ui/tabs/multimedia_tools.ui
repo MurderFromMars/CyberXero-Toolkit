@@ -95,7 +95,7 @@
             </child>
           </object>
         </child>
-        <!-- Row 3: GPU Screen Recorder -->
+        <!-- Row 3: GPU Screen Recorder, Streaming Services -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
@@ -104,6 +104,14 @@
             <child>
               <object class="GtkButton" id="btn_gpu_screen_recorder">
                 <property name="label">GPU Screen Recorder</property>
+                <property name="width-request">200</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_streaming_services">
+                <property name="label">Streaming Services</property>
                 <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>

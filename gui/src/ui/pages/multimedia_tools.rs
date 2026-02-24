@@ -5,6 +5,7 @@
 //! - Kdenlive video editor
 //! - Jellyfin server installation
 //! - GPU Screen Recorder GTK (repo-first, AUR fallback)
+//! - Streaming service web app installer
 
 use crate::core;
 use crate::ui::dialogs::selection::{
@@ -16,12 +17,89 @@ use gtk4::prelude::*;
 use gtk4::{ApplicationWindow, Builder};
 use log::info;
 
+/// Streaming service entries: (name, url)
+const STREAMING_SERVICES: &[(&str, &str)] = &[
+    ("ABC IView", "https://iview.abc.net.au"),
+    ("AirGPU", "https://app.airgpu.com"),
+    ("Amazon Luna", "https://luna.amazon.com/"),
+    ("Amazon Prime Video", "https://www.amazon.com/video"),
+    ("Angry Birds TV", "https://www.angrybirds.com/series/"),
+    ("Antstream", "https://live.antstream.com/"),
+    ("Apple TV", "https://tv.apple.com/"),
+    ("BBC iPlayer", "https://www.bbc.co.uk/iplayer/"),
+    ("BritBox", "https://britbox.com"),
+    ("Binge", "https://binge.com.au"),
+    ("Blacknut", "https://www.blacknut.com/en-gb/games"),
+    ("Boosteroid", "https://cloud.boosteroid.com"),
+    ("CBBC", "https://www.bbc.co.uk/cbbc"),
+    ("CBeebies", "https://www.bbc.co.uk/cbeebies"),
+    ("Channel 4", "https://www.channel4.com/"),
+    ("Crave", "https://www.crave.ca/"),
+    ("Criterion Channel", "https://www.criterionchannel.com"),
+    ("Crunchyroll", "https://www.crunchyroll.com/"),
+    ("Curiosity Stream", "https://curiositystream.com"),
+    ("Daily Wire", "https://www.dailywire.com/watch"),
+    ("Discord", "https://discord.com/app"),
+    ("Disney+", "https://www.disneyplus.com/"),
+    ("DocPlay", "https://www.docplay.com"),
+    ("Dropout", "https://www.dropout.tv/browse"),
+    ("Emby Theater", "https://emby.media/"),
+    ("Fox", "https://www.fox.com/"),
+    ("Fubo TV", "https://www.fubo.tv"),
+    ("GeForce Now", "https://play.geforcenow.com/mall/"),
+    ("GBNews Live", "https://www.gbnews.com/watch/live"),
+    ("GlobalComix", "https://globalcomix.com/"),
+    ("Google Play Books", "https://play.google.com/store/books"),
+    ("HBO Max", "https://www.max.com/"),
+    ("Home Assistant", "https://demo.home-assistant.io/"),
+    ("Hulu", "https://www.hulu.com/"),
+    ("Internet Archive Movies", "https://archive.org/details/movies"),
+    ("ITV X", "https://www.itv.com/"),
+    ("Kanopy", "https://www.kanopy.com"),
+    ("Microsoft Movies and TV", "https://apps.microsoft.com/movies"),
+    ("My5", "https://www.channel5.com/"),
+    ("Nebula", "https://nebula.tv/"),
+    ("Netflix", "https://www.netflix.com/"),
+    ("Newgrounds Movies", "https://www.newgrounds.com/movies"),
+    ("Newgrounds Games", "https://www.newgrounds.com/games"),
+    ("Kogama", "https://www.kogama.com/"),
+    ("Paramount+", "https://www.paramountplus.com/"),
+    ("Peacock TV", "https://www.peacocktv.com/"),
+    ("POP Player", "https://player.pop.co.uk/"),
+    ("Puffer", "https://puffer.stanford.edu/player/"),
+    ("Plex", "https://app.plex.tv/"),
+    ("Pocket Casts", "https://play.pocketcasts.com"),
+    ("Poki", "https://poki.com/"),
+    ("Reddit", "https://www.reddit.com/r/all/"),
+    ("SBS Ondemand", "https://www.sbs.com.au/ondemand/"),
+    ("Scratch", "https://scratch.mit.edu/explore/projects/all"),
+    ("Sling TV", "https://www.sling.com"),
+    ("Spotify", "https://open.spotify.com/"),
+    ("Stan", "https://www.stan.com.au"),
+    ("Steam Broadcasts", "https://steamcommunity.com/?subsection=broadcasts"),
+    ("Squid TV", "https://www.squidtv.net/"),
+    ("TikTok", "https://www.tiktok.com/"),
+    ("Threads", "https://www.threads.net/"),
+    ("Twitch", "https://www.twitch.tv/"),
+    ("Twitter", "https://twitter.com/"),
+    ("Vimeo", "https://vimeo.com/"),
+    ("Virgin TV Go", "https://virgintvgo.virginmedia.com/en/home"),
+    ("VK Play", "https://cloud.vkplay.ru/"),
+    ("Xbox Game Pass Streaming", "https://www.xbox.com/play"),
+    ("Xiaohongshu (RedNote)", "https://www.xiaohongshu.com/explore"),
+    ("YouTube Music", "https://music.youtube.com/"),
+    ("YouTube TV", "https://tv.youtube.com/"),
+    ("YouTube", "https://www.youtube.com/"),
+    ("WebRcade", "https://play.webrcade.com/"),
+];
+
 /// Set up all button handlers for the multimedia tools page
 pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &ApplicationWindow) {
     setup_obs_studio_aio(page_builder, window);
     setup_kdenlive(page_builder, window);
     setup_jellyfin(page_builder, window);
     setup_gpu_screen_recorder(page_builder, window);
+    setup_streaming_services(page_builder, window);
 }
 
 fn setup_obs_studio_aio(page_builder: &Builder, window: &ApplicationWindow) {
@@ -287,5 +365,190 @@ fn setup_gpu_screen_recorder(page_builder: &Builder, window: &ApplicationWindow)
         let commands = CommandSequence::new().then(install_cmd).build();
 
         task_runner::run(window.upcast_ref(), commands, "GPU Screen Recorder Setup");
+    });
+}
+
+fn setup_streaming_services(page_builder: &Builder, window: &ApplicationWindow) {
+    let btn_streaming = extract_widget::<gtk4::Button>(page_builder, "btn_streaming_services");
+    let window = window.clone();
+
+    btn_streaming.connect_clicked(move |_| {
+        info!("Multimedia tools: Streaming Services button clicked");
+        let window_ref = window.upcast_ref();
+
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+        let is_steamos = std::path::Path::new("/usr/bin/steamos-add-to-steam").exists();
+        if is_steamos {
+            info!("Handheld device detected");
+        }
+
+        let apps_dir = if is_steamos {
+            format!("{}/Applications", home)
+        } else {
+            format!("{}/.local/share/applications", home)
+        };
+
+        let dialog_desc = if is_steamos {
+            "Select services to add as fullscreen Chrome kiosk web apps.\n\
+             Flatpak Google Chrome will be installed if needed.\n\
+             Handheld device detected — selected apps will be added to Steam."
+        } else {
+            "Select services to add as fullscreen Chrome kiosk web apps.\n\
+             Flatpak Google Chrome will be installed if needed."
+        };
+
+        let mut config = SelectionDialogConfig::new(
+            "Streaming Service Web Apps",
+            dialog_desc,
+        )
+        .selection_type(SelectionType::Multi)
+        .selection_required(true)
+        .confirm_label("Add Selected");
+
+        for (name, _url) in STREAMING_SERVICES {
+            let desktop_path = format!("{}/{}.desktop", apps_dir, name);
+            let installed = std::path::Path::new(&desktop_path).exists();
+            config = config.add_option(SelectionOption::new(name, name, "", installed));
+        }
+
+        let window_for_closure = window.clone();
+        show_selection_dialog(window_ref, config, move |selected_ids| {
+            if selected_ids.is_empty() {
+                return;
+            }
+
+            let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+            let is_steamos = std::path::Path::new("/usr/bin/steamos-add-to-steam").exists();
+
+            let apps_dir = if is_steamos {
+                format!("{}/Applications", home)
+            } else {
+                format!("{}/.local/share/applications", home)
+            };
+
+            let mut commands = CommandSequence::new();
+
+            // Install Chrome flatpak if not present
+            if !core::is_flatpak_installed("com.google.Chrome") {
+                commands = commands.then(
+                    Command::builder()
+                        .normal()
+                        .program("flatpak")
+                        .args(&["install", "-y", "com.google.Chrome"])
+                        .description("Installing Google Chrome (Flatpak)...")
+                        .build(),
+                );
+            }
+
+            // Flatpak overrides: udev for controller support (always)
+            // + ~/Applications filesystem access on SteamOS
+            if is_steamos {
+                commands = commands.then(
+                    Command::builder()
+                        .normal()
+                        .program("flatpak")
+                        .args(&[
+                            "override",
+                            "--user",
+                            "--filesystem=/run/udev:ro",
+                            &format!("--filesystem={}/Applications", home),
+                            "com.google.Chrome",
+                        ])
+                        .description("Handheld device detected, configuring Chrome permissions...")
+                        .build(),
+                );
+            } else {
+                commands = commands.then(
+                    Command::builder()
+                        .normal()
+                        .program("flatpak")
+                        .args(&[
+                            "override",
+                            "--user",
+                            "--filesystem=/run/udev:ro",
+                            "com.google.Chrome",
+                        ])
+                        .description("Configuring Chrome controller permissions...")
+                        .build(),
+                );
+            }
+
+            // Build a single shell script that creates all selected .desktop files
+            let mut script_parts = vec![format!("mkdir -p '{}'", apps_dir)];
+
+            for selected_name in &selected_ids {
+                if let Some((name, url)) = STREAMING_SERVICES
+                    .iter()
+                    .find(|(n, _)| *n == selected_name.as_str())
+                {
+                    let desktop_path = format!("{}/{}.desktop", apps_dir, name);
+                    script_parts.push(format!(
+                        concat!(
+                            "printf '%s\\n' ",
+                            "'[Desktop Entry]' ",
+                            "'Name={}' ",
+                            "'Type=Application' ",
+                            "'Icon=com.google.Chrome' ",
+                            "'Exec=/usr/bin/flatpak run --branch=stable --arch=x86_64 ",
+                            "com.google.Chrome --kiosk --start-fullscreen ",
+                            "--force-device-scale-factor=1.5 \"{}\"' ",
+                            "'Categories=Network;WebBrowser;' ",
+                            "> '{}' && chmod 0644 '{}'"
+                        ),
+                        name, url, desktop_path, desktop_path
+                    ));
+                }
+            }
+
+            let full_script = script_parts.join(" && ");
+            let desc = format!(
+                "Creating {} streaming service web app(s)...",
+                selected_ids.len()
+            );
+
+            commands = commands.then(
+                Command::builder()
+                    .normal()
+                    .program("sh")
+                    .args(&["-c", &full_script])
+                    .description(&desc)
+                    .build(),
+            );
+
+            // On SteamOS, add each .desktop file to Steam
+            if is_steamos {
+                let mut steam_parts = Vec::new();
+                for selected_name in &selected_ids {
+                    if let Some((name, _url)) = STREAMING_SERVICES
+                        .iter()
+                        .find(|(n, _)| *n == selected_name.as_str())
+                    {
+                        let desktop_path = format!("{}/{}.desktop", apps_dir, name);
+                        steam_parts.push(format!(
+                            "steamos-add-to-steam '{}' || true",
+                            desktop_path
+                        ));
+                    }
+                }
+
+                if !steam_parts.is_empty() {
+                    let steam_script = steam_parts.join(" && ");
+                    commands = commands.then(
+                        Command::builder()
+                            .normal()
+                            .program("sh")
+                            .args(&["-c", &steam_script])
+                            .description("Handheld device detected — adding web apps to Steam...")
+                            .build(),
+                    );
+                }
+            }
+
+            task_runner::run(
+                window_for_closure.upcast_ref(),
+                commands.build(),
+                "Streaming Services Setup",
+            );
+        });
     });
 }

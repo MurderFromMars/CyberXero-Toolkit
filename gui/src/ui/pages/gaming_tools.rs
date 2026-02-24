@@ -103,8 +103,6 @@ fn setup_gaming_meta(builder: &Builder, window: &ApplicationWindow) {
                         // Gaming tools & launchers
                         "steam",
                         "gamescope",
-                        "gamemode",
-                        "lib32-gamemode",
                         "mangohud",
                         "lib32-mangohud",
                         "goverlay",

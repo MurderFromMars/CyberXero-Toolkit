@@ -2,6 +2,7 @@
 //!
 //! Handles:
 //! - CyberXero Theme installation
+//! - PS4 Theme installation
 //! - ZSH All-in-One setup
 //! - Save Desktop tool
 //! - GRUB theme installation
@@ -20,6 +21,7 @@ use log::info;
 /// Set up all button handlers for the customization page.
 pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &ApplicationWindow) {
     setup_cyberxero_theme(page_builder, window);
+    setup_ps4_theme(page_builder, window);
     setup_zsh_aio(page_builder, window);
     setup_save_desktop(page_builder, window);
     setup_grub_theme(page_builder, window);
@@ -50,6 +52,34 @@ fn setup_cyberxero_theme(builder: &Builder, window: &ApplicationWindow) {
                     window_clone.upcast_ref(),
                     "CyberXero Theme Installation",
                     "/usr/local/bin/cyberxero-theme",
+                    &[],
+                );
+            },
+        );
+    });
+}
+
+fn setup_ps4_theme(builder: &Builder, window: &ApplicationWindow) {
+    let button = extract_widget::<Button>(builder, "btn_ps4_theme");
+    let window = window.clone();
+
+    button.connect_clicked(move |_| {
+        info!("PS4 Theme button clicked");
+
+        let window_clone = window.clone();
+        crate::ui::dialogs::warning::show_warning_confirmation(
+            window.upcast_ref(),
+            "Apply PS4 Theme",
+            "This will install the <span foreground=\"cyan\" weight=\"bold\">PlayStation 4 Plasma Theme</span>.\n\n\
+             • Existing Plasma configs will be <span foreground=\"cyan\" weight=\"bold\">backed up</span> automatically\n\
+             • KWin effects will be compiled from source\n\
+             • Plasmashell will be <span foreground=\"red\" weight=\"bold\">restarted</span> during installation\n\n\
+             This process may take several minutes.",
+            move || {
+                terminal::show_terminal_dialog(
+                    window_clone.upcast_ref(),
+                    "PS4 Theme Installation",
+                    "/usr/local/bin/PS4-theme",
                     &[],
                 );
             },

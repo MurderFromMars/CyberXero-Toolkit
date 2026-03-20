@@ -1222,7 +1222,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
                             "-c",
                             "if [ -d /tmp/xero-toolkit-update/extra-scripts/usr/local/bin ]; then \
                                 cp -f /tmp/xero-toolkit-update/extra-scripts/usr/local/bin/* /usr/local/bin/ 2>/dev/null; \
-                                chmod 755 /usr/local/bin/upd /usr/local/bin/grubup 2>/dev/null; \
+                                chmod 755 /tmp/xero-toolkit-update/extra-scripts/usr/local/bin/* /usr/local/bin/ 2>/dev/null; \
                              fi; true",
                         ])
                         .description("Updating extra scripts...")

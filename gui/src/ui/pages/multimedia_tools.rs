@@ -6,6 +6,7 @@
 //! - Jellyfin server installation
 //! - GPU Screen Recorder GTK (repo-first, AUR fallback)
 //! - Streaming service web app installer
+//! - Enhanced Audio (PipeWire spatial convolver)
 
 use crate::core;
 use crate::ui::dialogs::selection::{
@@ -100,6 +101,7 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_jellyfin(page_builder, window);
     setup_gpu_screen_recorder(page_builder, window);
     setup_streaming_services(page_builder, window);
+    setup_enhanced_audio(page_builder, window);
 }
 
 fn setup_obs_studio_aio(page_builder: &Builder, window: &ApplicationWindow) {
@@ -549,6 +551,225 @@ fn setup_streaming_services(page_builder: &Builder, window: &ApplicationWindow) 
                 commands.build(),
                 "Streaming Services Setup",
             );
+        });
+    });
+}
+
+// ── Enhanced Audio ────────────────────────────────────────────────────────────
+
+const ENHANCED_AUDIO_CONF: &str =
+    ".config/pipewire/pipewire.conf.d/spatial-audio.conf";
+const SUSPEND_FIX_SERVICE: &str =
+    "/etc/systemd/system/pipewire-fix-audio-after-suspend.service";
+const ENHANCED_AUDIO_REPO: &str =
+    "https://github.com/MurderFromMars/Enhanced-Handheld-Audio/archive/main.tar.gz";
+
+/// Returns the active intensity ("light" / "medium" / "heavy") if Enhanced
+/// Audio is installed, or `None` if it isn't.
+fn detect_enhanced_audio_intensity() -> Option<String> {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let conf_path = format!("{}/{}", home, ENHANCED_AUDIO_CONF);
+    if !std::path::Path::new(&conf_path).exists() {
+        return None;
+    }
+    if let Ok(content) = std::fs::read_to_string(&conf_path) {
+        for line in content.lines() {
+            if line.contains("# Intensity:") {
+                for level in &["light", "medium", "heavy"] {
+                    if line.contains(level) {
+                        return Some(level.to_string());
+                    }
+                }
+                // Conf exists but intensity line unrecognised — still installed.
+                return Some("unknown".to_string());
+            }
+        }
+        // Conf exists but no intensity comment — treat as installed.
+        return Some("unknown".to_string());
+    }
+    None
+}
+
+/// Returns `true` if the suspend-fix systemd service is present.
+fn detect_suspend_fix() -> bool {
+    std::path::Path::new(SUSPEND_FIX_SERVICE).exists()
+}
+
+/// Returns a label string for an intensity option, appending "(active)" when
+/// it matches the currently installed intensity.
+fn intensity_label(level: &str, current: Option<&str>) -> String {
+    if current == Some(level) {
+        format!("{} (active)", level_display(level))
+    } else {
+        level_display(level).to_string()
+    }
+}
+
+fn level_display(level: &str) -> &str {
+    match level {
+        "light"  => "Light",
+        "medium" => "Medium",
+        "heavy"  => "Heavy",
+        _        => level,
+    }
+}
+
+fn setup_enhanced_audio(page_builder: &Builder, window: &ApplicationWindow) {
+    let btn = extract_widget::<gtk4::Button>(page_builder, "btn_enhanced_audio");
+    let window = window.clone();
+
+    btn.connect_clicked(move |_| {
+        info!("Multimedia tools: Enhanced Audio button clicked");
+        let window_ref = window.upcast_ref();
+
+        let current_intensity = detect_enhanced_audio_intensity();
+        let is_installed      = current_intensity.is_some();
+        let suspend_installed = detect_suspend_fix();
+        let current_str       = current_intensity.as_deref();
+
+        // ── Dialog 1: intensity selection (radio, required) ──────────────────
+        //
+        // All options have `installed: false` so nothing is pre-locked; the
+        // active level is indicated in the label text instead.
+        // If Enhanced Audio is already installed an "Uninstall" radio is added
+        // at the bottom — choosing it skips dialog 2 entirely.
+
+        let mut intensity_config = SelectionDialogConfig::new(
+            "Enhanced Audio",
+            "Select spatial intensity for your built-in speakers.\n\
+             Installs a virtual PipeWire sink via 4-channel crossfeed convolution.",
+        )
+        .selection_type(SelectionType::Single)
+        .selection_required(true)
+        .add_option(SelectionOption::new(
+            "light",
+            &intensity_label("light", current_str),
+            "15% crossfeed · 3 reflections · best for music",
+            false,
+        ))
+        .add_option(SelectionOption::new(
+            "medium",
+            &intensity_label("medium", current_str),
+            "25% crossfeed · 5 reflections · general gaming and media",
+            false,
+        ))
+        .add_option(SelectionOption::new(
+            "heavy",
+            &intensity_label("heavy", current_str),
+            "35% crossfeed · 7 reflections · single-player / movies",
+            false,
+        ));
+
+        if is_installed {
+            intensity_config = intensity_config.add_option(SelectionOption::new(
+                "uninstall",
+                "Uninstall Enhanced Audio",
+                "Remove all config files and restore default audio",
+                false,
+            ));
+        }
+
+        intensity_config =
+            intensity_config.confirm_label(if is_installed { "Next →" } else { "Next →" });
+
+        let window_for_extras = window.clone();
+
+        show_selection_dialog(window_ref, intensity_config, move |intensity_selected| {
+            let choice = intensity_selected
+                .into_iter()
+                .next()
+                .unwrap_or_else(|| "medium".to_string());
+
+            // ── Uninstall path — run immediately, no second dialog ────────────
+            if choice == "uninstall" {
+                let script = format!(
+                    "tmp=$(mktemp -d) && \
+                     curl -fsSL '{repo}' | tar -xz -C \"$tmp\" --strip-components=1 && \
+                     \"$tmp/install.sh\" --uninstall && \
+                     rm -rf \"$tmp\"",
+                    repo = ENHANCED_AUDIO_REPO,
+                );
+                let commands = CommandSequence::new()
+                    .then(
+                        Command::builder()
+                            .normal()
+                            .program("sh")
+                            .args(&["-c", &script])
+                            .description("Removing Enhanced Audio...")
+                            .build(),
+                    )
+                    .build();
+
+                task_runner::run(
+                    window_for_extras.upcast_ref(),
+                    commands,
+                    "Enhanced Audio — Uninstall",
+                );
+                return;
+            }
+
+            // ── Dialog 2: extras (checkboxes, optional) ───────────────────────
+            let intensity = choice;
+            let window_ref2 = window_for_extras.upcast_ref();
+
+            let extras_config = SelectionDialogConfig::new(
+                "Enhanced Audio — Options",
+                "Optional extras. Leave everything unchecked to skip.",
+            )
+            .selection_type(SelectionType::Multi)
+            .selection_required(false)
+            .add_option(SelectionOption::new(
+                "suspend_fix",
+                "Suspend / Resume Audio Fix",
+                "Systemd service that fixes crackling or fuzzy audio after sleep",
+                suspend_installed,
+            ))
+            .confirm_label(if is_installed { "Update" } else { "Install" });
+
+            let window_for_run = window_for_extras.clone();
+            let intensity_clone = intensity.clone();
+
+            show_selection_dialog(window_ref2, extras_config, move |extras_selected| {
+                let suspend_flag = if extras_selected.iter().any(|s| s == "suspend_fix") {
+                    " --suspend-fix"
+                } else {
+                    ""
+                };
+
+                let script = format!(
+                    "tmp=$(mktemp -d) && \
+                     curl -fsSL '{repo}' | tar -xz -C \"$tmp\" --strip-components=1 && \
+                     chmod +x \"$tmp/install.sh\" && \
+                     \"$tmp/install.sh\" --intensity {intensity}{suspend} && \
+                     rm -rf \"$tmp\"",
+                    repo     = ENHANCED_AUDIO_REPO,
+                    intensity = intensity_clone,
+                    suspend  = suspend_flag,
+                );
+
+                let desc = format!(
+                    "{} Enhanced Audio ({} intensity)...",
+                    if is_installed { "Updating" } else { "Installing" },
+                    intensity_clone,
+                );
+
+                let commands = CommandSequence::new()
+                    .then(
+                        Command::builder()
+                            .normal()
+                            .program("sh")
+                            .args(&["-c", &script])
+                            .description(&desc)
+                            .build(),
+                    )
+                    .build();
+
+                task_runner::run(
+                    window_for_run.upcast_ref(),
+                    commands,
+                    "Enhanced Audio Setup",
+                );
+            });
         });
     });
 }

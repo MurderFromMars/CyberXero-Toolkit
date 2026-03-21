@@ -594,6 +594,44 @@ fn detect_suspend_fix() -> bool {
     std::path::Path::new(SUSPEND_FIX_SERVICE).exists()
 }
 
+/// Returns a list of available ALSA output sink node names via pactl.
+/// Each entry is (node_name, friendly_description).
+fn detect_audio_sinks() -> Vec<(String, String)> {
+    let output = std::process::Command::new("pactl")
+        .args(["list", "sinks"])
+        .output();
+
+    let Ok(output) = output else { return Vec::new() };
+    let text = String::from_utf8_lossy(&output.stdout);
+
+    let mut sinks: Vec<(String, String)> = Vec::new();
+    let mut current_name: Option<String> = None;
+    let mut current_desc: Option<String> = None;
+
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if let Some(name) = trimmed.strip_prefix("Name: ") {
+            // Flush previous sink if complete
+            if let (Some(n), Some(d)) = (current_name.take(), current_desc.take()) {
+                if n.starts_with("alsa_output") {
+                    sinks.push((n, d));
+                }
+            }
+            current_name = Some(name.to_string());
+            current_desc = None;
+        } else if let Some(desc) = trimmed.strip_prefix("Description: ") {
+            current_desc = Some(desc.to_string());
+        }
+    }
+    // Flush last sink
+    if let (Some(n), Some(d)) = (current_name, current_desc) {
+        if n.starts_with("alsa_output") {
+            sinks.push((n, d));
+        }
+    }
+    sinks
+}
+
 /// Returns a label string for an intensity option, appending "(active)" when
 /// it matches the currently installed intensity.
 fn intensity_label(level: &str, current: Option<&str>) -> String {
@@ -679,7 +717,7 @@ fn setup_enhanced_audio(page_builder: &Builder, window: &ApplicationWindow) {
                 .next()
                 .unwrap_or_else(|| "medium".to_string());
 
-            // ── Uninstall path — run immediately, no second dialog ────────────
+            // ── Uninstall path — run immediately, no further dialogs ──────────
             if choice == "uninstall" {
                 let script = format!(
                     "export TERM=xterm-256color; \
@@ -708,69 +746,133 @@ fn setup_enhanced_audio(page_builder: &Builder, window: &ApplicationWindow) {
                 return;
             }
 
-            // ── Dialog 2: extras (checkboxes, optional) ───────────────────────
+            // ── Dialog 2: sink selection (only when >1 sink exists) ───────────
             let intensity = choice;
-            let window_ref2 = window_for_extras.upcast_ref();
+            let sinks = detect_audio_sinks();
 
-            let extras_config = SelectionDialogConfig::new(
-                "Enhanced Audio — Options",
-                "Optional extras. Leave everything unchecked to skip.",
-            )
-            .selection_type(SelectionType::Multi)
-            .selection_required(false)
-            .add_option(SelectionOption::new(
-                "suspend_fix",
-                "Suspend / Resume Audio Fix",
-                "Systemd service that fixes crackling or fuzzy audio after sleep",
-                suspend_installed,
-            ))
-            .confirm_label(if is_installed { "Update" } else { "Install" });
+            if sinks.len() > 1 {
+                // Multiple sinks — let the user pick one.
+                let mut sink_config = SelectionDialogConfig::new(
+                    "Enhanced Audio — Select Output Device",
+                    "Multiple audio outputs detected. Choose which device to enhance.\n\
+                     Recommend built-in speakers or analog-stereo output.",
+                )
+                .selection_type(SelectionType::Single)
+                .selection_required(true)
+                .confirm_label("Next →");
 
-            let window_for_run = window_for_extras.clone();
-            let intensity_clone = intensity.clone();
+                for (node_name, description) in &sinks {
+                    sink_config = sink_config.add_option(SelectionOption::new(
+                        node_name,
+                        description,
+                        node_name,
+                        false,
+                    ));
+                }
 
-            show_selection_dialog(window_ref2, extras_config, move |extras_selected| {
-                let suspend_flag = if extras_selected.iter().any(|s| s == "suspend_fix") {
-                    " --suspend-fix"
-                } else {
-                    ""
-                };
+                let window_for_extras2 = window_for_extras.clone();
+                let intensity_for_sink = intensity.clone();
 
-                let script = format!(
-                    "export TERM=xterm-256color; \
-                     tmp=$(mktemp -d) && \
-                     curl -fsSL '{repo}' | tar -xz -C \"$tmp\" --strip-components=1 && \
-                     chmod +x \"$tmp/install.sh\" && \
-                     \"$tmp/install.sh\" --intensity {intensity}{suspend} && \
-                     rm -rf \"$tmp\"",
-                    repo      = ENHANCED_AUDIO_REPO,
-                    intensity = intensity_clone,
-                    suspend   = suspend_flag,
+                show_selection_dialog(
+                    window_for_extras.upcast_ref(),
+                    sink_config,
+                    move |sink_selected| {
+                        let sink = sink_selected.into_iter().next().unwrap_or_default();
+                        show_enhanced_audio_extras_dialog(
+                            &window_for_extras2,
+                            intensity_for_sink.clone(),
+                            sink,
+                            suspend_installed,
+                            is_installed,
+                        );
+                    },
                 );
-
-                let desc = format!(
-                    "{} Enhanced Audio ({} intensity)...",
-                    if is_installed { "Updating" } else { "Installing" },
-                    intensity_clone,
+            } else {
+                // Zero or one sink — pass it directly (empty string = auto-detect).
+                let sink = sinks.into_iter().next().map(|(n, _)| n).unwrap_or_default();
+                show_enhanced_audio_extras_dialog(
+                    &window_for_extras,
+                    intensity,
+                    sink,
+                    suspend_installed,
+                    is_installed,
                 );
-
-                let commands = CommandSequence::new()
-                    .then(
-                        Command::builder()
-                            .normal()
-                            .program("sh")
-                            .args(&["-c", &script])
-                            .description(&desc)
-                            .build(),
-                    )
-                    .build();
-
-                task_runner::run(
-                    window_for_run.upcast_ref(),
-                    commands,
-                    "Enhanced Audio Setup",
-                );
-            });
+            }
         });
+    });
+}
+
+/// Shows the extras dialog and then runs the install command.
+fn show_enhanced_audio_extras_dialog(
+    window: &gtk4::ApplicationWindow,
+    intensity: String,
+    sink: String,
+    suspend_installed: bool,
+    is_installed: bool,
+) {
+    let extras_config = SelectionDialogConfig::new(
+        "Enhanced Audio — Options",
+        "Optional extras. Leave everything unchecked to skip.",
+    )
+    .selection_type(SelectionType::Multi)
+    .selection_required(false)
+    .add_option(SelectionOption::new(
+        "suspend_fix",
+        "Suspend / Resume Audio Fix",
+        "Systemd service that fixes crackling or fuzzy audio after sleep",
+        suspend_installed,
+    ))
+    .confirm_label(if is_installed { "Update" } else { "Install" });
+
+    let window_for_run = window.clone();
+
+    show_selection_dialog(window.upcast_ref(), extras_config, move |extras_selected| {
+        let suspend_flag = if extras_selected.iter().any(|s| s == "suspend_fix") {
+            " --suspend-fix"
+        } else {
+            ""
+        };
+
+        let sink_flag = if sink.is_empty() {
+            String::new()
+        } else {
+            format!(" --sink '{}'", sink)
+        };
+
+        let script = format!(
+            "export TERM=xterm-256color; \
+             tmp=$(mktemp -d) && \
+             curl -fsSL '{repo}' | tar -xz -C \"$tmp\" --strip-components=1 && \
+             chmod +x \"$tmp/install.sh\" && \
+             \"$tmp/install.sh\" --intensity {intensity}{sink}{suspend} && \
+             rm -rf \"$tmp\"",
+            repo      = ENHANCED_AUDIO_REPO,
+            intensity = intensity,
+            sink      = sink_flag,
+            suspend   = suspend_flag,
+        );
+
+        let desc = format!(
+            "{} Enhanced Audio ({} intensity)...",
+            if is_installed { "Updating" } else { "Installing" },
+            intensity,
+        );
+
+        let commands = CommandSequence::new()
+            .then(
+                Command::builder()
+                    .normal()
+                    .program("sh")
+                    .args(&["-c", &script])
+                    .description(&desc)
+                    .build(),
+            )
+            .build();
+
+        task_runner::run(
+            window_for_run.upcast_ref(),
+            commands,
+            "Enhanced Audio Setup",
+        );
     });
 }

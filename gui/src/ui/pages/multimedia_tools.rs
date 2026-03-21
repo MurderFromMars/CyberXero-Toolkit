@@ -682,7 +682,7 @@ fn setup_enhanced_audio(page_builder: &Builder, window: &ApplicationWindow) {
             // ── Uninstall path — run immediately, no second dialog ────────────
             if choice == "uninstall" {
                 let script = format!(
-                    "tmp=$(mktemp -d) && \
+                    "TERM=xterm-256color tmp=$(mktemp -d) && \
                      curl -fsSL '{repo}' | tar -xz -C \"$tmp\" --strip-components=1 && \
                      \"$tmp/install.sh\" --uninstall && \
                      rm -rf \"$tmp\"",
@@ -736,7 +736,7 @@ fn setup_enhanced_audio(page_builder: &Builder, window: &ApplicationWindow) {
                 };
 
                 let script = format!(
-                    "tmp=$(mktemp -d) && \
+                    "TERM=xterm-256color tmp=$(mktemp -d) && \
                      curl -fsSL '{repo}' | tar -xz -C \"$tmp\" --strip-components=1 && \
                      chmod +x \"$tmp/install.sh\" && \
                      \"$tmp/install.sh\" --intensity {intensity}{suspend} && \

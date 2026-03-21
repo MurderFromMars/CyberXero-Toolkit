@@ -111,176 +111,175 @@ fn setup_obs_studio_aio(page_builder: &Builder, window: &ApplicationWindow) {
         info!("Multimedia tools: OBS-Studio AiO button clicked");
         let window_ref = window.upcast_ref();
 
-                let wayland_hotkeys_installed =
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.WaylandHotkeys");
-                let v4l2_installed = core::is_package_installed("v4l2loopback-dkms");
+        // State detection via pacman/-Q — all packages are native Arch/AUR.
+        // obs-websocket has been bundled with obs-studio since v28, so it is
+        // intentionally omitted as a standalone option.
+        let obs_installed = core::is_package_installed("obs-studio");
 
-                let graphics_capture_installed =
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.OBSVkCapture") &&
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.Gstreamer") &&
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.GStreamerVaapi");
+        let graphics_capture_installed =
+            core::is_package_installed("obs-vkcapture") &&
+            core::is_package_installed("lib32-obs-vkcapture") &&
+            core::is_package_installed("obs-gstreamer") &&
+            core::is_package_installed("obs-vaapi");
 
-                let transitions_effects_installed =
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.MoveTransition") &&
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.TransitionTable") &&
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.ScaleToSound");
+        let transitions_effects_installed =
+            core::is_package_installed("obs-move-transition") &&
+            core::is_package_installed("obs-transition-table") &&
+            core::is_package_installed("obs-scale-to-sound");
 
-                let streaming_tools_installed =
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.WebSocket") &&
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.SceneSwitcher") &&
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.DroidCam");
+        let streaming_tools_installed =
+            core::is_package_installed("obs-advanced-scene-switcher") &&
+            core::is_package_installed("droidcam-obs");
 
-                let audio_video_tools_installed =
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.waveform") &&
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.VerticalCanvas") &&
-                    core::is_flatpak_installed("com.obsproject.Studio.Plugin.BackgroundRemoval");
+        let audio_video_tools_installed =
+            core::is_package_installed("obs-waveform") &&
+            core::is_package_installed("obs-vertical-canvas") &&
+            core::is_package_installed("obs-backgroundremoval");
 
-                let config = SelectionDialogConfig::new(
-                    "OBS-Studio & Plugins Installation",
-                    "OBS-Studio will be installed. Optionally select plugins to install.",
-                )
-                .selection_type(SelectionType::Multi)
-                .selection_required(false)
-                .add_option(SelectionOption::new(
-                    "wayland_hotkeys",
-                    "Wayland Hotkeys Plugin",
-                    "Enable hotkey support for OBS on Wayland",
-                    wayland_hotkeys_installed,
-                ))
-                .add_option(SelectionOption::new(
-                    "graphics_capture",
-                    "Graphics Capture Plugins",
-                    "VkCapture, GStreamer, GStreamer VA-API",
-                    graphics_capture_installed,
-                ))
-                .add_option(SelectionOption::new(
-                    "transitions_effects",
-                    "Transitions & Effects",
-                    "Move Transition, Transition Table, Scale to Sound",
-                    transitions_effects_installed,
-                ))
-                .add_option(SelectionOption::new(
-                    "streaming_tools",
-                    "Streaming & Recording Tools",
-                    "WebSocket API, Scene Switcher, DroidCam",
-                    streaming_tools_installed,
-                ))
-                .add_option(SelectionOption::new(
-                    "audio_video_tools",
-                    "Audio & Video Tools",
-                    "Waveform, Vertical Canvas, Background Removal",
-                    audio_video_tools_installed,
-                ))
-                .add_option(SelectionOption::new(
-                    "v4l2",
-                    "V4L2loopback Virtual Camera",
-                    "Enable OBS virtual camera functionality",
-                    v4l2_installed,
-                ))
-                .confirm_label("Install");
+        let v4l2_installed = core::is_package_installed("v4l2loopback-dkms");
 
-                let window_for_closure = window.clone();
-                show_selection_dialog(window_ref, config, move |selected_ids| {
-                    let mut commands = CommandSequence::new();
+        let config = SelectionDialogConfig::new(
+            "OBS-Studio & Plugins Installation",
+            "OBS-Studio will be installed from repos. Optionally select plugins to install.",
+        )
+        .selection_type(SelectionType::Multi)
+        .selection_required(false)
+        .add_option(SelectionOption::new(
+            "graphics_capture",
+            "Graphics Capture Plugins",
+            "obs-vkcapture (32 & 64-bit), obs-gstreamer, obs-vaapi",
+            graphics_capture_installed,
+        ))
+        .add_option(SelectionOption::new(
+            "transitions_effects",
+            "Transitions & Effects",
+            "obs-move-transition, obs-transition-table, obs-scale-to-sound",
+            transitions_effects_installed,
+        ))
+        .add_option(SelectionOption::new(
+            "streaming_tools",
+            "Streaming & Recording Tools",
+            "obs-advanced-scene-switcher, droidcam-obs",
+            streaming_tools_installed,
+        ))
+        .add_option(SelectionOption::new(
+            "audio_video_tools",
+            "Audio & Video Tools",
+            "obs-waveform, obs-vertical-canvas, obs-backgroundremoval",
+            audio_video_tools_installed,
+        ))
+        .add_option(SelectionOption::new(
+            "v4l2",
+            "V4L2loopback Virtual Camera",
+            "Enable OBS virtual camera functionality",
+            v4l2_installed,
+        ))
+        .confirm_label(if obs_installed { "Update" } else { "Install" });
 
-                    // Always install OBS-Studio
-                    commands = commands.then(Command::builder()
-                        .normal()
-                        .program("flatpak")
-                        .args(&["install", "-y", "com.obsproject.Studio"])
-                        .description("Installing OBS-Studio...")
-                        .build());
+        let window_for_closure = window.clone();
+        show_selection_dialog(window_ref, config, move |selected_ids| {
+            let mut commands = CommandSequence::new();
 
-                    if selected_ids.iter().any(|s| s == "wayland_hotkeys") {
-                        commands = commands.then(Command::builder()
-                            .normal()
-                            .program("flatpak")
-                            .args(&["install", "-y", "com.obsproject.Studio.Plugin.WaylandHotkeys"])
-                            .description("Installing Wayland Hotkeys plugin...")
-                            .build());
-                    }
-                    if selected_ids.iter().any(|s| s == "graphics_capture") {
-                        commands = commands.then(Command::builder()
-                            .normal()
-                            .program("flatpak")
-                            .args(&[
-                                "install",
-                                "-y",
-                                "com.obsproject.Studio.Plugin.OBSVkCapture",
-                                "org.freedesktop.Platform.VulkanLayer.OBSVkCapture/x86_64/25.08",
-                                "com.obsproject.Studio.Plugin.Gstreamer",
-                                "com.obsproject.Studio.Plugin.GStreamerVaapi",
-                            ])
-                            .description("Installing graphics capture plugins...")
-                            .build());
-                    }
-                    if selected_ids.iter().any(|s| s == "transitions_effects") {
-                        commands = commands.then(Command::builder()
-                            .normal()
-                            .program("flatpak")
-                            .args(&[
-                                "install",
-                                "-y",
-                                "com.obsproject.Studio.Plugin.MoveTransition",
-                                "com.obsproject.Studio.Plugin.TransitionTable",
-                                "com.obsproject.Studio.Plugin.ScaleToSound",
-                            ])
-                            .description("Installing transitions & effects plugins...")
-                            .build());
-                    }
-                    if selected_ids.iter().any(|s| s == "streaming_tools") {
-                        commands = commands.then(Command::builder()
-                            .normal()
-                            .program("flatpak")
-                            .args(&[
-                                "install",
-                                "-y",
-                                "com.obsproject.Studio.Plugin.WebSocket",
-                                "com.obsproject.Studio.Plugin.SceneSwitcher",
-                                "com.obsproject.Studio.Plugin.DroidCam",
-                            ])
-                            .description("Installing streaming tools...")
-                            .build());
-                    }
-                    if selected_ids.iter().any(|s| s == "audio_video_tools") {
-                        commands = commands.then(Command::builder()
-                            .normal()
-                            .program("flatpak")
-                            .args(&[
-                                "install",
-                                "-y",
-                                "com.obsproject.Studio.Plugin.waveform",
-                                "com.obsproject.Studio.Plugin.VerticalCanvas",
-                                "com.obsproject.Studio.Plugin.BackgroundRemoval",
-                            ])
-                            .description("Installing audio/video enhancement plugins...")
-                            .build());
-                    }
-                    if selected_ids.iter().any(|s| s == "v4l2") {
-                        commands = commands.then(Command::builder()
-                            .aur()
-                            .args(&["-S", "--noconfirm", "--needed", "v4l2loopback-dkms", "v4l2loopback-utils"])
-                            .description("Installing V4L2 loopback modules...")
-                            .build());
-                        commands = commands.then(Command::builder()
-                            .privileged()
-                            .program("sh")
-                            .args(&["-c", "echo 'v4l2loopback' > /etc/modules-load.d/v4l2loopback.conf"])
-                            .description("Enabling V4L2 loopback module at boot...")
-                            .build());
-                        commands = commands.then(Command::builder()
-                            .privileged()
-                            .program("sh")
-                            .args(&[
-                                "-c",
-                                "echo 'options v4l2loopback exclusive_caps=1 card_label=\"OBS Virtual Camera\"' > /etc/modprobe.d/v4l2loopback.conf",
-                            ])
-                            .description("Configuring virtual camera options...")
-                            .build());
-                    }
+            // Always install / refresh obs-studio from repos
+            commands = commands.then(
+                Command::builder()
+                    .aur()
+                    .args(&["-S", "--noconfirm", "--needed", "obs-studio"])
+                    .description("Installing OBS-Studio...")
+                    .build(),
+            );
 
-                    task_runner::run(window_for_closure.upcast_ref(), commands.build(), "OBS-Studio Setup");
-                });
+            if selected_ids.iter().any(|s| s == "graphics_capture") {
+                commands = commands.then(
+                    Command::builder()
+                        .aur()
+                        .args(&[
+                            "-S", "--noconfirm", "--needed",
+                            "obs-vkcapture",
+                            "lib32-obs-vkcapture",
+                            "obs-gstreamer",
+                            "obs-vaapi",
+                        ])
+                        .description("Installing graphics capture plugins...")
+                        .build(),
+                );
+            }
+
+            if selected_ids.iter().any(|s| s == "transitions_effects") {
+                commands = commands.then(
+                    Command::builder()
+                        .aur()
+                        .args(&[
+                            "-S", "--noconfirm", "--needed",
+                            "obs-move-transition",
+                            "obs-transition-table",
+                            "obs-scale-to-sound",
+                        ])
+                        .description("Installing transitions & effects plugins...")
+                        .build(),
+                );
+            }
+
+            if selected_ids.iter().any(|s| s == "streaming_tools") {
+                commands = commands.then(
+                    Command::builder()
+                        .aur()
+                        .args(&[
+                            "-S", "--noconfirm", "--needed",
+                            "obs-advanced-scene-switcher",
+                            "droidcam-obs",
+                        ])
+                        .description("Installing streaming & recording tools...")
+                        .build(),
+                );
+            }
+
+            if selected_ids.iter().any(|s| s == "audio_video_tools") {
+                commands = commands.then(
+                    Command::builder()
+                        .aur()
+                        .args(&[
+                            "-S", "--noconfirm", "--needed",
+                            "obs-waveform",
+                            "obs-vertical-canvas",
+                            "obs-backgroundremoval",
+                        ])
+                        .description("Installing audio/video enhancement plugins...")
+                        .build(),
+                );
+            }
+
+            if selected_ids.iter().any(|s| s == "v4l2") {
+                commands = commands.then(
+                    Command::builder()
+                        .aur()
+                        .args(&["-S", "--noconfirm", "--needed", "v4l2loopback-dkms", "v4l2loopback-utils"])
+                        .description("Installing V4L2 loopback modules...")
+                        .build(),
+                );
+                commands = commands.then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&["-c", "echo 'v4l2loopback' > /etc/modules-load.d/v4l2loopback.conf"])
+                        .description("Enabling V4L2 loopback module at boot...")
+                        .build(),
+                );
+                commands = commands.then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "echo 'options v4l2loopback exclusive_caps=1 card_label=\"OBS Virtual Camera\"' > /etc/modprobe.d/v4l2loopback.conf",
+                        ])
+                        .description("Configuring virtual camera options...")
+                        .build(),
+                );
+            }
+
+            task_runner::run(window_for_closure.upcast_ref(), commands.build(), "OBS-Studio Setup");
+        });
     });
 }
 

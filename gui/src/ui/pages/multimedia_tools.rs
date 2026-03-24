@@ -858,20 +858,35 @@ fn show_enhanced_audio_extras_dialog(
             intensity,
         );
 
-        let commands = CommandSequence::new()
-            .then(
+        let mut commands = CommandSequence::new();
+
+        // The install script calls sudo internally for the suspend fix systemd
+        // service, which is intercepted by the toolkit's sudo shim and routed
+        // through xero-auth. Start the daemon with a no-op privileged command
+        // first so the shim finds it running when the script invokes sudo.
+        if suspend_flag.contains("suspend-fix") {
+            commands = commands.then(
                 Command::builder()
-                    .normal()
-                    .program("sh")
-                    .args(&["-c", &script])
-                    .description(&desc)
+                    .privileged()
+                    .program("true")
+                    .args(&[])
+                    .description("Requesting elevated privileges for suspend fix...")
                     .build(),
-            )
-            .build();
+            );
+        }
+
+        commands = commands.then(
+            Command::builder()
+                .normal()
+                .program("sh")
+                .args(&["-c", &script])
+                .description(&desc)
+                .build(),
+        );
 
         task_runner::run(
             window_for_run.upcast_ref(),
-            commands,
+            commands.build(),
             "Enhanced Audio Setup",
         );
     });

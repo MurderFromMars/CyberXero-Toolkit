@@ -9,7 +9,7 @@ pub mod app_info {
 
 /// Sidebar configuration.
 pub mod sidebar {
-    pub const MIN_WIDTH: i32 = 200;
+    pub const MIN_WIDTH: i32 = 160;
     pub const MAX_WIDTH: i32 = 400;
 }
 

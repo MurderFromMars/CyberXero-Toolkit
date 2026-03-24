@@ -64,7 +64,6 @@
             <child>
               <object class="GtkButton" id="btn_gaming_meta">
                 <property name="label">Gaming Suite</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -72,7 +71,6 @@
             <child>
               <object class="GtkButton" id="btn_lact_oc">
                 <property name="label">LACT OC</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -88,7 +86,6 @@
             <child>
               <object class="GtkButton" id="btn_bottles">
                 <property name="label">Bottles</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -96,7 +93,6 @@
             <child>
               <object class="GtkButton" id="btn_controller">
                 <property name="label">Controller Tools</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -112,7 +108,6 @@
             <child>
               <object class="GtkButton" id="btn_falcond">
                 <property name="label">Falcond Game Mode</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>

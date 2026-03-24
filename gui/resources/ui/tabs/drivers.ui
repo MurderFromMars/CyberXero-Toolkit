@@ -65,7 +65,6 @@
             <child>
               <object class="GtkButton" id="btn_nvidia_legacy">
                 <property name="label">Nvidia Legacy Drivers</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -81,7 +80,6 @@
             <child>
               <object class="GtkButton" id="btn_rocm">
                 <property name="label">AMD ROCm</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -89,7 +87,6 @@
             <child>
               <object class="GtkButton" id="btn_cuda">
                 <property name="label">NVIDIA CUDA</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -114,7 +111,6 @@
             <child>
               <object class="GtkButton" id="btn_tailscale">
                 <property name="label">Tailscale VPN</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -122,7 +118,6 @@
             <child>
               <object class="GtkButton" id="btn_asus_rog">
                 <property name="label">ASUS ROG Tools</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -138,7 +133,6 @@
             <child>
               <object class="GtkButton" id="btn_openrazer">
                 <property name="label">OpenRazer Drivers</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -146,7 +140,6 @@
             <child>
               <object class="GtkButton" id="btn_zenergy">
                 <property name="label">Zenergy Driver</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -162,7 +155,6 @@
             <child>
               <object class="GtkButton" id="btn_cooler_control">
                 <property name="label">Cooler Control</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>

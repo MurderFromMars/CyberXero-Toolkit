@@ -63,7 +63,6 @@
             <child>
               <object class="GtkButton" id="btn_update_system">
                 <property name="label">Update System</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -79,7 +78,6 @@
             <child>
               <object class="GtkButton" id="btn_pkg_manager">
                 <property name="label">PKG Manager GUI</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -87,7 +85,6 @@
             <child>
               <object class="GtkButton" id="btn_download_arch_iso">
                 <property name="label">Download Arch ISO</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -102,7 +99,6 @@
             <child>
               <object class="GtkButton" id="btn_install_nix">
                 <property name="label">Install Nix Package Manager</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>

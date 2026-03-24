@@ -64,7 +64,6 @@
             <child>
               <object class="GtkButton" id="btn_cyberxero_theme">
                 <property name="label">Apply CyberXero Theme</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">destructive-action pill</property>
               </object>
@@ -72,7 +71,6 @@
             <child>
               <object class="GtkButton" id="btn_ps4_theme">
                 <property name="label">Apply PS4 Theme</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">destructive-action pill</property>
               </object>
@@ -88,7 +86,6 @@
             <child>
               <object class="GtkButton" id="btn_zsh_aio">
                 <property name="label">Setup ZSH AiO</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -96,7 +93,6 @@
             <child>
               <object class="GtkButton" id="btn_save_desktop">
                 <property name="label">Save Desktop Tool</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -112,7 +108,6 @@
             <child>
               <object class="GtkButton" id="btn_grub_theme">
                 <property name="label">GRUB Theme</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -120,7 +115,6 @@
             <child>
               <object class="GtkButton" id="btn_plymouth_manager">
                 <property name="label">Plymouth Manager</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -128,7 +122,6 @@
             <child>
               <object class="GtkButton" id="btn_layan_patch">
                 <property name="label">Update Layan Theme</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -144,7 +137,6 @@
             <child>
               <object class="GtkButton" id="btn_decky_loader">
                 <property name="label">Decky Loader</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
@@ -152,7 +144,6 @@
             <child>
               <object class="GtkButton" id="btn_config_reset">
                 <property name="label">Config/Rice Reset</property>
-                <property name="width-request">200</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>

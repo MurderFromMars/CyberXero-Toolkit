@@ -47,7 +47,7 @@
             <property name="sidebar-position">start</property>
             <property name="collapsed">false</property>
             <property name="max-sidebar-width">400</property>
-            <property name="min-sidebar-width">200</property>
+            <property name="min-sidebar-width">160</property>
             <!-- Sidebar Content -->
             <property name="sidebar">
               <object class="GtkBox" id="sidebar">

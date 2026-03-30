@@ -2,12 +2,17 @@
 //!
 //! This module provides animated overlay effects that appear during specific
 //! times of the year (e.g., snow for December, Halloween effects for October).
+//!
+//! Each registered effect owns its `DrawingArea` **and** the GLib timer that
+//! drives redraws.  When effects are disabled the timer is removed — no more
+//! wasted CPU ticks while the overlay is hidden.  Re-enabling restarts it.
 
 mod common;
 mod halloween;
 mod snow;
 
 use crate::ui::seasonal::common::MouseContext;
+use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{ApplicationWindow, DrawingArea};
 use log::info;
@@ -18,66 +23,118 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub use halloween::HalloweenEffect;
 pub use snow::SnowEffect;
 
-/// Global state for whether seasonal effects are enabled.
+/// Global flag for whether seasonal effects are enabled.
 static EFFECTS_ENABLED: AtomicBool = AtomicBool::new(true);
 
-/// Global registry of active drawing areas for seasonal effects.
-/// SAFETY: GTK operations must be on the main thread, so this RefCell is safe to use.
-/// We use unsafe to implement Send+Sync, which is safe because GTK is single-threaded.
-struct DrawingAreaVec(RefCell<Vec<Rc<DrawingArea>>>);
+// ---------------------------------------------------------------------------
+// Effect registry
+// ---------------------------------------------------------------------------
 
-// SAFETY: Safe because GTK operations are single-threaded (main thread only).
-unsafe impl Send for DrawingAreaVec {}
-unsafe impl Sync for DrawingAreaVec {}
+/// One registered effect — its drawing area plus the timer that redraws it.
+struct EffectEntry {
+    drawing_area: Rc<DrawingArea>,
+    /// The active GLib timeout source, if any.  `None` when the timer is stopped.
+    timer_source: Rc<RefCell<Option<glib::SourceId>>>,
+}
 
-static DRAWING_AREAS: std::sync::OnceLock<DrawingAreaVec> = std::sync::OnceLock::new();
+/// Thread-tagged wrapper so the `OnceLock` is happy.
+///
+/// SAFETY: GTK is single-threaded; all access happens on the main thread.
+struct EffectRegistry(RefCell<Vec<EffectEntry>>);
+unsafe impl Send for EffectRegistry {}
+unsafe impl Sync for EffectRegistry {}
 
-fn get_drawing_areas() -> &'static RefCell<Vec<Rc<DrawingArea>>> {
-    &DRAWING_AREAS
-        .get_or_init(|| DrawingAreaVec(RefCell::new(Vec::new())))
+static EFFECT_REGISTRY: std::sync::OnceLock<EffectRegistry> = std::sync::OnceLock::new();
+
+fn get_effect_registry() -> &'static RefCell<Vec<EffectEntry>> {
+    &EFFECT_REGISTRY
+        .get_or_init(|| EffectRegistry(RefCell::new(Vec::new())))
         .0
 }
 
-/// Check if seasonal effects are currently enabled.
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/// Whether seasonal effects are currently enabled.
 pub fn are_effects_enabled() -> bool {
     EFFECTS_ENABLED.load(Ordering::Relaxed)
 }
 
-/// Set whether seasonal effects are enabled and update visibility of drawing areas.
+/// Enable or disable all registered seasonal effects.
+///
+/// - **Disabling** hides every drawing area *and* removes its GLib timer so no
+///   redraws fire while the overlay is invisible.
+/// - **Enabling** makes the drawing areas visible again *and* restarts the
+///   16 ms redraw timer for each one.
 pub fn set_effects_enabled(enabled: bool) {
     EFFECTS_ENABLED.store(enabled, Ordering::Relaxed);
 
-    let drawing_areas = get_drawing_areas();
-    for area in drawing_areas.borrow().iter() {
-        area.set_visible(enabled);
+    let registry = get_effect_registry();
+    for entry in registry.borrow().iter() {
+        entry.drawing_area.set_visible(enabled);
+
+        if enabled {
+            // Restart the timer only if it isn't already running.
+            let mut timer_ref = entry.timer_source.borrow_mut();
+            if timer_ref.is_none() {
+                let area = entry.drawing_area.clone();
+                let source_id =
+                    glib::timeout_add_local(std::time::Duration::from_millis(16), move || {
+                        area.queue_draw();
+                        glib::ControlFlow::Continue
+                    });
+                *timer_ref = Some(source_id);
+                info!("Seasonal effect timer restarted");
+            }
+        } else {
+            // Stop the timer to avoid burning CPU on invisible redraws.
+            let mut timer_ref = entry.timer_source.borrow_mut();
+            if let Some(source_id) = timer_ref.take() {
+                source_id.remove();
+                info!("Seasonal effect timer stopped");
+            }
+        }
     }
 }
 
-/// Check if any seasonal effect is currently active.
+/// `true` if at least one seasonal effect is active right now (calendar check).
 pub fn has_active_effect() -> bool {
     let effects: Vec<Box<dyn SeasonalEffect>> =
         vec![Box::new(SnowEffect), Box::new(HalloweenEffect)];
-
     effects.iter().any(|e| e.is_active())
 }
 
-/// Register a drawing area so its visibility can be controlled by the toggle.
-pub fn register_drawing_area(area: Rc<DrawingArea>) {
-    let drawing_areas = get_drawing_areas();
-    drawing_areas.borrow_mut().push(area);
+/// Register an effect's drawing area and timer so `set_effects_enabled` can
+/// manage them.  Called by each effect's `apply` implementation.
+pub fn register_effect(
+    drawing_area: Rc<DrawingArea>,
+    timer_source: Rc<RefCell<Option<glib::SourceId>>>,
+) {
+    let registry = get_effect_registry();
+    registry
+        .borrow_mut()
+        .push(EffectEntry { drawing_area, timer_source });
 }
 
-/// Trait for seasonal effects that can be applied to application windows.
+// ---------------------------------------------------------------------------
+// SeasonalEffect trait
+// ---------------------------------------------------------------------------
+
+/// A seasonal effect that can be applied to the application window.
 pub trait SeasonalEffect {
-    /// Check if this effect should be active at the current time.
+    /// `true` when this effect should be active (based on the current date).
     fn is_active(&self) -> bool;
 
-    /// Get the name of this seasonal effect (for logging).
+    /// Human-readable name used for logging.
     fn name(&self) -> &'static str;
 
-    /// Apply this effect to the given window.
-    /// The mouse_context provides mouse position if the effect needs it.
-    /// Returns the drawing area if the effect was successfully applied.
+    /// Overlay the effect on `window`.
+    ///
+    /// Implementations are expected to call [`register_effect`] with their
+    /// drawing area and timer source so the global toggle can manage them.
+    ///
+    /// Returns the drawing area on success, `None` on failure.
     fn apply(
         &self,
         window: &ApplicationWindow,
@@ -85,10 +142,14 @@ pub trait SeasonalEffect {
     ) -> Option<Rc<DrawingArea>>;
 }
 
-/// Apply any active seasonal effects to the window.
+// ---------------------------------------------------------------------------
+// Activation
+// ---------------------------------------------------------------------------
+
+/// Check for active seasonal effects and apply any that are relevant.
 pub fn apply_seasonal_effects(window: &ApplicationWindow) {
     if !are_effects_enabled() {
-        info!("Seasonal effects are disabled");
+        info!("Seasonal effects are disabled — skipping");
         return;
     }
 
@@ -102,8 +163,8 @@ pub fn apply_seasonal_effects(window: &ApplicationWindow) {
     for effect in effects {
         if effect.is_active() {
             info!("Active seasonal effect detected: {}", effect.name());
-            if let Some(drawing_area) = effect.apply(window, Some(&mouse_context)) {
-                register_drawing_area(drawing_area);
+            if effect.apply(window, Some(&mouse_context)).is_some() {
+                // Effect registers itself via register_effect().
                 info!("Successfully applied {} effect", effect.name());
             } else {
                 info!("Failed to apply {} effect", effect.name());

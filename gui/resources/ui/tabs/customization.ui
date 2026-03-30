@@ -55,7 +55,7 @@
         <property name="valign">center</property>
         <property name="vexpand">true</property>
         <property name="margin-top">32</property>
-        <!-- Row 0: CyberXero Theme, PS4 Theme (featured) -->
+        <!-- Row 0: CyberXero Theme, PS4 Theme, Lunar Glass Theme (featured) -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
@@ -71,6 +71,13 @@
             <child>
               <object class="GtkButton" id="btn_ps4_theme">
                 <property name="label">Apply PS4 Theme</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">destructive-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_lunar_glass">
+                <property name="label">Apply Lunar Glass Theme</property>
                 <property name="height-request">50</property>
                 <property name="css-classes">destructive-action pill</property>
               </object>

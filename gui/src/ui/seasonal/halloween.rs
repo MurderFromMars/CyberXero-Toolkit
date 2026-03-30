@@ -74,11 +74,15 @@ impl SeasonalEffect for HalloweenEffect {
         let setup_state = Rc::clone(&state);
         let draw_mouse_pos = mouse_pos.clone();
 
+        // Capture the SourceId so the global toggle can stop/restart this timer.
+        let timer_source: Rc<RefCell<Option<glib::SourceId>>> = Rc::new(RefCell::new(None));
+        let timer_source_fill = Rc::clone(&timer_source);
         let drawing_area_clone = drawing_area.clone();
-        glib::timeout_add_local(std::time::Duration::from_millis(16), move || {
+        let source_id = glib::timeout_add_local(std::time::Duration::from_millis(16), move || {
             drawing_area_clone.queue_draw();
             glib::ControlFlow::Continue
         });
+        *timer_source_fill.borrow_mut() = Some(source_id);
 
         drawing_area.set_draw_func(move |_da, cr, width, height| {
             let mut state_ref = setup_state.borrow_mut();
@@ -109,6 +113,7 @@ impl SeasonalEffect for HalloweenEffect {
 
         if add_overlay_to_window(window, &drawing_area) {
             info!("Halloween effect overlay added successfully");
+            crate::ui::seasonal::register_effect(drawing_area.clone(), timer_source);
             Some(drawing_area)
         } else {
             info!("Failed to add Halloween effect overlay");

@@ -1237,8 +1237,9 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
                         .args(&[
                             "-c",
                             "if [ -d /tmp/xero-toolkit-update/extra-scripts/usr/local/bin ]; then \
-                                cp -f /tmp/xero-toolkit-update/extra-scripts/usr/local/bin/* /usr/local/bin/ 2>/dev/null; \
-                                chmod 755 /tmp/xero-toolkit-update/extra-scripts/usr/local/bin/* /usr/local/bin/ 2>/dev/null; \
+                                for f in /tmp/xero-toolkit-update/extra-scripts/usr/local/bin/*; do \
+                                    [ -f \"$f\" ] && install -m755 \"$f\" /usr/local/bin/; \
+                                done; \
                              fi; true",
                         ])
                         .description("Updating extra scripts...")

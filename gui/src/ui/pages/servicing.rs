@@ -1156,8 +1156,8 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
             dialog_update.close();
 
             let repo_url = config::links::TOOLKIT_REPO;
-            let commit_store_cmd = format!(
-                "echo '{}' | tee /opt/xero-toolkit/.commit > /dev/null",
+            let install_cmd = format!(
+                "/tmp/xero-toolkit-update/sources/scripts/self-update.sh '{}'",
                 remote_hash_clone
             );
 
@@ -1188,69 +1188,8 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
                     Command::builder()
                         .privileged()
                         .program("sh")
-                        .args(&[
-                            "-c",
-                            "install -Dm755 /tmp/xero-toolkit-update/target/release/xero-toolkit /opt/xero-toolkit/xero-toolkit",
-                        ])
-                        .description("Installing updated xero-toolkit binary...")
-                        .build(),
-                )
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("sh")
-                        .args(&[
-                            "-c",
-                            "install -Dm755 /tmp/xero-toolkit-update/target/release/xero-authd /opt/xero-toolkit/xero-authd",
-                        ])
-                        .description("Installing updated xero-authd binary...")
-                        .build(),
-                )
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("sh")
-                        .args(&[
-                            "-c",
-                            "install -Dm755 /tmp/xero-toolkit-update/target/release/xero-auth /opt/xero-toolkit/xero-auth",
-                        ])
-                        .description("Installing updated xero-auth binary...")
-                        .build(),
-                )
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("sh")
-                        .args(&[
-                            "-c",
-                            "cp -f /tmp/xero-toolkit-update/sources/scripts/* /opt/xero-toolkit/sources/scripts/ && \
-                             chmod 755 /opt/xero-toolkit/sources/scripts/* && \
-                             cp -f /tmp/xero-toolkit-update/sources/systemd/* /opt/xero-toolkit/sources/systemd/",
-                        ])
-                        .description("Updating scripts and systemd units...")
-                        .build(),
-                )
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("sh")
-                        .args(&[
-                            "-c",
-                            "if [ -d /tmp/xero-toolkit-update/extra-scripts/usr/local/bin ]; then \
-                                for f in /tmp/xero-toolkit-update/extra-scripts/usr/local/bin/*; do \
-                                    [ -f \"$f\" ] && install -m755 \"$f\" /usr/local/bin/; \
-                                done; \
-                             fi; true",
-                        ])
-                        .description("Updating extra scripts...")
-                        .build(),
-                )
-                .then(
-                    Command::builder()
-                        .privileged()
-                        .program("sh")
-                        .args(&["-c", &commit_store_cmd])
-                        .description("Recording update version...")
+                        .args(&["-c", &install_cmd])
+                        .description("Installing update...")
                         .build(),
                 )
                 .then(

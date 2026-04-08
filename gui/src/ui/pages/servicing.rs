@@ -697,11 +697,11 @@ fn setup_xpackagemanager(page_builder: &Builder, window: &ApplicationWindow) {
 
     fn update_button_state(setup_btn: &gtk4::Button, uninstall_btn: &gtk4::Button, is_installed: bool) {
         if is_installed {
-            setup_btn.set_label("Launch");
+            setup_btn.set_label("Launch xPackageManager");
             setup_btn.add_css_class("suggested-action");
             uninstall_btn.set_visible(true);
         } else {
-            setup_btn.set_label("Install");
+            setup_btn.set_label("Install xPackageManager");
             setup_btn.remove_css_class("suggested-action");
             uninstall_btn.set_visible(false);
         }

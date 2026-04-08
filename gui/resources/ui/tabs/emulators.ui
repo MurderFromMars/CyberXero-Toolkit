@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
+  <object class="GtkBox" id="page_emulators">
+    <property name="orientation">vertical</property>
+    <property name="spacing">0</property>
+    <property name="margin-top">48</property>
+    <property name="margin-bottom">0</property>
+    <property name="margin-start">48</property>
+    <property name="margin-end">48</property>
+    <property name="hexpand">true</property>
+    <property name="vexpand">true</property>
+    <property name="halign">fill</property>
+    <property name="valign">fill</property>
+    <!-- Top Section: Header -->
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">16</property>
+        <property name="halign">center</property>
+        <property name="valign">start</property>
+        <property name="vexpand">false</property>
+        <child>
+          <object class="GtkImage">
+            <property name="icon-name">gamepad-symbolic</property>
+            <property name="pixel-size">96</property>
+            <property name="halign">center</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="label">Emulators</property>
+            <property name="css-classes">title-1</property>
+            <property name="halign">center</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="label">Native emulator setup with unified filesystem (Arch packages &amp; AUR)</property>
+            <property name="css-classes">dim-label</property>
+            <property name="halign">center</property>
+            <property name="wrap">true</property>
+            <property name="justify">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <!-- Bottom Section: Buttons Layout -->
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">16</property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property name="vexpand">true</property>
+        <property name="margin-top">32</property>
+        <!-- Row 1: Setup Filesystem -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="btn_emu_filesystem">
+                <property name="label">Setup Emulation Filesystem</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">destructive-action pill</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <!-- Row 2: RetroArch -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="btn_emu_retroarch">
+                <property name="label">RetroArch + Cores</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <!-- Row 3: PS1, PS2, PS3 -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="btn_emu_ps1">
+                <property name="label">PS1 (DuckStation)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_ps2">
+                <property name="label">PS2 (PCSX2)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_ps3">
+                <property name="label">PS3 (RPCS3)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <!-- Row 4: PS4, PSP, PS Vita -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="btn_emu_ps4">
+                <property name="label">PS4 (ShadPS4)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_psp">
+                <property name="label">PSP (PPSSPP)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_vita">
+                <property name="label">PS Vita (Vita3K)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <!-- Row 5: GBA, DS -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="btn_emu_gba">
+                <property name="label">GBA (mGBA)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_nds">
+                <property name="label">DS (melonDS)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <!-- Row 6: GameCube/Wii, Wii U, Switch -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="btn_emu_dolphin">
+                <property name="label">GC/Wii (Dolphin)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_wiiu">
+                <property name="label">Wii U (Cemu)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_switch">
+                <property name="label">Switch (Ryujinx)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <!-- Row 6: Xbox, Dreamcast, Arcade/MAME -->
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">16</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="btn_emu_xbox">
+                <property name="label">Xbox (xemu)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_dreamcast">
+                <property name="label">Dreamcast (Flycast)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_emu_mame">
+                <property name="label">Arcade (MAME)</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">suggested-action pill</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

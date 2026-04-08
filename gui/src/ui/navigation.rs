@@ -59,6 +59,13 @@ pub const PAGES: &[PageConfig] = &[
         setup_handler: Some(pages::gaming_tools::setup_handlers),
     },
     PageConfig {
+        id: "emulators",
+        title: "Emulators",
+        icon: "gamepad-symbolic",
+        ui_resource: crate::config::resources::tabs::EMULATORS,
+        setup_handler: Some(pages::emulators::setup_handlers),
+    },
+    PageConfig {
         id: "gamescope",
         title: "Gamescope",
         icon: "steam-symbolic",

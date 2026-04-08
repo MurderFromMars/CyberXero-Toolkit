@@ -181,6 +181,7 @@ pub mod resources {
         pub const CONTAINERS_VMS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/containers_vms.ui";
         pub const CUSTOMIZATION: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/customization.ui";
         pub const DRIVERS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/drivers.ui";
+        pub const EMULATORS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/emulators.ui";
         pub const GAMESCOPE: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/gamescope.ui";
         pub const GAMING_TOOLS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/gaming_tools.ui";
         pub const KERNEL_SCHEDULERS: &str =

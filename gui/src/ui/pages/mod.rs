@@ -5,6 +5,7 @@
 //! - `drivers`: GPU drivers, Tailscale, ASUS ROG tools
 //! - `gaming_tools`: Steam, controllers, game launchers
 //! - `gamescope`: Gamescope command generator
+//! - `emulators`: RetroArch + cores, standalone emulators, unified filesystem
 //! - `containers_vms`: Docker, Podman, VirtualBox, KVM
 //! - `multimedia_tools`: OBS, Jellyfin
 //! - `customization`: ZSH, themes, wallpapers
@@ -16,6 +17,7 @@ pub mod biometrics;
 pub mod containers_vms;
 pub mod customization;
 pub mod drivers;
+pub mod emulators;
 pub mod gamescope;
 pub mod gaming_tools;
 pub mod kernel_schedulers;

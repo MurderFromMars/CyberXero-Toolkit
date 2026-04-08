@@ -18,6 +18,7 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_clr_pacman(page_builder, window);
     setup_unlock_pacman(page_builder, window);
     setup_remove_orphans(page_builder, window);
+    setup_reinstall_all(page_builder, window);
     setup_plasma_x11(page_builder, window);
     setup_pacman_db_fix(page_builder, window);
     setup_waydroid_guide(page_builder);
@@ -346,6 +347,25 @@ fn setup_remove_orphans(page_builder: &Builder, window: &ApplicationWindow) {
         toolbar.set_content(Some(&outer));
         dialog.set_content(Some(&toolbar));
         dialog.present();
+    });
+}
+
+fn setup_reinstall_all(page_builder: &Builder, window: &ApplicationWindow) {
+    let btn = extract_widget::<gtk4::Button>(page_builder, "btn_reinstall_all");
+    let window = window.clone();
+    btn.connect_clicked(move |_| {
+        info!("Servicing: Reinstall All Packages button clicked");
+        let commands = CommandSequence::new()
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("sh")
+                    .args(&["-c", "pacman -Qqn | pacman -S --noconfirm -"])
+                    .description("Reinstalling all native packages...")
+                    .build(),
+            )
+            .build();
+        task_runner::run(window.upcast_ref(), commands, "Reinstall All Packages");
     });
 }
 

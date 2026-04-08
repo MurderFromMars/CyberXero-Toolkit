@@ -107,6 +107,14 @@
                     <layout><property name="column">2</property><property name="row">0</property></layout>
                   </object>
                 </child>
+                <child>
+                  <object class="GtkButton" id="btn_reinstall_all">
+                    <property name="label">Reinstall All Packages</property>
+                    <property name="height-request">42</property>
+                    <property name="css-classes">suggested-action svc-btn</property>
+                    <layout><property name="column">0</property><property name="row">1</property></layout>
+                  </object>
+                </child>
               </object>
             </child>
 

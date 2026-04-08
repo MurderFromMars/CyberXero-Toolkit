@@ -276,7 +276,7 @@
             <property name="margin-end">24</property>
             <child>
               <object class="GtkImage">
-                <property name="icon-name">software-update-available-symbolic</property>
+                <property name="icon-name">system-software-update-symbolic</property>
               </object>
             </child>
             <child>

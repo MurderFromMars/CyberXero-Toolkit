@@ -118,7 +118,7 @@ fn setup_remove_orphans(page_builder: &Builder, window: &ApplicationWindow) {
             content.set_halign(gtk4::Align::Center);
             content.set_valign(gtk4::Align::Center);
 
-            let icon = gtk4::Image::from_icon_name("emblem-ok-symbolic");
+            let icon = gtk4::Image::from_icon_name("object-select-symbolic");
             icon.set_pixel_size(48);
             content.append(&icon);
 
@@ -1008,7 +1008,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
                 content.set_halign(gtk4::Align::Center);
                 content.set_valign(gtk4::Align::Center);
 
-                let icon = gtk4::Image::from_icon_name("network-error-symbolic");
+                let icon = gtk4::Image::from_icon_name("dialog-warning-symbolic");
                 icon.set_pixel_size(48);
                 content.append(&icon);
 
@@ -1059,7 +1059,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
             content.set_halign(gtk4::Align::Center);
             content.set_valign(gtk4::Align::Center);
 
-            let icon = gtk4::Image::from_icon_name("emblem-ok-symbolic");
+            let icon = gtk4::Image::from_icon_name("object-select-symbolic");
             icon.set_pixel_size(48);
             content.append(&icon);
 
@@ -1106,10 +1106,6 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
         content.set_margin_end(24);
         content.set_halign(gtk4::Align::Center);
         content.set_valign(gtk4::Align::Center);
-
-        let icon = gtk4::Image::from_icon_name("software-update-available-symbolic");
-        icon.set_pixel_size(48);
-        content.append(&icon);
 
         let title_label = Label::new(Some("A new version is available!"));
         title_label.add_css_class("title-3");

@@ -264,28 +264,10 @@
     </child>
     <child>
       <object class="GtkButton" id="btn_update_toolkit">
+        <property name="label">Update Toolkit</property>
         <property name="height-request">36</property>
         <property name="css-classes">suggested-action</property>
         <property name="halign">center</property>
-        <child>
-          <object class="GtkBox">
-            <property name="orientation">horizontal</property>
-            <property name="spacing">8</property>
-            <property name="halign">center</property>
-            <property name="margin-start">24</property>
-            <property name="margin-end">24</property>
-            <child>
-              <object class="GtkImage">
-                <property name="icon-name">system-software-update-symbolic</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="label">Update Toolkit</property>
-              </object>
-            </child>
-          </object>
-        </child>
       </object>
     </child>
 

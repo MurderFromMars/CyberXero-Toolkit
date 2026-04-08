@@ -18,6 +18,10 @@ use gtk4::prelude::*;
 use gtk4::{ApplicationWindow, Builder};
 use log::info;
 
+fn sanitize_filename(name: &str) -> String {
+    name.replace('+', "Plus")
+}
+
 /// Streaming service entries: (name, url)
 const STREAMING_SERVICES: &[(&str, &str)] = &[
     ("ABC IView", "https://iview.abc.net.au"),
@@ -407,7 +411,7 @@ fn setup_streaming_services(page_builder: &Builder, window: &ApplicationWindow) 
         .confirm_label("Add Selected");
 
         for (name, _url) in STREAMING_SERVICES {
-            let desktop_path = format!("{}/{}.desktop", apps_dir, name);
+            let desktop_path = format!("{}/{}.desktop", apps_dir, sanitize_filename(name));
             let installed = std::path::Path::new(&desktop_path).exists();
             config = config.add_option(SelectionOption::new(name, name, "", installed));
         }
@@ -482,7 +486,7 @@ fn setup_streaming_services(page_builder: &Builder, window: &ApplicationWindow) 
                     .iter()
                     .find(|(n, _)| *n == selected_name.as_str())
                 {
-                    let desktop_path = format!("{}/{}.desktop", apps_dir, name);
+                    let desktop_path = format!("{}/{}.desktop", apps_dir, sanitize_filename(name));
                     script_parts.push(format!(
                         concat!(
                             "printf '%s\\n' ",
@@ -524,7 +528,7 @@ fn setup_streaming_services(page_builder: &Builder, window: &ApplicationWindow) 
                         .iter()
                         .find(|(n, _)| *n == selected_name.as_str())
                     {
-                        let desktop_path = format!("{}/{}.desktop", apps_dir, name);
+                        let desktop_path = format!("{}/{}.desktop", apps_dir, sanitize_filename(name));
                         steam_parts.push(format!(
                             "steamos-add-to-steam '{}' || true",
                             desktop_path

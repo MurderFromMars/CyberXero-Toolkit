@@ -46,6 +46,10 @@ GPU driver management with guided installation:
 ### Multimedia
 - **GPU Screen Recorder** — smart repo detection, installs from official repos when available, falls back to AUR
 - **OBS Studio** and related multimedia tools
+- **Streaming Services** — creates Chrome web app shortcuts for streaming platforms (Netflix, Hulu, Disney+, etc.) with automatic Steam integration on handheld devices. Rust reimplementation of [HandheldStreamingServiceUtility](https://github.com/MurderFromMars/HandheldStreamingServiceUtility)
+- **Enhanced Audio** — PipeWire spatial audio convolver with selectable intensity levels, multi-sink support, and a suspend/resume audio fix service. Rust reimplementation of [Enhanced-Handheld-Audio](https://github.com/MurderFromMars/Enhanced-Handheld-Audio)
+
+Both were originally handheld-focused projects but have been improved here to work on desktops too.
 
 ### Biometrics
 - **Fingerprint authentication** — full PAM integration, works with any `fprintd`-compatible reader
@@ -91,7 +95,7 @@ All scripts install to `/usr/local/bin` and are removed cleanly by the uninstall
 
 Any **Arch-based** distribution:
 
-Arch Linux - EndeavourOS - CachyOS - Garuda Linux - Manjaro - ArcoLinux - Artix - RebornOS
+Arch Linux - EndeavourOS - CachyOS - Garuda Linux - Manjaro - ArcoLinux - RebornOS
 
 If it has `pacman`, it runs. (Unless you're using Artix, in which case you have bigger fish to fry KIDDING i might add support if i get enough requests for it it's a lot of work though)
 

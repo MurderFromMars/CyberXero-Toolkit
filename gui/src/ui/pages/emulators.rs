@@ -668,11 +668,51 @@ fn vita3k_config_script(home: &str) -> String {
     parts.join(" && ")
 }
 
+fn esde_config_script(home: &str) -> String {
+    let base = format!("{}/Emulation", home);
+    let cfg_dir = format!("{}/.emulationstation", home);
+    let cfg = format!("{}/es_settings.cfg", cfg_dir);
+
+    let mut parts = vec![format!("mkdir -p '{}'", cfg_dir)];
+
+    // If es_settings.cfg doesn't exist, create a minimal one with our ROM path.
+    // ES-DE uses XML-style <string name="key" value="val" /> entries.
+    parts.push(format!(
+        "if [ ! -f '{cfg}' ]; then \
+           printf '%s\\n' \
+             '<?xml version=\"1.0\"?>' \
+             '<config>' \
+             '  <string name=\"ROMDirectory\" value=\"{base}/roms\" />' \
+             '  <string name=\"MediaDirectory\" value=\"{base}/storage/es-de/media\" />' \
+             '</config>' \
+             > '{cfg}'; \
+         else \
+           if grep -q 'name=\"ROMDirectory\"' '{cfg}'; then \
+             sed -i 's|name=\"ROMDirectory\" value=\"[^\"]*\"|name=\"ROMDirectory\" value=\"{base}/roms\"|' '{cfg}'; \
+           else \
+             sed -i 's|</config>|  <string name=\"ROMDirectory\" value=\"{base}/roms\" />\\n</config>|' '{cfg}'; \
+           fi; \
+           if grep -q 'name=\"MediaDirectory\"' '{cfg}'; then \
+             sed -i 's|name=\"MediaDirectory\" value=\"[^\"]*\"|name=\"MediaDirectory\" value=\"{base}/storage/es-de/media\"|' '{cfg}'; \
+           else \
+             sed -i 's|</config>|  <string name=\"MediaDirectory\" value=\"{base}/storage/es-de/media\" />\\n</config>|' '{cfg}'; \
+           fi; \
+         fi",
+        cfg = cfg, base = base,
+    ));
+
+    // Create the media directory for scraped artwork
+    parts.push(format!("mkdir -p '{}/storage/es-de/media'", base));
+
+    parts.join(" && ")
+}
+
 // ── Public setup ─────────────────────────────────────────────────────────────
 
 /// Set up all button handlers for the emulators page.
 pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &ApplicationWindow) {
     setup_filesystem(page_builder, window);
+    setup_esde(page_builder, window);
     setup_retroarch(page_builder, window);
     setup_standalone(page_builder, window, "btn_emu_ps1", StandaloneEmu::DuckStation);
     setup_standalone(page_builder, window, "btn_emu_ps2", StandaloneEmu::Pcsx2);
@@ -719,12 +759,14 @@ fn setup_filesystem(builder: &Builder, window: &ApplicationWindow) {
         let vita3k_installed = core::is_package_installed("vita3k-git");
         let mgba_installed = core::is_package_installed("mgba-qt");
         let melonds_installed = core::is_package_installed("melonds-git");
+        let esde_installed = core::is_package_installed("emulationstation-de");
 
         let any_installed = ra_installed || duck_installed || pcsx2_installed
             || dolphin_installed || ppsspp_installed || rpcs3_installed
             || cemu_installed || ryujinx_installed || xemu_installed
             || flycast_installed || mame_installed || shadps4_installed
-            || vita3k_installed || mgba_installed || melonds_installed;
+            || vita3k_installed || mgba_installed || melonds_installed
+            || esde_installed;
 
         let mut config = SelectionDialogConfig::new(
             "Emulation Filesystem Setup",
@@ -841,6 +883,13 @@ fn setup_filesystem(builder: &Builder, window: &ApplicationWindow) {
                     false,
                 ));
             }
+            if esde_installed {
+                config = config.add_option(SelectionOption::new(
+                    "cfg_esde", "Configure ES-DE",
+                    "Point ROM directory and media scraper at ~/Emulation",
+                    false,
+                ));
+            }
         }
 
         let window_for_closure = window.clone();
@@ -874,6 +923,7 @@ fn setup_filesystem(builder: &Builder, window: &ApplicationWindow) {
                 ("cfg_vita3k", vita3k_config_script),
                 ("cfg_mgba", mgba_config_script),
                 ("cfg_melonds", melonds_config_script),
+                ("cfg_esde", esde_config_script),
             ];
 
             for (id, script_fn) in cfg_map {
@@ -896,6 +946,55 @@ fn setup_filesystem(builder: &Builder, window: &ApplicationWindow) {
                 "Emulation Filesystem Setup",
             );
         });
+    });
+}
+
+// ── ES-DE Frontend ──────────────────────────────────────────────────────────
+
+fn setup_esde(builder: &Builder, window: &ApplicationWindow) {
+    let button = extract_widget::<Button>(builder, "btn_emu_esde");
+    let window = window.clone();
+
+    button.connect_clicked(move |_| {
+        info!("Emulators: ES-DE Frontend button clicked");
+
+        let home = crate::config::env::get().home.clone();
+        let mut commands = CommandSequence::new();
+
+        // Ensure ~/Emulation tree exists first
+        commands = commands.then(
+            Command::builder()
+                .normal()
+                .program("sh")
+                .args(&["-c", &build_mkdir_script(&home)])
+                .description("Ensuring ~/Emulation directory tree exists...")
+                .build(),
+        );
+
+        // ES-DE is in the AUR as emulationstation-de
+        commands = commands.then(
+            Command::builder()
+                .aur()
+                .args(&["-S", "--noconfirm", "--needed", "emulationstation-de"])
+                .description("Installing ES-DE from AUR...")
+                .build(),
+        );
+
+        // Configure ES-DE to use ~/Emulation paths
+        commands = commands.then(
+            Command::builder()
+                .normal()
+                .program("sh")
+                .args(&["-c", &esde_config_script(&home)])
+                .description("Configuring ES-DE for ~/Emulation paths...")
+                .build(),
+        );
+
+        task_runner::run(
+            window.upcast_ref(),
+            commands.build(),
+            "ES-DE Frontend Installation",
+        );
     });
 }
 

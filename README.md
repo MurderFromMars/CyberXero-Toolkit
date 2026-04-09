@@ -2,7 +2,7 @@
 
 A GTK4/libadwaita system management toolkit for Arch-based Linux distributions. Built in Rust. Handles everything from driver installation and container setup to emulator configuration and desktop theming — all from one application.
 
-> This is a hard fork of the XeroLinux Toolkit. The original originally  only ran on XeroLinux, it checked `/etc/os-release` and refused to start on anything else. CyberXero removes that restriction entirely, the toolkit has removed this since, (because this fork came to be, literally)  but remains highly neutered on other distros. This fork replaces all distribution-specific metapackages with explicit package lists, rewrites multiple pages from the ground up, adds several features the original never shipped, and migrates deprecated APIs. If it has `pacman`, it runs.(You need SystemD though.. so no Artix support currently)
+> This is a hard fork of the XeroLinux Toolkit. The original originally  only ran on XeroLinux, it checked `/etc/os-release` and refused to start on anything else. CyberXero removed that restriction entirely, the toolkit has removed this since, (because this fork came to be, literally)  but remains highly neutered on other distros. This fork replaces all distribution-specific metapackages with explicit package lists, rewrites multiple pages from the ground up, adds several features the original never shipped, and migrates deprecated APIs. If it has `pacman`, it runs.(You need SystemD though.. so no Artix support currently)
 
 ---
 

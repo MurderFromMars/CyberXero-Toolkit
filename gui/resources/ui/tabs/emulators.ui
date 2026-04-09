@@ -37,7 +37,7 @@
         </child>
         <child>
           <object class="GtkLabel">
-            <property name="label">Native emulator setup with unified filesystem (Arch packages &amp; AUR)</property>
+            <property name="label">Native emulator setup (Arch packages &amp; AUR)</property>
             <property name="css-classes">dim-label</property>
             <property name="halign">center</property>
             <property name="wrap">true</property>
@@ -55,22 +55,7 @@
         <property name="valign">center</property>
         <property name="vexpand">true</property>
         <property name="margin-top">32</property>
-        <!-- Row 1: Setup Filesystem -->
-        <child>
-          <object class="GtkBox">
-            <property name="orientation">horizontal</property>
-            <property name="spacing">16</property>
-            <property name="halign">center</property>
-            <child>
-              <object class="GtkButton" id="btn_emu_filesystem">
-                <property name="label">Setup Emulation Filesystem</property>
-                <property name="height-request">50</property>
-                <property name="css-classes">destructive-action pill</property>
-              </object>
-            </child>
-          </object>
-        </child>
-        <!-- Row 2: ES-DE Frontend -->
+        <!-- Row 1: ES-DE Frontend -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>

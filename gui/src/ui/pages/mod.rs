@@ -5,7 +5,7 @@
 //! - `drivers`: GPU drivers, Tailscale, ASUS ROG tools
 //! - `gaming_tools`: Steam, controllers, game launchers
 //! - `gamescope`: Gamescope command generator
-//! - `emulators`: RetroArch + cores, standalone emulators, unified filesystem
+//! - `emulators`: RetroArch + cores, standalone emulators
 //! - `containers_vms`: Docker, Podman, VirtualBox, KVM
 //! - `multimedia_tools`: OBS, Jellyfin
 //! - `customization`: ZSH, themes, wallpapers

@@ -17,7 +17,7 @@ use log::info;
 
 /// ROM subdirectories created under ~/Emulation/roms/.
 const ROM_DIRS: &[&str] = &[
-    "3do", "3ds", "amiga", "arcade", "atari2600", "atari5200", "atari7800",
+    "3do", "amiga", "arcade", "atari2600", "atari5200", "atari7800",
     "atarijaguar", "atarilynx", "c64", "dc", "dos", "gb", "gba", "gbc", "gc",
     "genesis", "mastersystem", "n64", "nds", "nes", "ngp", "pce", "ps1", "ps2",
     "ps3", "ps4", "psp", "psvita", "saturn", "scummvm", "segacd", "snes",
@@ -150,6 +150,15 @@ fn duckstation_config_script(home: &str) -> String {
         cfg = cfg, base = base,
     ));
 
+    // Symlink savestates
+    parts.push(format!(
+        "[ -L '{base}/states/duckstation' ] || \
+         (rm -rf '{base}/states/duckstation' && \
+          mkdir -p '{cfg_dir}/savestates' && \
+          ln -sfn '{cfg_dir}/savestates' '{base}/states/duckstation')",
+        base = base, cfg_dir = cfg_dir,
+    ));
+
     parts.join(" && ")
 }
 
@@ -230,6 +239,25 @@ fn dolphin_config_script(home: &str) -> String {
             key = key, val = val, cfg = cfg,
         ));
     }
+
+    // Symlink saves (GC memory cards)
+    let data_dir = format!("{}/.local/share/dolphin-emu", home);
+    parts.push(format!(
+        "[ -L '{base}/saves/dolphin' ] || \
+         (rm -rf '{base}/saves/dolphin' && \
+          mkdir -p '{data_dir}/GC' && \
+          ln -sfn '{data_dir}/GC' '{base}/saves/dolphin')",
+        base = base, data_dir = data_dir,
+    ));
+
+    // Symlink states
+    parts.push(format!(
+        "[ -L '{base}/states/dolphin' ] || \
+         (rm -rf '{base}/states/dolphin' && \
+          mkdir -p '{data_dir}/StateSaves' && \
+          ln -sfn '{data_dir}/StateSaves' '{base}/states/dolphin')",
+        base = base, data_dir = data_dir,
+    ));
 
     parts.join(" && ")
 }
@@ -670,12 +698,12 @@ fn vita3k_config_script(home: &str) -> String {
 
 fn esde_config_script(home: &str) -> String {
     let base = format!("{}/Emulation", home);
-    let cfg_dir = format!("{}/.emulationstation", home);
-    let cfg = format!("{}/es_settings.cfg", cfg_dir);
+    let cfg_dir = format!("{}/.config/ES-DE", home);
+    let cfg = format!("{}/es_settings.xml", cfg_dir);
 
     let mut parts = vec![format!("mkdir -p '{}'", cfg_dir)];
 
-    // If es_settings.cfg doesn't exist, create a minimal one with our ROM path.
+    // If es_settings.xml doesn't exist, create a minimal one with our ROM path.
     // ES-DE uses XML-style <string name="key" value="val" /> entries.
     parts.push(format!(
         "if [ ! -f '{cfg}' ]; then \
@@ -1101,6 +1129,61 @@ fn setup_retroarch(builder: &Builder, window: &ApplicationWindow) {
             core::is_package_installed("libretro-scummvm"),
         ))
         .add_option(SelectionOption::new(
+            "atari2600", "Atari 2600 (Stella)",
+            "libretro-stella — Atari 2600",
+            core::is_package_installed("libretro-stella"),
+        ))
+        .add_option(SelectionOption::new(
+            "atari7800", "Atari 7800 (ProSystem)",
+            "libretro-prosystem — Atari 7800",
+            core::is_package_installed("libretro-prosystem"),
+        ))
+        .add_option(SelectionOption::new(
+            "atarilynx", "Atari Lynx (Handy)",
+            "libretro-handy — Atari Lynx",
+            core::is_package_installed("libretro-handy"),
+        ))
+        .add_option(SelectionOption::new(
+            "atarijaguar", "Atari Jaguar (Virtual Jaguar)",
+            "libretro-virtualjaguar — Atari Jaguar",
+            core::is_package_installed("libretro-virtualjaguar"),
+        ))
+        .add_option(SelectionOption::new(
+            "atari5200", "Atari 5200/800 (Atari800)",
+            "libretro-atari800 — Atari 5200 / 800 / XL / XE",
+            core::is_package_installed("libretro-atari800"),
+        ))
+        .add_option(SelectionOption::new(
+            "3do", "3DO (Opera)",
+            "libretro-opera — 3DO Interactive Multiplayer",
+            core::is_package_installed("libretro-opera"),
+        ))
+        .add_option(SelectionOption::new(
+            "amiga", "Amiga (PUAE)",
+            "libretro-puae — Commodore Amiga",
+            core::is_package_installed("libretro-puae"),
+        ))
+        .add_option(SelectionOption::new(
+            "c64", "C64 (VICE)",
+            "libretro-vice-x64 — Commodore 64",
+            core::is_package_installed("libretro-vice-x64"),
+        ))
+        .add_option(SelectionOption::new(
+            "dos", "DOS (DOSBox Pure)",
+            "libretro-dosbox-pure — MS-DOS games",
+            core::is_package_installed("libretro-dosbox-pure"),
+        ))
+        .add_option(SelectionOption::new(
+            "ngp", "Neo Geo Pocket (Beetle NGP)",
+            "libretro-beetle-ngp — Neo Geo Pocket / Color",
+            core::is_package_installed("libretro-beetle-ngp"),
+        ))
+        .add_option(SelectionOption::new(
+            "wonderswan", "WonderSwan (Beetle WS)",
+            "libretro-beetle-wswan — Bandai WonderSwan / Color",
+            core::is_package_installed("libretro-beetle-wswan"),
+        ))
+        .add_option(SelectionOption::new(
             "shaders", "Slang Shaders",
             "libretro-shaders-slang — CRT filters, scanlines, etc.",
             core::is_package_installed("libretro-shaders-slang"),
@@ -1147,6 +1230,17 @@ fn setup_retroarch(builder: &Builder, window: &ApplicationWindow) {
                 ("desmume", &["libretro-desmume"]),
                 ("mame", &["libretro-mame"]),
                 ("scummvm", &["libretro-scummvm"]),
+                ("atari2600", &["libretro-stella"]),
+                ("atari7800", &["libretro-prosystem"]),
+                ("atarilynx", &["libretro-handy"]),
+                ("atarijaguar", &["libretro-virtualjaguar"]),
+                ("atari5200", &["libretro-atari800"]),
+                ("3do", &["libretro-opera"]),
+                ("amiga", &["libretro-puae"]),
+                ("c64", &["libretro-vice-x64"]),
+                ("dos", &["libretro-dosbox-pure"]),
+                ("ngp", &["libretro-beetle-ngp"]),
+                ("wonderswan", &["libretro-beetle-wswan"]),
                 ("shaders", &["libretro-shaders-slang"]),
             ];
 

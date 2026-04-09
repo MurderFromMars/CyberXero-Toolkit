@@ -93,9 +93,9 @@ Any **Arch-based** distribution:
 
 Arch Linux - EndeavourOS - CachyOS - Garuda Linux - Manjaro - ArcoLinux - Artix - RebornOS
 
-If it has `pacman`, it runs.
+If it has `pacman`, it runs. (Unless you're using Artix, in which case you have bigger fish to fry KIDDING i might add support if i get enough requests for it it's a lot of work though)
 
-CyberXero Toolkit ships as the default system management tool in [OrbitOS](https://github.com/MurderFromMars/OrbitOS), a custom Arch Linux spin.
+CyberXero Toolkit ships as the default system management tool in [OrbitOS](https://github.com/MurderFromMars/OrbitOS), My custom Arch Linux spin.
 
 ## Requirements
 

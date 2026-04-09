@@ -55,22 +55,7 @@
         <property name="valign">center</property>
         <property name="vexpand">true</property>
         <property name="margin-top">32</property>
-        <!-- Row 1: ES-DE Frontend -->
-        <child>
-          <object class="GtkBox">
-            <property name="orientation">horizontal</property>
-            <property name="spacing">16</property>
-            <property name="halign">center</property>
-            <child>
-              <object class="GtkButton" id="btn_emu_esde">
-                <property name="label">ES-DE Frontend</property>
-                <property name="height-request">50</property>
-                <property name="css-classes">suggested-action pill</property>
-              </object>
-            </child>
-          </object>
-        </child>
-        <!-- Row 3: RetroArch -->
+        <!-- Row 1: RetroArch -->
         <child>
           <object class="GtkBox">
             <property name="orientation">horizontal</property>

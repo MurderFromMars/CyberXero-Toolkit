@@ -21,7 +21,6 @@ Full virtualization and container management, completely rewritten from the orig
 ### Emulators
 One-click install for:
 
-- **ES-DE Frontend** — game launcher
 - **RetroArch** — with 29 selectable libretro cores spanning NES, SNES, GB/GBC, GBA, N64, DS, PS1, Genesis, Saturn, Dreamcast, PC Engine, PSP, Arcade, ScummVM, Atari (2600/5200/7800/Lynx/Jaguar), 3DO, Amiga, C64, DOS, Neo Geo Pocket, and WonderSwan
 - **Standalone emulators** — DuckStation (PS1), PCSX2 (PS2), RPCS3 (PS3), ShadPS4 (PS4), PPSSPP (PSP), Vita3K (PS Vita), mGBA (GBA), melonDS (DS), Dolphin (GC/Wii), Cemu (Wii U), Ryujinx (Switch), xemu (Xbox), Flycast (Dreamcast), MAME (Arcade)
 

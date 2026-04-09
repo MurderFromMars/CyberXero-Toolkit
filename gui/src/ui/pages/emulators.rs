@@ -18,7 +18,6 @@ use log::info;
 
 /// Set up all button handlers for the emulators page.
 pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &ApplicationWindow) {
-    setup_esde(page_builder, window);
     setup_retroarch(page_builder, window);
     setup_standalone(page_builder, window, "btn_emu_ps1", StandaloneEmu::DuckStation);
     setup_standalone(page_builder, window, "btn_emu_ps2", StandaloneEmu::Pcsx2);
@@ -34,34 +33,6 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_standalone(page_builder, window, "btn_emu_xbox", StandaloneEmu::Xemu);
     setup_standalone(page_builder, window, "btn_emu_dreamcast", StandaloneEmu::Flycast);
     setup_standalone(page_builder, window, "btn_emu_mame", StandaloneEmu::Mame);
-}
-
-// ── ES-DE Frontend ──────────────────────────────────────────────────────────
-
-fn setup_esde(builder: &Builder, window: &ApplicationWindow) {
-    let button = extract_widget::<Button>(builder, "btn_emu_esde");
-    let window = window.clone();
-
-    button.connect_clicked(move |_| {
-        info!("Emulators: ES-DE Frontend button clicked");
-
-        let mut commands = CommandSequence::new();
-
-        // ES-DE is in the AUR as emulationstation-de
-        commands = commands.then(
-            Command::builder()
-                .aur()
-                .args(&["-S", "--noconfirm", "--needed", "emulationstation-de"])
-                .description("Installing ES-DE from AUR...")
-                .build(),
-        );
-
-        task_runner::run(
-            window.upcast_ref(),
-            commands.build(),
-            "ES-DE Frontend Installation",
-        );
-    });
 }
 
 // ── RetroArch + Cores ────────────────────────────────────────────────────────

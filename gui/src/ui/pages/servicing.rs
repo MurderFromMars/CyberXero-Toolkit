@@ -48,8 +48,62 @@ fn setup_clr_pacman(page_builder: &Builder, window: &ApplicationWindow) {
                     .description("Clearing Pacman cache...")
                     .build(),
             )
+            .then(
+                Command::builder()
+                    .normal()
+                    .program("bash")
+                    .args(&[
+                        "-c",
+                        "if command -v paru >/dev/null 2>&1; then \
+                            rm -rf \"${HOME}/.cache/paru/clone\"/* 2>/dev/null || true; \
+                            echo 'Cleared paru clone cache.'; \
+                         fi; \
+                         if command -v yay >/dev/null 2>&1; then \
+                            rm -rf \"${HOME}/.cache/yay\"/* 2>/dev/null || true; \
+                            echo 'Cleared yay cache.'; \
+                         fi; \
+                         true",
+                    ])
+                    .description("Clearing AUR helper caches...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .normal()
+                    .program("bash")
+                    .args(&[
+                        "-c",
+                        "if command -v flatpak >/dev/null 2>&1; then \
+                            flatpak uninstall --unused -y || true; \
+                         else \
+                            echo 'Flatpak not installed, skipping.'; \
+                         fi; \
+                         true",
+                    ])
+                    .description("Removing unused Flatpak runtimes...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("bash")
+                    .args(&[
+                        "-c",
+                        "if command -v snap >/dev/null 2>&1; then \
+                            snap list --all 2>/dev/null | awk '/disabled/{print $1, $3}' \
+                               | while read -r pkg rev; do \
+                                    snap remove \"$pkg\" --revision=\"$rev\" || true; \
+                                 done; \
+                         else \
+                            echo 'Snap not installed, skipping.'; \
+                         fi; \
+                         true",
+                    ])
+                    .description("Removing disabled Snap revisions...")
+                    .build(),
+            )
             .build();
-        task_runner::run(window.upcast_ref(), commands, "Clear Pacman Cache");
+        task_runner::run(window.upcast_ref(), commands, "Clear Package Caches");
     });
 }
 
@@ -505,13 +559,32 @@ fn setup_update_mirrorlist(page_builder: &Builder, window: &ApplicationWindow) {
         for (file_path, repo_id, repo_name) in mirror_mappings {
             if std::path::Path::new(file_path).exists() {
                 let cmd = format!(
-                    "rate-mirrors --allow-root --protocol https {} | tee {}",
-                    repo_id, file_path
+                    r#"set -u
+src={repo}
+dst={dst}
+tmp="$(mktemp "${{dst}}.XXXXXX")" || {{ echo "Could not create temp file next to $dst" >&2; exit 1; }}
+trap 'rm -f "$tmp"' EXIT
+if ! timeout 300 rate-mirrors --allow-root --protocol https "$src" > "$tmp"; then
+    echo "rate-mirrors failed or timed out for $src; keeping existing $dst." >&2
+    exit 0
+fi
+if ! grep -qE '^[[:space:]]*Server[[:space:]]*=' "$tmp"; then
+    echo "Generated output had no Server entries for $src; keeping existing $dst." >&2
+    exit 0
+fi
+cp -a -- "$dst" "$dst.bak" 2>/dev/null || true
+chmod 0644 "$tmp"
+mv -f -- "$tmp" "$dst"
+trap - EXIT
+echo "Updated $dst (backup at $dst.bak)"
+"#,
+                    repo = repo_id,
+                    dst = file_path,
                 );
                 let description = format!("Updating {} mirrorlist...", repo_name);
                 commands = commands.then(Command::builder()
                     .privileged()
-                    .program("sh")
+                    .program("bash")
                     .args(&["-c", &cmd])
                     .description(&description)
                     .build());

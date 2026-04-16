@@ -465,9 +465,9 @@ fn setup_fix_arch_keyring(page_builder: &Builder, window: &ApplicationWindow) {
                 .build())
             .then(Command::builder()
                 .privileged()
-                .program("pacman")
-                .args(&["-Syy", "--noconfirm", "archlinux-keyring"])
-                .description("Reinstalling Arch Linux keyring...")
+                .program("sh")
+                .args(&["-c", "pkgs='archlinux-keyring'; pacman -Qi cachyos-keyring &>/dev/null && pkgs=\"$pkgs cachyos-keyring\"; pacman -Syy --noconfirm $pkgs"])
+                .description("Reinstalling keyrings...")
                 .build())
             .build();
         task_runner::run(window.upcast_ref(), commands, "Fix GnuPG Keyring");

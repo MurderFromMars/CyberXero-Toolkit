@@ -24,9 +24,14 @@ echo "Adding Ubuntu keyserver to gpg.conf"
 echo "###################################"
 echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee --append /etc/pacman.d/gnupg/gpg.conf
 sleep 2
-echo "Updating ArchLinux Keyring"
+echo "Reinstalling Keyrings"
 echo "#################################"
-sudo pacman -Sy --noconfirm archlinux-keyring
+PKGS="archlinux-keyring"
+if pacman -Qi cachyos-keyring &>/dev/null; then
+  echo "CachyOS keyring detected, including in reset..."
+  PKGS="$PKGS cachyos-keyring"
+fi
+sudo pacman -Sy --noconfirm $PKGS
 sleep 2
 echo
 echo "#################################"

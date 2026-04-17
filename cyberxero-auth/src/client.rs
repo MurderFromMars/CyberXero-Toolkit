@@ -1,4 +1,4 @@
-//! Client implementation for communicating with the xero-auth daemon.
+//! Client implementation for communicating with the cyberxero-auth daemon.
 
 use crate::protocol::{ClientMessage, DaemonMessage};
 use crate::protocol_io::{read_message, write_message};
@@ -6,7 +6,7 @@ use crate::shared::get_socket_path;
 use anyhow::{Context, Result};
 use tokio::net::UnixStream;
 
-/// Client for communicating with the xero-auth daemon.
+/// Client for communicating with the cyberxero-auth daemon.
 pub struct Client {
     stream: UnixStream,
 }

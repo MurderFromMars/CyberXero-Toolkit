@@ -136,7 +136,7 @@
                         <property name="halign">fill</property>
                         <child>
                           <object class="GtkPicture">
-                            <property name="file">resource:///xyz/xerolinux/xero-toolkit/icons/scalable/apps/xfprintd-gui.png</property>
+                            <property name="file">resource:///xyz/cyberxero/cyberxero-toolkit/icons/scalable/apps/xfprintd-gui.png</property>
                             <property name="content-fit">contain</property>
                             <property name="can-shrink">true</property>
                           </object>
@@ -212,7 +212,7 @@
                         <property name="halign">fill</property>
                         <child>
                           <object class="GtkPicture">
-                            <property name="file">resource:///xyz/xerolinux/xero-toolkit/icons/scalable/apps/xero-howdy-qt.png</property>
+                            <property name="file">resource:///xyz/cyberxero/cyberxero-toolkit/icons/scalable/apps/xero-howdy-qt.png</property>
                             <property name="content-fit">contain</property>
                             <property name="can-shrink">true</property>
                           </object>

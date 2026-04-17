@@ -1,4 +1,4 @@
-//! Daemon management for xero-auth.
+//! Daemon management for cyberxero-auth.
 
 use crate::config;
 use anyhow::{Context, Result};
@@ -6,15 +6,15 @@ use log::{info, warn};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::Duration;
-use xero_auth::shared::is_daemon_running;
+use cyberxero_auth::shared::is_daemon_running;
 
-/// Get the path to the xero-authd daemon binary.
+/// Get the path to the cyberxero-authd daemon binary.
 fn get_daemon_path() -> PathBuf {
     config::paths::daemon()
 }
 
-/// Get the path to the xero-auth client binary.
-pub fn get_xero_auth_path() -> PathBuf {
+/// Get the path to the cyberxero-auth client binary.
+pub fn get_cyberxero_auth_path() -> PathBuf {
     config::paths::client()
 }
 
@@ -42,7 +42,7 @@ pub fn start_daemon() -> Result<()> {
         .spawn()
         .context("Failed to spawn pkexec")?;
 
-    let socket_path = xero_auth::shared::get_socket_path(None)?;
+    let socket_path = cyberxero_auth::shared::get_socket_path(None)?;
     let start = std::time::Instant::now();
     let timeout = Duration::from_secs(60);
     let poll_interval = Duration::from_millis(50);
@@ -71,7 +71,7 @@ pub fn start_daemon() -> Result<()> {
 }
 
 pub async fn stop_daemon() -> Result<()> {
-    use xero_auth::Client;
+    use cyberxero_auth::Client;
 
     if is_daemon_running() {
         if let Ok(mut client) = Client::new().await {

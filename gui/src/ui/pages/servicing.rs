@@ -1036,7 +1036,7 @@ fn get_remote_commit() -> Option<String> {
 
 /// Get the locally stored commit hash from the last toolkit install/update.
 fn get_local_commit() -> Option<String> {
-    std::fs::read_to_string("/opt/xero-toolkit/.commit")
+    std::fs::read_to_string("/opt/cyberxero-toolkit/.commit")
         .ok()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
@@ -1230,7 +1230,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
 
             let repo_url = config::links::TOOLKIT_REPO;
             let install_cmd = format!(
-                "/tmp/xero-toolkit-update/sources/scripts/self-update.sh '{}'",
+                "/tmp/cyberxero-toolkit-update/sources/scripts/self-update.sh '{}'",
                 remote_hash_clone
             );
 
@@ -1242,7 +1242,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
                         .args(&[
                             "-c",
                             &format!(
-                                "rm -rf /tmp/xero-toolkit-update && git clone --depth 1 {} /tmp/xero-toolkit-update",
+                                "rm -rf /tmp/cyberxero-toolkit-update && git clone --depth 1 {} /tmp/cyberxero-toolkit-update",
                                 repo_url
                             ),
                         ])
@@ -1253,7 +1253,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
                     Command::builder()
                         .normal()
                         .program("sh")
-                        .args(&["-c", "cd /tmp/xero-toolkit-update && cargo build --release"])
+                        .args(&["-c", "cd /tmp/cyberxero-toolkit-update && cargo build --release"])
                         .description("Building CyberXero Toolkit (this may take a few minutes)...")
                         .build(),
                 )
@@ -1269,7 +1269,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
                     Command::builder()
                         .normal()
                         .program("rm")
-                        .args(&["-rf", "/tmp/xero-toolkit-update"])
+                        .args(&["-rf", "/tmp/cyberxero-toolkit-update"])
                         .description("Cleaning up temporary files...")
                         .build(),
                 )

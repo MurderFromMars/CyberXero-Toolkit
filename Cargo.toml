@@ -1,13 +1,13 @@
 [workspace]
-members = ["gui", "xero-auth"]
+members = ["gui", "cyberxero-auth"]
 resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["Kristián Kekeš <gamerix2006@gmail.com>", "Steve C. <steve@techxero.com>"]
+authors = ["MurderFromMars <untamedprodigy67@gmail.com>"]
 license = "GPL-3.0-or-later"
-description = "GTK4 GUI to manage XeroLinux specific tools and settings"
-repository = "https://github.com/BananikXenos/xero-toolkit"
-keywords = ["xerolinux", "gtk4", "system-management", "tools"]
+description = "GTK4 GUI to manage CyberXero Toolkit tools and settings on Arch-based Linux"
+repository = "https://github.com/MurderFromMars/CyberXero-Toolkit"
+keywords = ["cyberxero", "gtk4", "system-management", "tools"]
 categories = ["gui", "os::linux-apis"]

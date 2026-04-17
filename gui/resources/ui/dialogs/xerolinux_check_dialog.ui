@@ -3,8 +3,8 @@
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
   <object class="AdwWindow" id="xerolinux_error_window">
-    <property name="title">Xero Toolkit - Unsupported Distribution</property>
-    <property name="icon-name">xero-toolkit</property>
+    <property name="title">CyberXero Toolkit - Unsupported Distribution</property>
+    <property name="icon-name">cyberxero-toolkit</property>
     <property name="default-width">400</property>
     <property name="default-height">250</property>
     <property name="modal">true</property>

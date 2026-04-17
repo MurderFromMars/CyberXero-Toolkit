@@ -85,14 +85,14 @@ pub fn setup_application_ui(app: &Application) {
         }
     });
 
-    info!("Xero Toolkit application startup complete");
+    info!("CyberXero Toolkit application startup complete");
 }
 
 /// Set up resources and theme.
 fn setup_resources_and_theme() {
     info!("Setting up resources and theme");
 
-    gio::resources_register_include!("xyz.xerolinux.xero-toolkit.gresource")
+    gio::resources_register_include!("xyz.cyberxero.cyberxero-toolkit.gresource")
         .expect("Failed to register gresources");
 
     if let Some(display) = gtk4::gdk::Display::default() {
@@ -122,8 +122,8 @@ fn create_main_window(app: &Application, builder: &Builder) -> ApplicationWindow
     let window: ApplicationWindow = extract_widget(builder, "app_window");
 
     window.set_application(Some(app));
-    info!("Setting window icon to xero-toolkit");
-    window.set_icon_name(Some("xero-toolkit"));
+    info!("Setting window icon to cyberxero-toolkit");
+    window.set_icon_name(Some("cyberxero-toolkit"));
     info!("Main application window created from UI resource");
 
     window

@@ -5,7 +5,7 @@
 
   <object class="AdwWindow" id="about_window">
     <property name="title">About</property>
-    <property name="icon-name">xero-toolkit</property>
+    <property name="icon-name">cyberxero-toolkit</property>
     <property name="default-width">500</property>
     <property name="default-height">400</property>
     <property name="modal">true</property>
@@ -39,7 +39,7 @@
 
                 <child>
                   <object class="GtkImage" id="info_icon">
-                    <property name="icon-name">xero-toolkit</property>
+                    <property name="icon-name">cyberxero-toolkit</property>
                     <property name="pixel-size">48</property>
                   </object>
                 </child>

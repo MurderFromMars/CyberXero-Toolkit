@@ -1,12 +1,11 @@
-# Maintainer: Kristián Kekeš <gamerix2006@gmail.com>
-# Maintainer: Steve C. <steve@techxero.com>
+# Maintainer: MurderFromMars <untamedprodigy67@gmail.com>
 
-pkgname=xero-toolkit
+pkgname=cyberxero-toolkit
 pkgver=0.1.6
 pkgrel=3
-pkgdesc="GTK4 GUI to manage XeroLinux specific tools and settings"
+pkgdesc="GTK4 GUI to manage CyberXero Toolkit tools and settings on Arch-based Linux"
 arch=('x86_64')
-url="https://github.com/synsejse/xero-toolkit"
+url="https://github.com/MurderFromMars/CyberXero-Toolkit"
 license=('GPL-3.0-or-later')
 depends=(
     'gtk4'
@@ -22,9 +21,9 @@ makedepends=(
     'rust'
     'cargo'
     'pkgconf')
-provides=('xero-toolkit')
-conflicts=('xero-toolkit')
-replaces=('xlapit-cli')
+provides=('cyberxero-toolkit')
+conflicts=('cyberxero-toolkit' 'xero-toolkit')
+replaces=('xero-toolkit' 'xlapit-cli')
 options=('!emptydirs')
 
 build() {
@@ -36,32 +35,32 @@ build() {
 package() {
   cd "${startdir}/.."
 
-  # Install binaries into /opt/xero-toolkit
-  install -d "${pkgdir}/opt/xero-toolkit"
-  install -Dm755 "target/release/xero-toolkit" \
-    "${pkgdir}/opt/xero-toolkit/xero-toolkit"
-  install -Dm755 "target/release/xero-authd" \
-    "${pkgdir}/opt/xero-toolkit/xero-authd"
-  install -Dm755 "target/release/xero-auth" \
-    "${pkgdir}/opt/xero-toolkit/xero-auth"
+  # Install binaries into /opt/cyberxero-toolkit
+  install -d "${pkgdir}/opt/cyberxero-toolkit"
+  install -Dm755 "target/release/cyberxero-toolkit" \
+    "${pkgdir}/opt/cyberxero-toolkit/cyberxero-toolkit"
+  install -Dm755 "target/release/cyberxero-authd" \
+    "${pkgdir}/opt/cyberxero-toolkit/cyberxero-authd"
+  install -Dm755 "target/release/cyberxero-auth" \
+    "${pkgdir}/opt/cyberxero-toolkit/cyberxero-auth"
 
   # Install sources (scripts and systemd units)
-  install -d "${pkgdir}/opt/xero-toolkit/sources/scripts"
-  install -d "${pkgdir}/opt/xero-toolkit/sources/systemd"
-  install -m755 sources/scripts/* "${pkgdir}/opt/xero-toolkit/sources/scripts/"
-  install -m644 sources/systemd/* "${pkgdir}/opt/xero-toolkit/sources/systemd/"
+  install -d "${pkgdir}/opt/cyberxero-toolkit/sources/scripts"
+  install -d "${pkgdir}/opt/cyberxero-toolkit/sources/systemd"
+  install -m755 sources/scripts/* "${pkgdir}/opt/cyberxero-toolkit/sources/scripts/"
+  install -m644 sources/systemd/* "${pkgdir}/opt/cyberxero-toolkit/sources/systemd/"
 
   # Convenience symlink in /usr/bin
   install -d "${pkgdir}/usr/bin"
-  ln -s "/opt/xero-toolkit/xero-toolkit" "${pkgdir}/usr/bin/xero-toolkit"
+  ln -s "/opt/cyberxero-toolkit/cyberxero-toolkit" "${pkgdir}/usr/bin/cyberxero-toolkit"
 
   # Install desktop file
-  install -Dm644 "packaging/xero-toolkit.desktop" \
-    "${pkgdir}/usr/share/applications/xero-toolkit.desktop"
+  install -Dm644 "packaging/cyberxero-toolkit.desktop" \
+    "${pkgdir}/usr/share/applications/cyberxero-toolkit.desktop"
 
   # Install icon
-  install -Dm644 "gui/resources/icons/scalable/apps/xero-toolkit.png" \
-    "${pkgdir}/usr/share/icons/hicolor/scalable/apps/xero-toolkit.png"
+  install -Dm644 "gui/resources/icons/scalable/apps/cyberxero-toolkit.png" \
+    "${pkgdir}/usr/share/icons/hicolor/scalable/apps/cyberxero-toolkit.png"
 
   # Install license
   install -Dm644 "LICENSE" \

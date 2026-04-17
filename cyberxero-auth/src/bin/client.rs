@@ -1,14 +1,14 @@
-//! Xero Authentication Client
+//! CyberXero Authentication Client
 //!
 //! Command-line client for testing the authentication daemon.
 
 use clap::Parser;
-use xero_auth::shared::is_daemon_running;
-use xero_auth::Client;
+use cyberxero_auth::shared::is_daemon_running;
+use cyberxero_auth::Client;
 
 #[derive(Parser, Debug)]
-#[command(name = "xero-auth")]
-#[command(about = "Xero Authentication Client", long_about = None)]
+#[command(name = "cyberxero-auth")]
+#[command(about = "CyberXero Authentication Client", long_about = None)]
 struct Args {
     /// Environment variables to set (KEY=VALUE)
     #[arg(short, long)]
@@ -25,7 +25,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
     if !is_daemon_running() {
-        eprintln!("Error: xero-auth daemon is not running");
+        eprintln!("Error: cyberxero-auth daemon is not running");
         std::process::exit(1);
     }
 

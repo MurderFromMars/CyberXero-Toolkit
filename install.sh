@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Xero Toolkit Open - Installer
+# CyberXero Toolkit - Installer
 # Builds from source and installs for any Arch-based distro
 #
 
@@ -106,7 +106,7 @@ print_status "Checking build dependencies..."
 
 DEPS=(
     "rust"
-    "cargo" 
+    "cargo"
     "pkgconf"
     "gtk4"
     "glib2"
@@ -137,7 +137,7 @@ fi
 print_success "Dependencies satisfied"
 
 # Build the project
-print_status "Building Xero Toolkit (this may take a few minutes)..."
+print_status "Building CyberXero Toolkit (this may take a few minutes)..."
 cd "$SCRIPT_DIR"
 
 cargo clean
@@ -149,44 +149,44 @@ fi
 print_success "Build completed successfully"
 
 # Verify binaries exist
-for binary in "xero-toolkit" "xero-authd" "xero-auth"; do
+for binary in "cyberxero-toolkit" "cyberxero-authd" "cyberxero-auth"; do
     if [ ! -f "target/release/$binary" ]; then
         die "Binary not found: target/release/$binary"
     fi
 done
 
 # Install
-print_status "Installing to /opt/xero-toolkit..."
+print_status "Installing to /opt/cyberxero-toolkit..."
 
 # Create directories
-sudo mkdir -p /opt/xero-toolkit || die "Failed to create /opt/xero-toolkit"
-sudo mkdir -p /opt/xero-toolkit/sources/scripts
-sudo mkdir -p /opt/xero-toolkit/sources/systemd
+sudo mkdir -p /opt/cyberxero-toolkit || die "Failed to create /opt/cyberxero-toolkit"
+sudo mkdir -p /opt/cyberxero-toolkit/sources/scripts
+sudo mkdir -p /opt/cyberxero-toolkit/sources/systemd
 
 # Install binaries
 print_status "Installing binaries..."
-sudo install -Dm755 "target/release/xero-toolkit" "/opt/xero-toolkit/xero-toolkit" || die "Failed to install xero-toolkit"
-sudo install -Dm755 "target/release/xero-authd" "/opt/xero-toolkit/xero-authd" || die "Failed to install xero-authd"
-sudo install -Dm755 "target/release/xero-auth" "/opt/xero-toolkit/xero-auth" || die "Failed to install xero-auth"
+sudo install -Dm755 "target/release/cyberxero-toolkit" "/opt/cyberxero-toolkit/cyberxero-toolkit" || die "Failed to install cyberxero-toolkit"
+sudo install -Dm755 "target/release/cyberxero-authd" "/opt/cyberxero-toolkit/cyberxero-authd" || die "Failed to install cyberxero-authd"
+sudo install -Dm755 "target/release/cyberxero-auth" "/opt/cyberxero-toolkit/cyberxero-auth" || die "Failed to install cyberxero-auth"
 
 # Install sources
 print_status "Installing scripts and systemd units..."
-sudo install -m755 sources/scripts/* "/opt/xero-toolkit/sources/scripts/" || die "Failed to install scripts"
-sudo install -m644 sources/systemd/* "/opt/xero-toolkit/sources/systemd/" || die "Failed to install systemd units"
+sudo install -m755 sources/scripts/* "/opt/cyberxero-toolkit/sources/scripts/" || die "Failed to install scripts"
+sudo install -m644 sources/systemd/* "/opt/cyberxero-toolkit/sources/systemd/" || die "Failed to install systemd units"
 
 # Create symlink in /usr/bin
 print_status "Creating symlink..."
-sudo ln -sf "/opt/xero-toolkit/xero-toolkit" "/usr/bin/xero-toolkit" || die "Failed to create symlink"
+sudo ln -sf "/opt/cyberxero-toolkit/cyberxero-toolkit" "/usr/bin/cyberxero-toolkit" || die "Failed to create symlink"
 
 # Install desktop file
 print_status "Installing desktop file..."
-sudo install -Dm644 "packaging/xero-toolkit.desktop" \
-    "/usr/share/applications/xero-toolkit.desktop" || die "Failed to install desktop file"
+sudo install -Dm644 "packaging/cyberxero-toolkit.desktop" \
+    "/usr/share/applications/cyberxero-toolkit.desktop" || die "Failed to install desktop file"
 
 # Install icon
 print_status "Installing icon..."
-sudo install -Dm644 "gui/resources/icons/scalable/apps/xero-toolkit.png" \
-    "/usr/share/icons/hicolor/scalable/apps/xero-toolkit.png" || die "Failed to install icon"
+sudo install -Dm644 "gui/resources/icons/scalable/apps/cyberxero-toolkit.png" \
+    "/usr/share/icons/hicolor/scalable/apps/cyberxero-toolkit.png" || die "Failed to install icon"
 
 # Update icon cache
 print_status "Updating icon cache..."
@@ -195,7 +195,7 @@ sudo gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
 # Store current commit hash for update checking
 if command -v git &> /dev/null && git -C "$SCRIPT_DIR" rev-parse HEAD &> /dev/null; then
     COMMIT_HASH=$(git -C "$SCRIPT_DIR" rev-parse HEAD)
-    echo "$COMMIT_HASH" | sudo tee /opt/xero-toolkit/.commit > /dev/null
+    echo "$COMMIT_HASH" | sudo tee /opt/cyberxero-toolkit/.commit > /dev/null
     print_success "Stored commit hash: ${COMMIT_HASH:0:12}"
 fi
 
@@ -236,12 +236,12 @@ echo -e "${GREEN}  CyberXero Toolkit installed successfully!${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
 echo ""
 echo "You can now launch it from your application menu or run:"
-echo -e "  ${BOLD}xero-toolkit${NC}"
+echo -e "  ${BOLD}cyberxero-toolkit${NC}"
 echo ""
 
 # Optional: Launch it
-read -p "Launch Xero Toolkit now? [y/N] " -n 1 -r
+read -p "Launch CyberXero Toolkit now? [y/N] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    xero-toolkit &
+    cyberxero-toolkit &
 fi

@@ -4,7 +4,7 @@
   <requires lib="adw" version="1.0"/>
   <object class="AdwWindow" id="scheduler_selection_window">
     <property name="title">Select Scheduler</property>
-    <property name="icon-name">xero-toolkit</property>
+    <property name="icon-name">cyberxero-toolkit</property>
     <property name="modal">true</property>
     <property name="default-width">450</property>
     <property name="default-height">600</property>

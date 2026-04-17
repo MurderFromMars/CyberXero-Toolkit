@@ -1,4 +1,4 @@
-//! Xero Authentication Daemon
+//! CyberXero Authentication Daemon
 //!
 //! Provides a daemon-based privilege escalation system that maintains
 //! an authenticated session to avoid repeated password prompts.

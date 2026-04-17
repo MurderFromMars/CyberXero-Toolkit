@@ -3,8 +3,8 @@
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.4"/>
   <object class="AdwWindow" id="task_window">
-    <property name="title">Xero Toolkit - Operation in Progress</property>
-    <property name="icon-name">xero-toolkit</property>
+    <property name="title">CyberXero Toolkit - Operation in Progress</property>
+    <property name="icon-name">cyberxero-toolkit</property>
     <property name="default-width">680</property>
     <property name="default-height">650</property>
     <property name="modal">true</property>

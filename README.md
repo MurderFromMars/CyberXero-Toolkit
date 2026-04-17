@@ -107,7 +107,7 @@ CyberXero Toolkit ships as the default system management tool in [OrbitOS](https
 
 **One-liner:**
 ```sh
-rm -rf /tmp/xero-toolkit-open && git clone https://github.com/MurderFromMars/CyberXero-Toolkit.git /tmp/xero-toolkit-open && sh /tmp/xero-toolkit-open/install.sh && rm -rf /tmp/xero-toolkit-open
+rm -rf /tmp/cyberxero-toolkit-open && git clone https://github.com/MurderFromMars/CyberXero-Toolkit.git /tmp/cyberxero-toolkit-open && sh /tmp/cyberxero-toolkit-open/install.sh && rm -rf /tmp/cyberxero-toolkit-open
 ```
 
 **Manual:**
@@ -117,7 +117,7 @@ cd CyberXero-Toolkit
 ./install.sh
 ```
 
-The installer handles dependency resolution, AUR helper setup, Rust compilation, binary installation to `/opt/xero-toolkit`, desktop entry creation, icon registration, and script deployment.
+The installer handles dependency resolution, AUR helper setup, Rust compilation, binary installation to `/opt/cyberxero-toolkit`, desktop entry creation, icon registration, and script deployment.
 
 ## Uninstallation
 

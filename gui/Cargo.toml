@@ -1,11 +1,11 @@
 [package]
-name = "xero-toolkit"
+name = "cyberxero-toolkit"
 version.workspace = true
 edition = "2021"
 build = "build.rs"
 
 [dependencies]
-xero-auth = { path = "../xero-auth" }
+cyberxero-auth = { path = "../cyberxero-auth" }
 gtk4 = { version = "0.10", features = ["v4_20"] }
 adw = { version = "0.8", package = "libadwaita", features = ["v1_8"] }
 log = "0.4"

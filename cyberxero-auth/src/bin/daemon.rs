@@ -1,19 +1,19 @@
-//! Xero Authentication Daemon
+//! CyberXero Authentication Daemon
 //!
 //! Runs as root and executes commands on behalf of authenticated clients.
 
 use clap::Parser;
 use simple_logger::SimpleLogger;
-use xero_auth::run_daemon;
+use cyberxero_auth::run_daemon;
 
-/// Xero Authentication Daemon
+/// CyberXero Authentication Daemon
 ///
 /// Runs as root and executes commands on behalf of authenticated clients.
 /// The daemon creates a Unix socket for communication and maintains an
 /// authenticated session to avoid repeated password prompts.
 #[derive(Parser, Debug)]
-#[command(name = "xero-authd")]
-#[command(about = "Xero Authentication Daemon", long_about = None)]
+#[command(name = "cyberxero-authd")]
+#[command(about = "CyberXero Authentication Daemon", long_about = None)]
 struct Args {
     /// User ID of the original user (required when running via pkexec)
     ///

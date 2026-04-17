@@ -4,7 +4,7 @@
   <requires lib="adw" version="1.0"/>
   <object class="AdwWindow" id="terminal_window">
     <property name="title">Terminal</property>
-    <property name="icon-name">xero-toolkit</property>
+    <property name="icon-name">cyberxero-toolkit</property>
     <property name="default-width">900</property>
     <property name="default-height">600</property>
     <property name="modal">true</property>

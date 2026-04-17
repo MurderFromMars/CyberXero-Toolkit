@@ -2,8 +2,8 @@
 
 /// Application information constants.
 pub mod app_info {
-    pub const NAME: &str = "xero-toolkit";
-    pub const ID: &str = "xyz.xerolinux.xero-toolkit";
+    pub const NAME: &str = "cyberxero-toolkit";
+    pub const ID: &str = "xyz.cyberxero.cyberxero-toolkit";
     pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 }
 
@@ -25,27 +25,27 @@ pub mod links {
 pub mod paths {
     use std::path::PathBuf;
 
-    /// Path to the xero-authd daemon binary.
-    pub const DAEMON: &str = "/opt/xero-toolkit/xero-authd";
+    /// Path to the cyberxero-authd daemon binary.
+    pub const DAEMON: &str = "/opt/cyberxero-toolkit/cyberxero-authd";
 
-    /// Path to the xero-auth client binary.
-    pub const CLIENT: &str = "/opt/xero-toolkit/xero-auth";
+    /// Path to the cyberxero-auth client binary.
+    pub const CLIENT: &str = "/opt/cyberxero-toolkit/cyberxero-auth";
 
     /// Path to the sources directory (contains scripts and systemd).
     #[allow(dead_code)]
-    pub const SOURCES: &str = "/opt/xero-toolkit/sources";
+    pub const SOURCES: &str = "/opt/cyberxero-toolkit/sources";
 
     /// Path to the scripts directory.
-    pub const SCRIPTS: &str = "/opt/xero-toolkit/sources/scripts";
+    pub const SCRIPTS: &str = "/opt/cyberxero-toolkit/sources/scripts";
 
     /// Path to the systemd units directory.
-    pub const SYSTEMD: &str = "/opt/xero-toolkit/sources/systemd";
+    pub const SYSTEMD: &str = "/opt/cyberxero-toolkit/sources/systemd";
 
     /// Path to the desktop file in system applications.
-    pub const DESKTOP_FILE: &str = "/usr/share/applications/xero-toolkit.desktop";
+    pub const DESKTOP_FILE: &str = "/usr/share/applications/cyberxero-toolkit.desktop";
 
     /// Path to the system-wide autostart desktop file.
-    pub const SYSTEM_AUTOSTART: &str = "/etc/xdg/autostart/xero-toolkit.desktop";
+    pub const SYSTEM_AUTOSTART: &str = "/etc/xdg/autostart/cyberxero-toolkit.desktop";
 
     /// Get the daemon path as a PathBuf.
     pub fn daemon() -> PathBuf {
@@ -125,8 +125,8 @@ pub mod env {
 
 /// Debug environment variables for seasonal effects.
 pub mod seasonal_debug {
-    pub const ENABLE_SNOW: &str = "XERO_TOOLKIT_ENABLE_SNOW";
-    pub const ENABLE_HALLOWEEN: &str = "XERO_TOOLKIT_ENABLE_HALLOWEEN";
+    pub const ENABLE_SNOW: &str = "CYBERXERO_TOOLKIT_ENABLE_SNOW";
+    pub const ENABLE_HALLOWEEN: &str = "CYBERXERO_TOOLKIT_ENABLE_HALLOWEEN";
 
     /// Check if an environment variable is set to enable an effect.
     /// Returns `Some(true)` if enabled, `Some(false)` if explicitly disabled, `None` if not set.
@@ -151,45 +151,45 @@ pub mod seasonal_debug {
 /// UI resource paths for GResource files.
 pub mod resources {
     /// Main application window UI.
-    pub const MAIN_UI: &str = "/xyz/xerolinux/xero-toolkit/ui/main.ui";
+    pub const MAIN_UI: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/main.ui";
 
     /// Icons resource path.
-    pub const ICONS: &str = "/xyz/xerolinux/xero-toolkit/icons";
+    pub const ICONS: &str = "/xyz/cyberxero/cyberxero-toolkit/icons";
 
     /// CSS stylesheet resource path.
-    pub const CSS: &str = "/xyz/xerolinux/xero-toolkit/css/style.css";
+    pub const CSS: &str = "/xyz/cyberxero/cyberxero-toolkit/css/style.css";
 
     /// Dialog UI resources.
     pub mod dialogs {
-        pub const ABOUT: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/about_dialog.ui";
+        pub const ABOUT: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/about_dialog.ui";
         pub const DEPENDENCY_ERROR: &str =
-            "/xyz/xerolinux/xero-toolkit/ui/dialogs/dependency_error_dialog.ui";
-        pub const DOWNLOAD: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/download_dialog.ui";
+            "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/dependency_error_dialog.ui";
+        pub const DOWNLOAD: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/download_dialog.ui";
         pub const DOWNLOAD_SETUP: &str =
-            "/xyz/xerolinux/xero-toolkit/ui/dialogs/download_setup_dialog.ui";
+            "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/download_setup_dialog.ui";
         pub const SCHEDULER_SELECTION: &str =
-            "/xyz/xerolinux/xero-toolkit/ui/dialogs/scheduler_selection_dialog.ui";
-        pub const SELECTION: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/selection_dialog.ui";
-        pub const TASK_LIST: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/task_list_dialog.ui";
-        pub const TERMINAL: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/terminal_dialog.ui";
-        pub const WARNING: &str = "/xyz/xerolinux/xero-toolkit/ui/dialogs/warning_dialog.ui";
+            "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/scheduler_selection_dialog.ui";
+        pub const SELECTION: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/selection_dialog.ui";
+        pub const TASK_LIST: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/task_list_dialog.ui";
+        pub const TERMINAL: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/terminal_dialog.ui";
+        pub const WARNING: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/dialogs/warning_dialog.ui";
     }
 
     /// Page/tab UI resources.
     pub mod tabs {
-        pub const BIOMETRICS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/biometrics.ui";
-        pub const CONTAINERS_VMS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/containers_vms.ui";
-        pub const CUSTOMIZATION: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/customization.ui";
-        pub const DRIVERS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/drivers.ui";
-        pub const EMULATORS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/emulators.ui";
-        pub const GAMESCOPE: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/gamescope.ui";
-        pub const GAMING_TOOLS: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/gaming_tools.ui";
+        pub const BIOMETRICS: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/biometrics.ui";
+        pub const CONTAINERS_VMS: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/containers_vms.ui";
+        pub const CUSTOMIZATION: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/customization.ui";
+        pub const DRIVERS: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/drivers.ui";
+        pub const EMULATORS: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/emulators.ui";
+        pub const GAMESCOPE: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/gamescope.ui";
+        pub const GAMING_TOOLS: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/gaming_tools.ui";
         pub const KERNEL_SCHEDULERS: &str =
-            "/xyz/xerolinux/xero-toolkit/ui/tabs/kernel_schedulers.ui";
-        pub const MAIN_PAGE: &str = "/xyz/xerolinux/xero-toolkit/ui/tabs/main_page.ui";
+            "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/kernel_schedulers.ui";
+        pub const MAIN_PAGE: &str = "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/main_page.ui";
         pub const MULTIMEDIA_TOOLS: &str =
-            "/xyz/xerolinux/xero-toolkit/ui/tabs/multimedia_tools.ui";
+            "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/multimedia_tools.ui";
         pub const SERVICING_SYSTEM_TWEAKS: &str =
-            "/xyz/xerolinux/xero-toolkit/ui/tabs/servicing_system_tweaks.ui";
+            "/xyz/cyberxero/cyberxero-toolkit/ui/tabs/servicing_system_tweaks.ui";
     }
 }

@@ -10,8 +10,8 @@
 #
 set -euo pipefail
 
-SRC="/tmp/xero-toolkit-update"
-DEST="/opt/xero-toolkit"
+SRC="/tmp/cyberxero-toolkit-update"
+DEST="/opt/cyberxero-toolkit"
 COMMIT_HASH="${1:-}"
 
 die() { echo "[ERROR] $1" >&2; exit 1; }
@@ -20,7 +20,7 @@ die() { echo "[ERROR] $1" >&2; exit 1; }
 [ -d "$DEST" ] || mkdir -p "$DEST"
 
 echo "==> Installing binaries..."
-for bin in xero-toolkit xero-authd xero-auth; do
+for bin in cyberxero-toolkit cyberxero-authd cyberxero-auth; do
     [ -f "$SRC/target/release/$bin" ] || die "Binary not found: $bin"
     install -Dm755 "$SRC/target/release/$bin" "$DEST/$bin"
 done

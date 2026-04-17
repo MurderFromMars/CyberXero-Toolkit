@@ -2,7 +2,7 @@
 //!
 //! This module contains:
 //! - `aur`: AUR helper detection and management
-//! - `daemon`: Daemon management for xero-auth
+//! - `daemon`: Daemon management for cyberxero-auth
 //! - `download`: File download functionality
 //! - `package`: Package and flatpak checking utilities
 //! - `system_check`: System dependency and distribution validation

@@ -9,13 +9,13 @@
 use super::command::{Command, CommandResult, CommandType, TaskStatus};
 use super::widgets::TaskRunnerWidgets;
 use crate::core;
-use crate::core::daemon::get_xero_auth_path;
+use crate::core::daemon::get_cyberxero_auth_path;
 use gtk4::gio;
 use gtk4::glib;
 use log::{error, info, warn};
 use std::cell::RefCell;
 use std::rc::Rc;
-use xero_auth::utils::read_buffer_with_line_processing;
+use cyberxero_auth::utils::read_buffer_with_line_processing;
 
 /// Context for a running command execution.
 pub struct RunningContext {
@@ -377,7 +377,7 @@ fn resolve_command(command: &Command) -> Result<(String, Vec<String>), String> {
     match command.command_type {
         CommandType::Normal => Ok((command.program.clone(), command.args.clone())),
         CommandType::Privileged => {
-            // Use xero-auth client instead of pkexec for better session reuse
+            // Use cyberxero-auth client instead of pkexec for better session reuse
             let mut args = Vec::new();
 
             // Pass PATH via --env if available
@@ -388,14 +388,14 @@ fn resolve_command(command: &Command) -> Result<(String, Vec<String>), String> {
 
             args.push(command.program.clone());
             args.extend(command.args.clone());
-            Ok((get_xero_auth_path().to_string_lossy().to_string(), args))
+            Ok((get_cyberxero_auth_path().to_string_lossy().to_string(), args))
         }
         CommandType::Aur => {
             let helper = core::aur_helper()
                 .ok_or_else(|| "AUR helper not available (paru or yay required)".to_string())?;
             let mut args = Vec::with_capacity(command.args.len() + 2);
             args.push("--sudo".to_string());
-            args.push(get_xero_auth_path().to_string_lossy().to_string());
+            args.push(get_cyberxero_auth_path().to_string_lossy().to_string());
             args.extend(command.args.clone());
             Ok((helper.to_string(), args))
         }

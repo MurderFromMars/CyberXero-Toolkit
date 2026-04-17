@@ -1,4 +1,4 @@
-//! Xero Toolkit - System management and customization application.
+//! CyberXero Toolkit - System management and customization application.
 
 use adw::prelude::*;
 use adw::Application;

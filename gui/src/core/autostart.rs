@@ -12,7 +12,7 @@ use std::process::Command;
 /// Get the autostart desktop file path
 pub fn get_autostart_path() -> PathBuf {
     let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("~/.config"));
-    config_dir.join("autostart").join("xero-toolkit.desktop")
+    config_dir.join("autostart").join("cyberxero-toolkit.desktop")
 }
 
 /// Check if autostart is enabled

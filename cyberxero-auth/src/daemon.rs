@@ -39,7 +39,7 @@ pub async fn run_daemon(effective_uid: Option<u32>, parent_pid: Option<u32>) -> 
         std::fs::create_dir_all(parent).context("Failed to create socket directory")?;
     }
 
-    info!("Starting xero-authd daemon");
+    info!("Starting cyberxero-authd daemon");
     info!("Socket path: {:?}", socket_path);
 
     let listener = UnixListener::bind(&socket_path).context("Failed to bind Unix socket")?;

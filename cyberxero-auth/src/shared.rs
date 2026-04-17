@@ -21,7 +21,7 @@ pub fn get_socket_path(effective_uid: Option<u32>) -> Result<PathBuf> {
         std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| format!("/run/user/{}", uid))
     };
 
-    Ok(PathBuf::from(runtime_dir).join("xero-authd.sock"))
+    Ok(PathBuf::from(runtime_dir).join("cyberxero-authd.sock"))
 }
 
 /// Check if a process with the given PID is still running.

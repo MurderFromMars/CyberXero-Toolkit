@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Xero Toolkit Open - Uninstaller
+# CyberXero Toolkit - Uninstaller
 #
 
 set -e
@@ -14,24 +14,24 @@ print_status() { echo -e "${CYAN}[*]${NC} $1"; }
 print_success() { echo -e "${GREEN}[✓]${NC} $1"; }
 
 echo ""
-echo -e "${RED}Uninstalling Xero Toolkit Open...${NC}"
+echo -e "${RED}Uninstalling CyberXero Toolkit...${NC}"
 echo ""
 
 # Remove binaries and data
-print_status "Removing /opt/xero-toolkit..."
-sudo rm -rf /opt/xero-toolkit
+print_status "Removing /opt/cyberxero-toolkit..."
+sudo rm -rf /opt/cyberxero-toolkit
 
 # Remove symlink
 print_status "Removing symlink..."
-sudo rm -f /usr/bin/xero-toolkit
+sudo rm -f /usr/bin/cyberxero-toolkit
 
 # Remove desktop file
 print_status "Removing desktop file..."
-sudo rm -f /usr/share/applications/xero-toolkit.desktop
+sudo rm -f /usr/share/applications/cyberxero-toolkit.desktop
 
 # Remove icon
 print_status "Removing icon..."
-sudo rm -f /usr/share/icons/hicolor/scalable/apps/xero-toolkit.png
+sudo rm -f /usr/share/icons/hicolor/scalable/apps/cyberxero-toolkit.png
 
 # Remove extra scripts
 EXTRA_SCRIPTS=(gcm getcider keyfix opr-drv pacup pmpd rddav rpipe upd xpm)
@@ -45,10 +45,10 @@ print_status "Updating icon cache..."
 sudo gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
 
 # Remove user autostart if exists
-if [ -f "$HOME/.config/autostart/xero-toolkit.desktop" ]; then
+if [ -f "$HOME/.config/autostart/cyberxero-toolkit.desktop" ]; then
     print_status "Removing user autostart..."
-    rm -f "$HOME/.config/autostart/xero-toolkit.desktop"
+    rm -f "$HOME/.config/autostart/cyberxero-toolkit.desktop"
 fi
 
-print_success "Xero Toolkit Open has been uninstalled"
+print_success "CyberXero Toolkit has been uninstalled"
 echo ""

@@ -274,6 +274,43 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 
 [[package]]
+name = "cyberxero-auth"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "libc",
+ "log",
+ "pty",
+ "rkyv",
+ "simple_logger",
+ "tokio",
+]
+
+[[package]]
+name = "cyberxero-toolkit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-channel",
+ "cyberxero-auth",
+ "dirs",
+ "futures-util",
+ "glib-build-tools",
+ "gtk4",
+ "libadwaita",
+ "libc",
+ "log",
+ "rand",
+ "regex",
+ "reqwest",
+ "simple_logger",
+ "strip-ansi-escapes",
+ "tokio",
+ "vte4",
+]
+
+[[package]]
 name = "deranged"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2610,43 +2647,6 @@ name = "writeable"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
-
-[[package]]
-name = "xero-auth"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "libc",
- "log",
- "pty",
- "rkyv",
- "simple_logger",
- "tokio",
-]
-
-[[package]]
-name = "xero-toolkit"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-channel",
- "dirs",
- "futures-util",
- "glib-build-tools",
- "gtk4",
- "libadwaita",
- "libc",
- "log",
- "rand",
- "regex",
- "reqwest",
- "simple_logger",
- "strip-ansi-escapes",
- "tokio",
- "vte4",
- "xero-auth",
-]
 
 [[package]]
 name = "yoke"

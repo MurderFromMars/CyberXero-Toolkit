@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=CyberXero Toolkit
+GenericName=Toolkit
+Comment=System management toolkit for Arch-based Linux distributions
+Exec=cyberxero-toolkit
+Icon=cyberxero-toolkit
+Terminal=false
+StartupNotify=true
+Categories=System;Security;Settings;
+Keywords=cyberxero;toolkit;settings;configuration;tools;
+StartupWMClass=xyz.cyberxero.cyberxero-toolkit

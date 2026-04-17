@@ -1,9 +1,9 @@
 #!/bin/bash
-# sudo shim for xero-toolkit
-# Forwards commands to xero-auth
+# sudo shim for cyberxero-toolkit
+# Forwards commands to cyberxero-auth
 
-# Path to xero-auth client
-XERO_AUTH="/opt/xero-toolkit/xero-auth"
+# Path to cyberxero-auth client
+CYBERXERO_AUTH="/opt/cyberxero-toolkit/cyberxero-auth"
 
 # Skip sudo flags until we find the command
 while [[ "$1" == -* ]]; do
@@ -21,5 +21,4 @@ while [[ "$1" == -* ]]; do
     esac
 done
 
-exec "$XERO_AUTH" "$@"
-
+exec "$CYBERXERO_AUTH" "$@"

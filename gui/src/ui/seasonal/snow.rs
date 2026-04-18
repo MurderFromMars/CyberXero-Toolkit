@@ -1,41 +1,40 @@
-//! Christmas snow effect overlay.
+//! Christmas snow overlay.
 //!
-//! Adds a high-quality animated snow effect with parallax and soft-glow flakes.
+//! Soft, parallax-lit snowflakes drift down with a slow lateral sway. A
+//! low-level wind value shifts over time to give the field a breathing
+//! motion, and a dim glow along the bottom edge hints at a snowbank.
 
-use crate::config::seasonal_debug;
-use crate::ui::seasonal::common::{
-    add_overlay_to_window, setup_resize_handler, ResizableEffectState,
-};
-use crate::ui::seasonal::SeasonalEffect;
+use std::f64::consts::TAU;
+use std::rc::Rc;
+
 use gtk4::cairo;
 use gtk4::glib;
-use gtk4::prelude::*;
 use gtk4::{ApplicationWindow, DrawingArea};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use std::cell::RefCell;
-use std::f64::consts::PI;
-use std::rc::Rc;
 
-const SNOW_COUNT: usize = 80;
+use crate::config::seasonal_debug;
+use crate::ui::seasonal::common::{mount_effect, rescale_point, MouseContext, ParticleField};
+use crate::ui::seasonal::SeasonalEffect;
+
+/// Number of snowflakes drawn per frame.
+const FLAKE_COUNT: usize = 80;
+/// Maximum magnitude of the drifting wind signal.
 const WIND_STRENGTH: f64 = 0.5;
+/// Odds (per frame) of retargeting the wind — lower = longer-held gusts.
+const WIND_RETARGET_CHANCE: f64 = 0.02;
+/// Bottom-edge glow band height.
+const GLOW_HEIGHT: f64 = 100.0;
 
-/// Christmas snow effect.
+/// December snowfall.
 pub struct SnowEffect;
 
 impl SeasonalEffect for SnowEffect {
     fn is_active(&self) -> bool {
-        // Check environment variable for debugging (overrides date check)
         if let Some(enabled) = seasonal_debug::check_effect_env(seasonal_debug::ENABLE_SNOW) {
             return enabled;
         }
-
-        // Default: check if it's December
-        if let Ok(dt) = glib::DateTime::now_utc() {
-            dt.month() == 12
-        } else {
-            false
-        }
+        glib::DateTime::now_utc().map(|dt| dt.month() == 12).unwrap_or(false)
     }
 
     fn name(&self) -> &'static str {
@@ -45,95 +44,129 @@ impl SeasonalEffect for SnowEffect {
     fn apply(
         &self,
         window: &ApplicationWindow,
-        _mouse_context: Option<&crate::ui::seasonal::common::MouseContext>,
+        mouse_context: Option<&MouseContext>,
     ) -> Option<Rc<DrawingArea>> {
-        let drawing_area = Rc::new(DrawingArea::new());
-        drawing_area.set_hexpand(true);
-        drawing_area.set_vexpand(true);
-        drawing_area.set_can_focus(false);
-        drawing_area.set_sensitive(false);
-        drawing_area.set_halign(gtk4::Align::Fill);
-        drawing_area.set_valign(gtk4::Align::Fill);
-        drawing_area.set_visible(crate::ui::seasonal::are_effects_enabled());
+        mount_effect(window, mouse_context, SnowField::new)
+    }
+}
 
-        let state = Rc::new(RefCell::new(None::<SnowState>));
-        let setup_state = Rc::clone(&state);
+// ---------------------------------------------------------------------------
+// SnowField — ParticleField for the drifting snow
+// ---------------------------------------------------------------------------
 
-        // Capture the SourceId so the global toggle can stop/restart this timer.
-        let timer_source: Rc<RefCell<Option<glib::SourceId>>> = Rc::new(RefCell::new(None));
-        let timer_source_fill = Rc::clone(&timer_source);
-        let drawing_area_clone = drawing_area.clone();
-        let source_id = glib::timeout_add_local(std::time::Duration::from_millis(16), move || {
-            drawing_area_clone.queue_draw();
-            glib::ControlFlow::Continue
-        });
-        *timer_source_fill.borrow_mut() = Some(source_id);
+struct SnowField {
+    flakes: Vec<Snowflake>,
+    rng: StdRng,
+    wind: f64,
+    wind_target: f64,
+    width: f64,
+    height: f64,
+}
 
-        drawing_area.set_draw_func(move |_da, cr, width, height| {
-            let mut state_ref = setup_state.borrow_mut();
-
-            if state_ref.is_none() {
-                *state_ref = Some(SnowState::new(width as f64, height as f64));
-            }
-
-            if let Some(snow_state) = state_ref.as_mut() {
-                let now = std::time::Instant::now();
-                snow_state.update(width as f64, height as f64, now);
-
-                let _ = cr.save();
-                cr.set_operator(cairo::Operator::Clear);
-                let _ = cr.paint();
-                cr.set_operator(cairo::Operator::Over);
-                let _ = cr.restore();
-
-                snow_state.draw(cr, width as f64, height as f64);
-            }
-        });
-
-        // Set up resize handler
-        setup_resize_handler(&drawing_area, state);
-
-        if add_overlay_to_window(window, &drawing_area) {
-            crate::ui::seasonal::register_effect(drawing_area.clone(), timer_source);
-            Some(drawing_area)
-        } else {
-            None
+impl SnowField {
+    fn new(width: f64, height: f64) -> Self {
+        let seed = glib::DateTime::now_utc()
+            .map(|dt| dt.to_unix())
+            .unwrap_or(0) as u64;
+        let mut rng = StdRng::seed_from_u64(seed);
+        let flakes = (0..FLAKE_COUNT)
+            .map(|_| Snowflake::spawn(width, height, &mut rng))
+            .collect();
+        Self {
+            flakes,
+            rng,
+            wind: 0.0,
+            wind_target: 0.0,
+            width,
+            height,
         }
     }
 }
 
-#[derive(Clone)]
+impl ParticleField for SnowField {
+    fn tick(&mut self, width: f64, height: f64, dt: f64, _mouse: (f64, f64)) {
+        self.width = width;
+        self.height = height;
+
+        // Occasionally pick a new target wind, then ease the current wind
+        // toward it so gusts ramp up smoothly rather than snapping.
+        if self.rng.random::<f64>() < WIND_RETARGET_CHANCE {
+            self.wind_target = (self.rng.random::<f64>() - 0.5) * WIND_STRENGTH;
+        }
+        self.wind += (self.wind_target - self.wind) * dt;
+
+        for flake in &mut self.flakes {
+            flake.tick(width, height, dt, self.wind, &mut self.rng);
+        }
+    }
+
+    fn paint(&self, cr: &cairo::Context, width: f64, height: f64) {
+        // Paint back-to-front by parallax depth so large near flakes sit in front.
+        let mut ordered: Vec<&Snowflake> = self.flakes.iter().collect();
+        ordered.sort_by(|a, b| a.z.partial_cmp(&b.z).unwrap_or(std::cmp::Ordering::Equal));
+        for flake in ordered {
+            flake.paint(cr);
+        }
+        paint_snowbank(cr, width, height);
+    }
+
+    fn handle_resize(&mut self, new_width: f64, new_height: f64) {
+        let prev = (self.width, self.height);
+        for flake in &mut self.flakes {
+            rescale_point((&mut flake.x, &mut flake.y), prev, (new_width, new_height));
+        }
+        self.width = new_width;
+        self.height = new_height;
+    }
+}
+
+fn paint_snowbank(cr: &cairo::Context, width: f64, height: f64) {
+    let _ = cr.save();
+    let glow = cairo::LinearGradient::new(0.0, height - GLOW_HEIGHT, 0.0, height);
+    glow.add_color_stop_rgba(0.0, 1.0, 1.0, 1.0, 0.00);
+    glow.add_color_stop_rgba(1.0, 1.0, 1.0, 1.0, 0.15);
+    let _ = cr.set_source(&glow);
+    cr.rectangle(0.0, height - GLOW_HEIGHT, width, GLOW_HEIGHT);
+    let _ = cr.fill();
+    let _ = cr.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Individual flake
+// ---------------------------------------------------------------------------
+
 struct Snowflake {
     x: f64,
     y: f64,
+    /// Parallax depth in [0.5, 1.5] — used to scale size, speed, and opacity.
     z: f64,
-    speed_y: f64,
-    sway_offset: f64,
+    fall_speed: f64,
+    sway_phase: f64,
     sway_speed: f64,
     size: f64,
 }
 
 impl Snowflake {
-    fn new(width: f64, height: f64, rng: &mut StdRng) -> Self {
+    fn spawn(width: f64, height: f64, rng: &mut StdRng) -> Self {
         let z = rng.random_range(0.5..1.5);
         Self {
             x: rng.random_range(0.0..width),
             y: rng.random_range(0.0..height),
             z,
-            speed_y: rng.random_range(30.0..70.0) * z,
-            sway_offset: rng.random_range(0.0..2.0 * PI),
+            fall_speed: rng.random_range(30.0..70.0) * z,
+            sway_phase: rng.random_range(0.0..TAU),
             sway_speed: rng.random_range(0.5..2.0),
             size: rng.random_range(2.0..5.0) * z,
         }
     }
 
-    fn update(&mut self, width: f64, height: f64, dt: f64, wind: f64, rng: &mut StdRng) {
-        self.y += self.speed_y * dt;
-        self.sway_offset += self.sway_speed * dt;
-        let horizontal_move = (self.sway_offset.sin() * 20.0 * self.z) + (wind * 50.0);
-        self.x += horizontal_move * dt;
+    fn tick(&mut self, width: f64, height: f64, dt: f64, wind: f64, rng: &mut StdRng) {
+        self.y += self.fall_speed * dt;
+        self.sway_phase += self.sway_speed * dt;
+        let sway = self.sway_phase.sin() * 20.0 * self.z;
+        self.x += (sway + wind * 50.0) * dt;
 
-        // When wrapping around, respawn at random position in current window dimensions
+        // Respawn when the flake drifts past any edge.
         if self.y > height + 10.0 {
             self.y = rng.random_range(-10.0..0.0);
             self.x = rng.random_range(0.0..width);
@@ -141,120 +174,22 @@ impl Snowflake {
         if self.x < -20.0 {
             self.x = rng.random_range(width..width + 20.0);
             self.y = rng.random_range(0.0..height);
-        }
-        if self.x > width + 20.0 {
+        } else if self.x > width + 20.0 {
             self.x = rng.random_range(-20.0..0.0);
             self.y = rng.random_range(0.0..height);
         }
     }
 
-    fn draw(&self, cr: &cairo::Context) {
+    fn paint(&self, cr: &cairo::Context) {
         let _ = cr.save();
-
         let radial = cairo::RadialGradient::new(self.x, self.y, 0.0, self.x, self.y, self.size);
+        // Nearer flakes (higher z) are slightly more opaque.
         let opacity = (0.3 + (self.z - 0.5) * 0.5).min(0.8);
-
         radial.add_color_stop_rgba(0.0, 1.0, 1.0, 1.0, opacity);
         radial.add_color_stop_rgba(1.0, 1.0, 1.0, 1.0, 0.0);
-
         let _ = cr.set_source(&radial);
-        cr.arc(self.x, self.y, self.size, 0.0, 2.0 * PI);
-        let _ = cr.fill();
-
-        let _ = cr.restore();
-    }
-}
-
-struct SnowState {
-    snowflakes: Vec<Snowflake>,
-    rng: StdRng,
-    last_time: std::time::Instant,
-    wind: f64,
-    wind_target: f64,
-    current_width: f64,
-    current_height: f64,
-}
-
-impl SnowState {
-    fn new(width: f64, height: f64) -> Self {
-        let seed = glib::DateTime::now_utc()
-            .map(|dt| dt.to_unix())
-            .unwrap_or(0) as u64;
-        let mut rng = StdRng::seed_from_u64(seed);
-        let snowflakes = (0..SNOW_COUNT)
-            .map(|_| Snowflake::new(width, height, &mut rng))
-            .collect();
-
-        Self {
-            snowflakes,
-            rng,
-            last_time: std::time::Instant::now(),
-            wind: 0.0,
-            wind_target: 0.0,
-            current_width: width,
-            current_height: height,
-        }
-    }
-
-    fn update(&mut self, width: f64, height: f64, now: std::time::Instant) {
-        // Update stored dimensions during normal loop just in case,
-        // though handle_resize does the heavy lifting.
-        self.current_width = width;
-        self.current_height = height;
-
-        let dt = now.duration_since(self.last_time).as_secs_f64().min(0.1);
-        self.last_time = now;
-
-        if self.rng.random::<f64>() > 0.98 {
-            self.wind_target = (self.rng.random::<f64>() - 0.5) * WIND_STRENGTH;
-        }
-        self.wind += (self.wind_target - self.wind) * dt;
-
-        for flake in &mut self.snowflakes {
-            flake.update(width, height, dt, self.wind, &mut self.rng);
-        }
-    }
-
-    fn draw(&self, cr: &cairo::Context, width: f64, height: f64) {
-        let mut sorted: Vec<&Snowflake> = self.snowflakes.iter().collect();
-        sorted.sort_by(|a, b| a.z.partial_cmp(&b.z).unwrap());
-
-        for flake in sorted {
-            flake.draw(cr);
-        }
-
-        let _ = cr.save();
-        let glow = cairo::LinearGradient::new(0.0, height - 100.0, 0.0, height);
-        glow.add_color_stop_rgba(0.0, 1.0, 1.0, 1.0, 0.0);
-        glow.add_color_stop_rgba(1.0, 1.0, 1.0, 1.0, 0.15);
-        let _ = cr.set_source(&glow);
-        cr.rectangle(0.0, height - 100.0, width, 100.0);
+        cr.arc(self.x, self.y, self.size, 0.0, TAU);
         let _ = cr.fill();
         let _ = cr.restore();
-    }
-}
-
-impl ResizableEffectState for SnowState {
-    fn handle_resize(&mut self, new_width: f64, new_height: f64) {
-        // Avoid division by zero
-        if self.current_width <= 0.0 || self.current_height <= 0.0 {
-            self.current_width = new_width;
-            self.current_height = new_height;
-            return;
-        }
-
-        // Calculate scale ratios
-        let scale_x = new_width / self.current_width;
-        let scale_y = new_height / self.current_height;
-
-        // Apply proportional scaling to all flakes
-        for flake in &mut self.snowflakes {
-            flake.x *= scale_x;
-            flake.y *= scale_y;
-        }
-
-        // Update stored dimensions
-        self.current_width = new_width;
-        self.current_height = new_height;
     }
 }

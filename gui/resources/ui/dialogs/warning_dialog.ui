@@ -3,7 +3,7 @@
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
   <object class="AdwWindow" id="warning_dialog">
-    <property name="title">Xero Toolkit - Warning</property>
+    <property name="title">CyberXero Toolkit - Warning</property>
     <property name="default-width">480</property>
     <property name="default-height">-1</property>
     <property name="modal">true</property>

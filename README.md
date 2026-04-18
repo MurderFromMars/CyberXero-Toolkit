@@ -2,14 +2,14 @@
 
 A GTK4/libadwaita system management toolkit for Arch-based Linux distributions. Built in Rust. Handles everything from driver installation and container setup to emulator configuration and desktop theming — all from one application.
 
-> CyberXero runs on any distribution with `pacman`. Distribution specific metapackages have been replaced with explicit package lists, multiple pages rewritten from the ground up, several new features added, and deprecated APIs migrated. SystemD is required, so no Artix support currently.
+> CyberXero runs on any distribution with `pacman`. Features are driven by explicit package lists rather than distribution-specific metapackages, so the same build works across the Arch ecosystem. SystemD is required, so no Artix support currently.
 
 ---
 
 ## Pages
 
 ### Containers & VMs
-Full virtualization and container management, completely rewritten from the original.
+Full virtualization and container management.
 
 - **VirtualBox** — detects your running kernel and installs the correct host modules (prebuilt for `linux`/`linux-lts`, DKMS with auto-detected headers for everything else)
 - **KVM/QEMU** — complete package stack with conflict detection (`iptables`/`gnu-netcat`), CPU vendor detection for nested virtualization, `libvirt` group membership, service enablement, and `swtpm` for Windows 11 TPM 2.0
@@ -46,7 +46,7 @@ GPU driver management with guided installation:
 - **Streaming Services** — creates Chrome web app shortcuts for streaming platforms (Netflix, Hulu, Disney+, etc.) with automatic Steam integration on handheld devices. Rust reimplementation of [HandheldStreamingServiceUtility](https://github.com/MurderFromMars/HandheldStreamingServiceUtility)
 - **Enhanced Audio** — PipeWire spatial audio convolver with selectable intensity levels, multi-sink support, and a suspend/resume audio fix service. Rust reimplementation of [Enhanced-Handheld-Audio](https://github.com/MurderFromMars/Enhanced-Handheld-Audio)
 
-Both were originally handheld-focused projects but have been improved here to work on desktops too.
+Both started as handheld-focused projects and have been extended here to work on desktops too.
 
 ### Biometrics
 - **Fingerprint authentication** — full PAM integration, works with any `fprintd`-compatible reader
@@ -96,7 +96,7 @@ Arch Linux - EndeavourOS - CachyOS - Garuda Linux - Manjaro - ArcoLinux - Reborn
 
 If it has `pacman`, it runs. (Unless you're using Artix, in which case you have bigger fish to fry KIDDING i might add support if i get enough requests for it it's a lot of work though)
 
-CyberXero Toolkit ships as the default system management tool in [OrbitOS](https://github.com/MurderFromMars/OrbitOS), My custom Arch Linux spin.
+CyberXero Toolkit ships as the default system management tool in [OrbitOS](https://github.com/MurderFromMars/OrbitOS), my custom Arch Linux spin.
 
 ## Requirements
 
@@ -139,7 +139,3 @@ Installed automatically by `install.sh`:
 ## License
 
 GNU General Public License v3.0 — see [LICENSE](LICENSE).
-
-## Credits
-
-- Original [XeroLinux Toolkit](https://github.com/synsejse/xero-toolkit) by Synse and [DarkXero](https://xerolinux.xyz/)

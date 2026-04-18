@@ -2,7 +2,7 @@
 
 A GTK4/libadwaita system management toolkit for Arch-based Linux distributions. Built in Rust. Handles everything from driver installation and container setup to emulator configuration and desktop theming — all from one application.
 
-> This is a hard fork of the XeroLinux Toolkit. The original originally  only ran on XeroLinux, it checked `/etc/os-release` and refused to start on anything else. CyberXero removed that restriction entirely, the toolkit has removed this since, (because this fork came to be, literally)  but remains highly neutered on other distros. This fork replaces all distribution-specific metapackages with explicit package lists, rewrites multiple pages from the ground up, adds several features the original never shipped, and migrates deprecated APIs. If it has `pacman`, it runs.(You need SystemD though.. so no Artix support currently)
+> CyberXero runs on any distribution with `pacman`. Distribution specific metapackages have been replaced with explicit package lists, multiple pages rewritten from the ground up, several new features added, and deprecated APIs migrated. SystemD is required, so no Artix support currently.
 
 ---
 
@@ -29,7 +29,7 @@ One-click install for:
 
 - **Third-party repos** — one-click install for CachyOS, Chaotic-AUR, and XeroLinux repositories
 - **Smart mirror updates** — auto-detects all configured repos and updates mirrorlists via `rate-mirrors` (Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, Artix)
-- **xPackageManager** — forked with distro lock removed and dynamic repo detection
+- **xPackageManager** — dynamic repo detection
 - **Toolkit self-updater** — checks upstream commit hash and rebuilds from source
 - **Orphaned package removal** — presents a selectable list of orphans to clean up
 - System updater, keyring repair, pacman.conf management, and more

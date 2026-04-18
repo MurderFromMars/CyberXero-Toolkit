@@ -60,7 +60,7 @@
             <child>
               <object class="GtkLabel" id="main_message">
                 <property name="label">
-This is a fork of the original XeroLinux Toolkit, maintained and expanded by MurderFromMars.
+CyberXero Toolkit is a system management and customization suite for Arch based Linux systems, maintained by MurderFromMars.
                 </property>
                 <property name="wrap">true</property>
                 <property name="justify">center</property>

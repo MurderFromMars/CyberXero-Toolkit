@@ -1,370 +1,379 @@
-//! Download dialog for showing download progress
+//! Two-stage dialog for downloading an Arch Linux ISO: first resolve which
+//! image to pull and where to save it, then run the transfer with live
+//! progress, pause/resume, and cancel.
+//!
+//! Each stage is its own `Rc`-owned struct so the glib signal handlers and
+//! worker-thread callbacks can share state without tangled cloning ladders.
 
-use crate::core::download::{
-    download_file, fetch_arch_iso_info, format_bytes, format_speed, format_time_remaining,
-    DownloadState,
-};
-use crate::ui::utils::extract_widget;
+use std::rc::Rc;
+use std::sync::mpsc;
+use std::sync::Mutex;
+use std::time::Duration;
+
 use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{Button, Entry, Image, Label, ProgressBar, Window};
 use log::{error, info};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 
-/// Show the download setup dialog for Arch ISO
+use crate::core::download::{
+    humanize_bytes, humanize_eta, humanize_rate, latest_arch_iso, stream_to_file, Progress,
+    TransferFlags,
+};
+use crate::ui::utils::extract_widget;
+
+/// Open the ISO setup dialog. When the user confirms, the transfer dialog
+/// is spawned with the chosen destination.
 pub fn show_download_dialog(parent: &Window) {
-    info!("Opening Arch ISO download setup dialog");
-
-    // Load the setup UI
-    let builder = gtk4::Builder::from_resource(crate::config::resources::dialogs::DOWNLOAD_SETUP);
-
-    let window: adw::Window = extract_widget(&builder, "download_setup_window");
-    let version_label: Label = extract_widget(&builder, "version_label");
-    let download_path_entry: Entry = extract_widget(&builder, "download_path_entry");
-    let browse_button: Button = extract_widget(&builder, "browse_button");
-    let cancel_button: Button = extract_widget(&builder, "cancel_button");
-    let start_download_button: Button = extract_widget(&builder, "start_download_button");
-    let fetching_spinner: Image = extract_widget(&builder, "fetching_spinner");
-
-    window.set_transient_for(Some(parent));
-
-    // State to hold ISO info
-    let iso_info: Arc<std::sync::Mutex<Option<(String, String)>>> =
-        Arc::new(std::sync::Mutex::new(None));
-    let selected_path: Arc<std::sync::Mutex<Option<String>>> =
-        Arc::new(std::sync::Mutex::new(None));
-
-    // Setup cancel button
-    let window_clone = window.clone();
-    cancel_button.connect_clicked(move |_| {
-        window_clone.close();
-    });
-
-    // Create a channel for ISO info fetching
-    let (tx, rx) = std::sync::mpsc::channel::<Result<(String, String), String>>();
-
-    // Clone for the receiver
-    let version_label_clone = version_label.clone();
-    let browse_button_clone = browse_button.clone();
-    let start_download_button_clone = start_download_button.clone();
-    let download_path_entry_clone = download_path_entry.clone();
-    let iso_info_clone = iso_info.clone();
-    let selected_path_clone = selected_path.clone();
-    let fetching_spinner_clone = fetching_spinner.clone();
-
-    // Poll for ISO info result
-    glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
-        match rx.try_recv() {
-            Ok(result) => {
-                match result {
-                    Ok((iso_name, download_url)) => {
-                        info!("Fetched ISO info: {}", iso_name);
-
-                        // Parse version from filename (archlinux-YYYY.MM.DD-x86_64.iso)
-                        let version = if let Some(date_part) = iso_name
-                            .strip_prefix("archlinux-")
-                            .and_then(|s| s.split('-').next())
-                        {
-                            format!("Version: {}", date_part)
-                        } else {
-                            "Latest Version".to_string()
-                        };
-                        version_label_clone.set_text(&version);
-
-                        // Hide fetching spinner
-                        fetching_spinner_clone.set_visible(false);
-
-                        // Store ISO info
-                        *iso_info_clone.lock().unwrap() = Some((iso_name.clone(), download_url));
-
-                        // Enable browse button
-                        browse_button_clone.set_sensitive(true);
-
-                        // Set default download path
-                        let default_path = format!(
-                            "{}/Downloads/{}",
-                            crate::config::env::get().home.clone(),
-                            iso_name
-                        );
-                        download_path_entry_clone.set_text(&default_path);
-                        *selected_path_clone.lock().unwrap() = Some(default_path);
-
-                        // Enable start button
-                        start_download_button_clone.set_sensitive(true);
-                    }
-                    Err(e) => {
-                        error!("Failed to fetch ISO info: {}", e);
-
-                        // Show error state
-                        fetching_spinner_clone.remove_css_class("spinning");
-                        fetching_spinner_clone.set_icon_name(Some("circle-xmark"));
-                        version_label_clone.set_text("Failed to fetch version");
-                        version_label_clone.remove_css_class("accent");
-                        version_label_clone.add_css_class("error");
-                    }
-                }
-                glib::ControlFlow::Break
-            }
-            Err(std::sync::mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
-            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                error!("Channel disconnected unexpectedly");
-
-                // Show error state
-                fetching_spinner_clone.remove_css_class("spinning");
-                fetching_spinner_clone.set_icon_name(Some("circle-xmark"));
-                version_label_clone.set_text("Failed to fetch version");
-                version_label_clone.remove_css_class("accent");
-                version_label_clone.add_css_class("error");
-
-                glib::ControlFlow::Break
-            }
-        }
-    });
-
-    // Spawn thread to fetch ISO info
-    std::thread::spawn(move || {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = runtime.block_on(async { fetch_arch_iso_info().await });
-        let result: Result<(String, String), String> = result.map_err(|e| e.to_string());
-        let _ = tx.send(result);
-    });
-
-    // Setup browse button
-    let download_path_entry_clone = download_path_entry.clone();
-    let start_download_button_clone = start_download_button.clone();
-    let selected_path_clone = selected_path.clone();
-    let window_clone = window.clone();
-    let iso_info_clone = iso_info.clone();
-
-    browse_button.connect_clicked(move |_| {
-        let iso_info_guard = iso_info_clone.lock().unwrap();
-        if let Some((iso_name, _)) = iso_info_guard.as_ref() {
-            let dialog = gtk4::FileDialog::new();
-            dialog.set_initial_name(Some(iso_name));
-
-            let download_path_entry = download_path_entry_clone.clone();
-            let start_download_button = start_download_button_clone.clone();
-            let selected_path = selected_path_clone.clone();
-            let window = window_clone.clone();
-
-            glib::spawn_future_local(async move {
-                match dialog.save_future(Some(&window)).await {
-                    Ok(file) => {
-                        if let Some(path) = file.path() {
-                            let path_str = path.to_string_lossy().to_string();
-                            download_path_entry.set_text(&path_str);
-                            *selected_path.lock().unwrap() = Some(path_str);
-                            start_download_button.set_sensitive(true);
-                        }
-                    }
-                    Err(_) => {
-                        // User cancelled
-                    }
-                }
-            });
-        }
-    });
-
-    // Setup start download button
-    let window_clone = window.clone();
-    let parent_clone = parent.clone();
-
-    start_download_button.connect_clicked(move |_| {
-        let iso_info_guard = iso_info.lock().unwrap();
-        let selected_path_guard = selected_path.lock().unwrap();
-
-        if let (Some((iso_name, download_url)), Some(save_path)) =
-            (iso_info_guard.as_ref(), selected_path_guard.as_ref())
-        {
-            info!("Starting download: {} -> {}", iso_name, save_path);
-            window_clone.close();
-            start_download(
-                &parent_clone,
-                iso_name.clone(),
-                download_url.clone(),
-                save_path.clone(),
-            );
-        }
-    });
-
-    window.present();
+    info!("opening ISO setup dialog");
+    SetupStage::spawn(parent);
 }
 
-/// Start the actual download with progress dialog
-fn start_download(parent: &Window, iso_name: String, download_url: String, save_path: String) {
-    // Load the UI
-    let builder = gtk4::Builder::from_resource(crate::config::resources::dialogs::DOWNLOAD);
+// ---------------------------------------------------------------------------
+// Stage 1 — pick an ISO + destination
+// ---------------------------------------------------------------------------
 
-    let window: adw::Window = extract_widget(&builder, "download_window");
-    let filename_label: Label = extract_widget(&builder, "filename_label");
-    let progress_bar: ProgressBar = extract_widget(&builder, "progress_bar");
-    let speed_label: Label = extract_widget(&builder, "speed_label");
-    let downloaded_label: Label = extract_widget(&builder, "downloaded_label");
-    let time_remaining_label: Label = extract_widget(&builder, "time_remaining_label");
-    let pause_button: Button = extract_widget(&builder, "pause_button");
-    let cancel_button: Button = extract_widget(&builder, "cancel_button");
+#[derive(Clone)]
+struct IsoRef {
+    filename: String,
+    url: String,
+}
 
-    window.set_transient_for(Some(parent));
+struct SetupStage {
+    window: adw::Window,
+    version_label: Label,
+    path_entry: Entry,
+    browse_btn: Button,
+    start_btn: Button,
+    cancel_btn: Button,
+    spinner: Image,
+    iso: Mutex<Option<IsoRef>>,
+    dest: Mutex<Option<String>>,
+}
 
-    // Set filename
-    filename_label.set_text(&iso_name);
+impl SetupStage {
+    fn spawn(parent: &Window) {
+        let builder =
+            gtk4::Builder::from_resource(crate::config::resources::dialogs::DOWNLOAD_SETUP);
 
-    // Create control flags
-    let pause_flag = Arc::new(AtomicBool::new(false));
-    let cancel_flag = Arc::new(AtomicBool::new(false));
+        let stage = Rc::new(Self {
+            window: extract_widget(&builder, "download_setup_window"),
+            version_label: extract_widget(&builder, "version_label"),
+            path_entry: extract_widget(&builder, "download_path_entry"),
+            browse_btn: extract_widget(&builder, "browse_button"),
+            start_btn: extract_widget(&builder, "start_download_button"),
+            cancel_btn: extract_widget(&builder, "cancel_button"),
+            spinner: extract_widget(&builder, "fetching_spinner"),
+            iso: Mutex::new(None),
+            dest: Mutex::new(None),
+        });
 
-    // Setup pause button
-    let pause_flag_clone = pause_flag.clone();
-    let pause_button_clone = pause_button.clone();
-    pause_button.connect_clicked(move |_| {
-        let is_paused = pause_flag_clone.load(Ordering::Relaxed);
-        pause_flag_clone.store(!is_paused, Ordering::Relaxed);
+        stage.window.set_transient_for(Some(parent));
 
-        if is_paused {
-            pause_button_clone.set_label("Pause");
-        } else {
-            pause_button_clone.set_label("Resume");
-        }
-    });
+        stage.kick_off_iso_lookup();
+        stage.wire_buttons(parent);
+        stage.window.present();
+    }
 
-    // Setup cancel button
-    let cancel_flag_clone = cancel_flag.clone();
-    let window_clone = window.clone();
-    cancel_button.connect_clicked(move |_| {
-        cancel_flag_clone.store(true, Ordering::Relaxed);
-        window_clone.close();
-    });
+    fn kick_off_iso_lookup(self: &Rc<Self>) {
+        let (tx, rx) = mpsc::channel::<Result<IsoRef, String>>();
 
-    // Use a channel to send progress updates from download thread to UI thread
-    let (tx, rx) = std::sync::mpsc::channel::<DownloadMessage>();
-
-    // Clone for the result callback
-    let window_clone = window.clone();
-    let pause_button_clone = pause_button.clone();
-    let cancel_button_clone = cancel_button.clone();
-    let parent_clone = parent.clone();
-    let progress_bar_clone = progress_bar.clone();
-    let speed_label_clone = speed_label.clone();
-    let time_remaining_label_clone = time_remaining_label.clone();
-
-    // Set up a timer to check for messages
-    glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
-        // Try to receive all pending messages
-        while let Ok(msg) = rx.try_recv() {
-            match msg {
-                DownloadMessage::Progress(state) => {
-                    // Update progress bar
-                    let fraction = if state.total > 0 {
-                        state.downloaded as f64 / state.total as f64
-                    } else {
-                        0.0
-                    };
-                    progress_bar.set_fraction(fraction);
-                    progress_bar.set_text(Some(&format!("{:.1}%", fraction * 100.0)));
-
-                    // Update speed
-                    speed_label.set_text(&format_speed(state.speed));
-
-                    // Update downloaded
-                    downloaded_label.set_text(&format!(
-                        "{} / {}",
-                        format_bytes(state.downloaded),
-                        format_bytes(state.total)
-                    ));
-
-                    // Update time remaining - only show if download is not complete
-                    if state.downloaded >= state.total && state.total > 0 {
-                        // Download is complete, show completion status
-                        time_remaining_label.set_text("Completed");
-                        time_remaining_label.add_css_class("success");
-                    } else {
-                        let time_remaining = if state.speed > 0.0 {
-                            let remaining_bytes = state.total.saturating_sub(state.downloaded);
-                            (remaining_bytes as f64 / state.speed) as u64
-                        } else {
-                            0
-                        };
-                        time_remaining_label.set_text(&format_time_remaining(time_remaining));
-                        time_remaining_label.remove_css_class("success");
-                    }
-                }
-                DownloadMessage::Completed => {
-                    info!("Download completed successfully");
-
-                    // Update UI to show completion
-                    progress_bar_clone.set_fraction(1.0);
-                    progress_bar_clone.set_text(Some("100%"));
-
-                    speed_label_clone.set_text("-");
-                    speed_label_clone.remove_css_class("success");
-
-                    time_remaining_label_clone.set_text("Completed");
-                    time_remaining_label_clone.add_css_class("success");
-
-                    pause_button_clone.set_sensitive(false);
-                    cancel_button_clone.set_label("Close");
-                    cancel_button_clone.add_css_class("suggested-action");
-
-                    return glib::ControlFlow::Break;
-                }
-                DownloadMessage::Error(e) => {
-                    error!("Download failed: {}", e);
-                    if !e.contains("cancelled") {
-                        show_error_dialog(&parent_clone, "Download Failed", &e);
-                    }
-                    window_clone.close();
-                    return glib::ControlFlow::Break;
-                }
-            }
-        }
-        glib::ControlFlow::Continue
-    });
-
-    // Start download in background thread
-    std::thread::spawn(move || {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-
-        runtime.block_on(async {
-            let tx_progress = tx.clone();
-
-            let result = download_file(
-                download_url,
-                save_path.clone(),
-                move |state: DownloadState| {
-                    let _ = tx_progress.send(DownloadMessage::Progress(state));
-                },
-                pause_flag.clone(),
-                cancel_flag.clone(),
-            )
-            .await;
-
-            // Send completion message
-            match result {
-                Ok(_) => {
-                    let _ = tx.send(DownloadMessage::Completed);
-                }
+        std::thread::spawn(move || {
+            let rt = match tokio::runtime::Runtime::new() {
+                Ok(rt) => rt,
                 Err(e) => {
-                    let _ = tx.send(DownloadMessage::Error(e.to_string()));
+                    let _ = tx.send(Err(e.to_string()));
+                    return;
+                }
+            };
+            let result = rt
+                .block_on(async { latest_arch_iso().await })
+                .map(|(filename, url)| IsoRef { filename, url })
+                .map_err(|e| e.to_string());
+            let _ = tx.send(result);
+        });
+
+        let me = self.clone();
+        glib::timeout_add_local(Duration::from_millis(50), move || match rx.try_recv() {
+            Ok(Ok(iso)) => {
+                me.on_iso_resolved(iso);
+                glib::ControlFlow::Break
+            }
+            Ok(Err(e)) => {
+                me.on_iso_failed(&e);
+                glib::ControlFlow::Break
+            }
+            Err(mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
+            Err(mpsc::TryRecvError::Disconnected) => {
+                me.on_iso_failed("worker thread hung up");
+                glib::ControlFlow::Break
+            }
+        });
+    }
+
+    fn on_iso_resolved(&self, iso: IsoRef) {
+        info!("ISO resolved: {}", iso.filename);
+
+        // Parse `archlinux-YYYY.MM.DD-x86_64.iso` → `Version: YYYY.MM.DD`.
+        let version_text = iso
+            .filename
+            .strip_prefix("archlinux-")
+            .and_then(|rest| rest.split('-').next())
+            .map(|date| format!("Version: {date}"))
+            .unwrap_or_else(|| String::from("Latest Version"));
+        self.version_label.set_text(&version_text);
+
+        self.spinner.set_visible(false);
+
+        let default_dest = format!(
+            "{}/Downloads/{}",
+            crate::config::env::get().home,
+            iso.filename,
+        );
+        self.path_entry.set_text(&default_dest);
+        *self.dest.lock().unwrap() = Some(default_dest);
+        *self.iso.lock().unwrap() = Some(iso);
+
+        self.browse_btn.set_sensitive(true);
+        self.start_btn.set_sensitive(true);
+    }
+
+    fn on_iso_failed(&self, reason: &str) {
+        error!("ISO lookup failed: {reason}");
+        self.spinner.remove_css_class("spinning");
+        self.spinner.set_icon_name(Some("circle-xmark"));
+        self.version_label.set_text("Failed to fetch version");
+        self.version_label.remove_css_class("accent");
+        self.version_label.add_css_class("error");
+    }
+
+    fn wire_buttons(self: &Rc<Self>, parent: &Window) {
+        let win = self.window.clone();
+        self.cancel_btn.connect_clicked(move |_| win.close());
+
+        let me = self.clone();
+        self.browse_btn.connect_clicked(move |_| me.open_file_picker());
+
+        let me = self.clone();
+        let parent_owned = parent.clone();
+        self.start_btn.connect_clicked(move |_| {
+            let iso = me.iso.lock().unwrap().clone();
+            let dest = me.dest.lock().unwrap().clone();
+            if let (Some(iso), Some(dest)) = (iso, dest) {
+                info!("starting transfer: {} -> {}", iso.filename, dest);
+                me.window.close();
+                TransferStage::spawn(&parent_owned, iso, dest);
+            }
+        });
+    }
+
+    fn open_file_picker(self: &Rc<Self>) {
+        let iso_snapshot = self.iso.lock().unwrap().clone();
+        let Some(iso) = iso_snapshot else {
+            return;
+        };
+
+        let dialog = gtk4::FileDialog::new();
+        dialog.set_initial_name(Some(&iso.filename));
+
+        let path_entry = self.path_entry.clone();
+        let start_btn = self.start_btn.clone();
+        let me = self.clone();
+        let parent_window = self.window.clone();
+
+        glib::spawn_future_local(async move {
+            if let Ok(file) = dialog.save_future(Some(&parent_window)).await {
+                if let Some(path) = file.path() {
+                    let path_str = path.to_string_lossy().into_owned();
+                    path_entry.set_text(&path_str);
+                    *me.dest.lock().unwrap() = Some(path_str);
+                    start_btn.set_sensitive(true);
                 }
             }
         });
-    });
-
-    window.present();
+    }
 }
 
-/// Messages sent from download thread to UI thread
-enum DownloadMessage {
-    Progress(DownloadState),
-    Completed,
-    Error(String),
+// ---------------------------------------------------------------------------
+// Stage 2 — run the transfer with progress UI
+// ---------------------------------------------------------------------------
+
+enum TransferEvent {
+    Progress(Progress),
+    Done,
+    Failed(String),
 }
 
-/// Show an error dialog
-fn show_error_dialog(parent: &Window, title: &str, message: &str) {
+struct TransferStage {
+    window: adw::Window,
+    progress_bar: ProgressBar,
+    speed_label: Label,
+    downloaded_label: Label,
+    eta_label: Label,
+    pause_btn: Button,
+    cancel_btn: Button,
+    flags: TransferFlags,
+}
+
+impl TransferStage {
+    fn spawn(parent: &Window, iso: IsoRef, dest: String) {
+        let builder = gtk4::Builder::from_resource(crate::config::resources::dialogs::DOWNLOAD);
+
+        let filename_label: Label = extract_widget(&builder, "filename_label");
+        filename_label.set_text(&iso.filename);
+
+        let stage = Rc::new(Self {
+            window: extract_widget(&builder, "download_window"),
+            progress_bar: extract_widget(&builder, "progress_bar"),
+            speed_label: extract_widget(&builder, "speed_label"),
+            downloaded_label: extract_widget(&builder, "downloaded_label"),
+            eta_label: extract_widget(&builder, "time_remaining_label"),
+            pause_btn: extract_widget(&builder, "pause_button"),
+            cancel_btn: extract_widget(&builder, "cancel_button"),
+            flags: TransferFlags::new(),
+        });
+        stage.window.set_transient_for(Some(parent));
+
+        stage.wire_controls();
+
+        let (tx, rx) = mpsc::channel::<TransferEvent>();
+        stage.install_event_pump(parent.clone(), rx);
+        stage.launch_worker(iso.url, dest, tx);
+
+        stage.window.present();
+    }
+
+    fn wire_controls(self: &Rc<Self>) {
+        // Pause toggles the flag and flips the button label.
+        let flags = self.flags.clone();
+        let btn = self.pause_btn.clone();
+        self.pause_btn.connect_clicked(move |_| {
+            let was_paused = flags.is_paused();
+            flags.set_paused(!was_paused);
+            btn.set_label(if was_paused { "Pause" } else { "Resume" });
+        });
+
+        // Cancel flips the flag, then closes the window.
+        let flags = self.flags.clone();
+        let win = self.window.clone();
+        self.cancel_btn.connect_clicked(move |_| {
+            flags.request_cancel();
+            win.close();
+        });
+
+        // If the user closes the window via the titlebar, still mark the
+        // transfer cancelled so the worker cleans up the partial file.
+        let flags = self.flags.clone();
+        self.window.connect_close_request(move |_| {
+            flags.request_cancel();
+            glib::Propagation::Proceed
+        });
+    }
+
+    fn install_event_pump(
+        self: &Rc<Self>,
+        parent: Window,
+        rx: mpsc::Receiver<TransferEvent>,
+    ) {
+        let me = self.clone();
+        glib::timeout_add_local(Duration::from_millis(50), move || {
+            while let Ok(evt) = rx.try_recv() {
+                match evt {
+                    TransferEvent::Progress(p) => me.render_progress(&p),
+                    TransferEvent::Done => {
+                        me.render_done();
+                        return glib::ControlFlow::Break;
+                    }
+                    TransferEvent::Failed(e) => {
+                        if !e.contains("cancelled") {
+                            alert(&parent, "Download Failed", &e);
+                        }
+                        me.window.close();
+                        return glib::ControlFlow::Break;
+                    }
+                }
+            }
+            glib::ControlFlow::Continue
+        });
+    }
+
+    fn launch_worker(&self, url: String, dest: String, tx: mpsc::Sender<TransferEvent>) {
+        let flags = self.flags.clone();
+        std::thread::spawn(move || {
+            let rt = match tokio::runtime::Runtime::new() {
+                Ok(rt) => rt,
+                Err(e) => {
+                    let _ = tx.send(TransferEvent::Failed(e.to_string()));
+                    return;
+                }
+            };
+            let progress_tx = tx.clone();
+            let outcome = rt.block_on(async {
+                stream_to_file(
+                    url,
+                    dest,
+                    move |p| {
+                        let _ = progress_tx.send(TransferEvent::Progress(p));
+                    },
+                    flags,
+                )
+                .await
+            });
+            let _ = match outcome {
+                Ok(()) => tx.send(TransferEvent::Done),
+                Err(e) => tx.send(TransferEvent::Failed(e.to_string())),
+            };
+        });
+    }
+
+    fn render_progress(&self, p: &Progress) {
+        let fraction = if p.bytes_total > 0 {
+            p.bytes_received as f64 / p.bytes_total as f64
+        } else {
+            0.0
+        };
+        self.progress_bar.set_fraction(fraction);
+        self.progress_bar
+            .set_text(Some(&format!("{:.1}%", fraction * 100.0)));
+
+        self.speed_label.set_text(&humanize_rate(p.bytes_per_second));
+
+        self.downloaded_label.set_text(&format!(
+            "{} / {}",
+            humanize_bytes(p.bytes_received),
+            humanize_bytes(p.bytes_total),
+        ));
+
+        if p.bytes_total > 0 && p.bytes_received >= p.bytes_total {
+            self.eta_label.set_text("Completed");
+            self.eta_label.add_css_class("success");
+        } else {
+            let eta_seconds = if p.bytes_per_second > 0.0 {
+                let remaining = p.bytes_total.saturating_sub(p.bytes_received);
+                (remaining as f64 / p.bytes_per_second) as u64
+            } else {
+                0
+            };
+            self.eta_label.set_text(&humanize_eta(eta_seconds));
+            self.eta_label.remove_css_class("success");
+        }
+    }
+
+    fn render_done(&self) {
+        info!("transfer complete");
+        self.progress_bar.set_fraction(1.0);
+        self.progress_bar.set_text(Some("100%"));
+        self.speed_label.set_text("-");
+        self.speed_label.remove_css_class("success");
+        self.eta_label.set_text("Completed");
+        self.eta_label.add_css_class("success");
+        self.pause_btn.set_sensitive(false);
+        self.cancel_btn.set_label("Close");
+        self.cancel_btn.add_css_class("suggested-action");
+    }
+}
+
+fn alert(parent: &Window, title: &str, message: &str) {
     use adw::prelude::*;
-
     let dialog = adw::AlertDialog::new(Some(title), Some(message));
     dialog.add_response("ok", "OK");
     dialog.set_default_response(Some("ok"));

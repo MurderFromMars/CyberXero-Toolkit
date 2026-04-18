@@ -37,7 +37,7 @@
         </child>
         <child>
           <object class="GtkLabel">
-            <property name="label">The Arch Toolkit</property>
+            <property name="label">An Arch toolkit for the masses</property>
             <property name="css-classes">dim-label</property>
             <property name="halign">center</property>
             <property name="wrap">true</property>

@@ -155,7 +155,7 @@ fn setup_remove_orphans(page_builder: &Builder, window: &ApplicationWindow) {
         if orphans.is_empty() {
             // No orphans — show a simple info dialog
             let dialog = adw::Window::new();
-            dialog.set_title(Some("Xero Toolkit - Remove Orphans"));
+            dialog.set_title(Some("CyberXero Toolkit - Remove Orphans"));
             dialog.set_default_size(400, 200);
             dialog.set_modal(true);
             dialog.set_transient_for(Some(&window));
@@ -197,7 +197,7 @@ fn setup_remove_orphans(page_builder: &Builder, window: &ApplicationWindow) {
 
         // ── Build the orphan review dialog ───────────────────────────────
         let dialog = adw::Window::new();
-        dialog.set_title(Some("Xero Toolkit - Remove Orphans"));
+        dialog.set_title(Some("CyberXero Toolkit - Remove Orphans"));
         dialog.set_default_size(550, 500);
         dialog.set_modal(true);
         dialog.set_transient_for(Some(&window));
@@ -1064,7 +1064,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
             Some(hash) => hash,
             None => {
                 let dialog = adw::Window::new();
-                dialog.set_title(Some("Xero Toolkit - Update"));
+                dialog.set_title(Some("CyberXero Toolkit - Update"));
                 dialog.set_default_size(420, 200);
                 dialog.set_modal(true);
                 dialog.set_transient_for(Some(&window));
@@ -1115,7 +1115,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
 
         if is_up_to_date {
             let dialog = adw::Window::new();
-            dialog.set_title(Some("Xero Toolkit - Update"));
+            dialog.set_title(Some("CyberXero Toolkit - Update"));
             dialog.set_default_size(420, 200);
             dialog.set_modal(true);
             dialog.set_transient_for(Some(&window));
@@ -1163,7 +1163,7 @@ fn setup_update_toolkit(page_builder: &Builder, window: &ApplicationWindow) {
 
         // Updates available — show confirmation with commit info, then run update
         let dialog = adw::Window::new();
-        dialog.set_title(Some("Xero Toolkit - Update Available"));
+        dialog.set_title(Some("CyberXero Toolkit - Update Available"));
         dialog.set_default_size(480, 280);
         dialog.set_modal(true);
         dialog.set_transient_for(Some(&window));

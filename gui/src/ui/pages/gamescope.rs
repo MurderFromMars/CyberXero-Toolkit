@@ -1,309 +1,229 @@
-//! Gamescope configuration page.
+//! Gamescope command-builder page.
 //!
-//! Handles the logic for the Gamescope command generator.
+//! Every form widget is described by a [`FlagBinding`] — an entry, switch,
+//! or combo row paired with the gamescope flag it emits. The form listens
+//! for changes on every bound widget, re-renders the command, and copies
+//! it to the clipboard on demand.
 
-use crate::ui::utils::extract_widget;
+use std::rc::Rc;
+
 use adw::prelude::*;
 use adw::{ComboRow, EntryRow};
 use gtk4::{ApplicationWindow, Builder, Button, StringObject, Switch};
 use log::info;
-use std::rc::Rc;
 
-/// Set up all handlers for the gamescope page.
+use crate::ui::utils::extract_widget;
+
+/// Fixed prefix and suffix wrapping the generated command.
+const CMD_HEAD: &str = "gamescope";
+const CMD_TAIL: &[&str] = &["--", "%command%"];
+
 pub fn setup_handlers(
     page_builder: &Builder,
     _main_builder: &Builder,
     _window: &ApplicationWindow,
 ) {
-    let widgets = Rc::new(extract_all_widgets(page_builder));
-
-    connect_widget_signals(&widgets);
-    setup_copy_button(page_builder, &widgets);
-
-    // Generate initial command
-    update_command_output(&widgets);
+    let form = Rc::new(GamescopeForm::load(page_builder));
+    form.wire_change_watchers();
+    form.bind_copy_button(page_builder);
+    form.refresh();
 }
 
-/// Extract all widgets from the UI builder.
-fn extract_all_widgets(builder: &Builder) -> GamescopeWidgets {
-    GamescopeWidgets {
-        // Output (Visual)
-        entry_output_width: extract_widget(builder, "entry_output_width"),
-        entry_output_height: extract_widget(builder, "entry_output_height"),
-        entry_max_scale: extract_widget(builder, "entry_max_scale"),
-
-        // Nested (Game)
-        entry_nested_width: extract_widget(builder, "entry_nested_width"),
-        entry_nested_height: extract_widget(builder, "entry_nested_height"),
-        entry_nested_refresh: extract_widget(builder, "entry_nested_refresh"),
-
-        // Scaler / Filter
-        combo_scaler: extract_widget(builder, "combo_scaler"),
-        combo_filter: extract_widget(builder, "combo_filter"),
-        entry_fsr_sharpness: extract_widget(builder, "entry_fsr_sharpness"),
-
-        // Flags
-        check_fullscreen: extract_widget(builder, "check_fullscreen"),
-        check_grab: extract_widget(builder, "check_grab"),
-        check_force_grab_cursor: extract_widget(builder, "check_force_grab_cursor"),
-        check_adaptive_sync: extract_widget(builder, "check_adaptive_sync"),
-        check_immediate_flips: extract_widget(builder, "check_immediate_flips"),
-        check_expose_wayland: extract_widget(builder, "check_expose_wayland"),
-        check_force_windows_fullscreen: extract_widget(builder, "check_force_windows_fullscreen"),
-
-        // Backend / HDR / Misc
-        combo_backend: extract_widget(builder, "combo_backend"),
-        check_hdr_enabled: extract_widget(builder, "check_hdr_enabled"),
-        entry_cursor_path: extract_widget(builder, "entry_cursor_path"),
-        entry_framerate_limit: extract_widget(builder, "entry_framerate_limit"),
-
-        // Debug & Extra
-        check_debug_layers: extract_widget(builder, "check_debug_layers"),
-        check_mangoapp: extract_widget(builder, "check_mangoapp"),
-        check_realtime: extract_widget(builder, "check_realtime"),
-        entry_extra_flags: extract_widget(builder, "entry_extra_flags"),
-
-        // Output
-        text_command_output: extract_widget(builder, "text_command_output"),
-    }
+struct GamescopeForm {
+    bindings: Vec<FlagBinding>,
+    extras: EntryRow,
+    output: EntryRow,
 }
 
-/// Connect all widget signals to regenerate the command on changes.
-fn connect_widget_signals(widgets: &Rc<GamescopeWidgets>) {
-    // Connect entry fields
-    connect_entry_signal(widgets, &widgets.entry_output_width);
-    connect_entry_signal(widgets, &widgets.entry_output_height);
-    connect_entry_signal(widgets, &widgets.entry_max_scale);
-    connect_entry_signal(widgets, &widgets.entry_nested_width);
-    connect_entry_signal(widgets, &widgets.entry_nested_height);
-    connect_entry_signal(widgets, &widgets.entry_nested_refresh);
-    connect_entry_signal(widgets, &widgets.entry_fsr_sharpness);
-    connect_entry_signal(widgets, &widgets.entry_cursor_path);
-    connect_entry_signal(widgets, &widgets.entry_framerate_limit);
-    connect_entry_signal(widgets, &widgets.entry_extra_flags);
-
-    // Connect switches
-    connect_switch_signal(widgets, &widgets.check_fullscreen);
-    connect_switch_signal(widgets, &widgets.check_grab);
-    connect_switch_signal(widgets, &widgets.check_force_grab_cursor);
-    connect_switch_signal(widgets, &widgets.check_adaptive_sync);
-    connect_switch_signal(widgets, &widgets.check_immediate_flips);
-    connect_switch_signal(widgets, &widgets.check_expose_wayland);
-    connect_switch_signal(widgets, &widgets.check_force_windows_fullscreen);
-    connect_switch_signal(widgets, &widgets.check_hdr_enabled);
-    connect_switch_signal(widgets, &widgets.check_debug_layers);
-    connect_switch_signal(widgets, &widgets.check_mangoapp);
-    connect_switch_signal(widgets, &widgets.check_realtime);
-
-    // Connect combo rows
-    connect_combo_signal(widgets, &widgets.combo_scaler);
-    connect_combo_signal(widgets, &widgets.combo_filter);
-    connect_combo_signal(widgets, &widgets.combo_backend);
-}
-
-/// Connect an entry row to trigger command regeneration.
-fn connect_entry_signal(widgets: &Rc<GamescopeWidgets>, entry: &EntryRow) {
-    let widgets = widgets.clone();
-    entry.connect_notify_local(Some("text"), move |_, _| {
-        update_command_output(&widgets);
-    });
-}
-
-/// Connect a switch to trigger command regeneration.
-fn connect_switch_signal(widgets: &Rc<GamescopeWidgets>, switch: &Switch) {
-    let widgets = widgets.clone();
-    switch.connect_active_notify(move |_| {
-        update_command_output(&widgets);
-    });
-}
-
-/// Connect a combo row to trigger command regeneration.
-fn connect_combo_signal(widgets: &Rc<GamescopeWidgets>, combo: &ComboRow) {
-    let widgets = widgets.clone();
-    combo.connect_selected_notify(move |_| {
-        update_command_output(&widgets);
-    });
-}
-
-/// Set up the copy button to copy the command to clipboard.
-fn setup_copy_button(builder: &Builder, widgets: &Rc<GamescopeWidgets>) {
-    let btn_copy_command = extract_widget::<Button>(builder, "btn_copy_command");
-    let text_output = widgets.text_command_output.clone();
-    btn_copy_command.connect_clicked(move |_| {
-        let text = text_output.text();
-        if let Some(display) = gtk4::gdk::Display::default() {
-            let clipboard = display.clipboard();
-            clipboard.set(&text);
-            info!("Copied gamescope command to clipboard");
-        }
-    });
-}
-
-/// Update the command output field with the generated command.
-fn update_command_output(widgets: &GamescopeWidgets) {
-    let command = build_gamescope_command(widgets);
-    widgets.text_command_output.set_text(&command);
-}
-
-/// All widgets needed for command generation
-struct GamescopeWidgets {
-    entry_output_width: EntryRow,
-    entry_output_height: EntryRow,
-    entry_max_scale: EntryRow,
-    entry_nested_width: EntryRow,
-    entry_nested_height: EntryRow,
-    entry_nested_refresh: EntryRow,
-    combo_scaler: ComboRow,
-    combo_filter: ComboRow,
-    entry_fsr_sharpness: EntryRow,
-    check_fullscreen: Switch,
-    check_grab: Switch,
-    check_force_grab_cursor: Switch,
-    check_adaptive_sync: Switch,
-    check_immediate_flips: Switch,
-    check_expose_wayland: Switch,
-    check_force_windows_fullscreen: Switch,
-    combo_backend: ComboRow,
-    check_hdr_enabled: Switch,
-    entry_cursor_path: EntryRow,
-    entry_framerate_limit: EntryRow,
-    check_debug_layers: Switch,
-    check_mangoapp: Switch,
-    check_realtime: Switch,
-    entry_extra_flags: EntryRow,
-    text_command_output: EntryRow,
-}
-
-/// Build the gamescope command from widget values
-fn build_gamescope_command(widgets: &GamescopeWidgets) -> String {
-    let mut parts = vec!["gamescope".to_string()];
-
-    add_resolution_flags(&mut parts, widgets);
-    add_scaler_flags(&mut parts, widgets);
-    add_general_flags(&mut parts, widgets);
-    add_backend_flags(&mut parts, widgets);
-    add_debug_flags(&mut parts, widgets);
-    add_extra_flags(&mut parts, widgets);
-
-    // Add command separator
-    parts.push("--".to_string());
-    parts.push("%command%".to_string());
-
-    parts.join(" ")
-}
-
-/// Add resolution and refresh rate flags.
-fn add_resolution_flags(parts: &mut Vec<String>, widgets: &GamescopeWidgets) {
-    // Output (Visual)
-    add_flag_if_not_empty(parts, "-W", &widgets.entry_output_width.text());
-    add_flag_if_not_empty(parts, "-H", &widgets.entry_output_height.text());
-    add_flag_if_not_empty(parts, "-m", &widgets.entry_max_scale.text());
-
-    // Nested (Game)
-    add_flag_if_not_empty(parts, "-w", &widgets.entry_nested_width.text());
-    add_flag_if_not_empty(parts, "-h", &widgets.entry_nested_height.text());
-    add_flag_if_not_empty(parts, "-r", &widgets.entry_nested_refresh.text());
-}
-
-/// Add scaler and filter flags.
-fn add_scaler_flags(parts: &mut Vec<String>, widgets: &GamescopeWidgets) {
-    // Scaler
-    if let Some(scaler) = get_combo_value(&widgets.combo_scaler) {
-        if scaler != "auto" {
-            parts.push(format!("-S {}", scaler));
+impl GamescopeForm {
+    /// Declarative list of every flag this form can emit. The order here is
+    /// the order the flags appear in the generated command.
+    fn load(b: &Builder) -> Self {
+        let bindings = vec![
+            // Output (Visual)
+            FlagBinding::entry(b, "entry_output_width", "-W"),
+            FlagBinding::entry(b, "entry_output_height", "-H"),
+            FlagBinding::entry(b, "entry_max_scale", "-m"),
+            // Nested (Game)
+            FlagBinding::entry(b, "entry_nested_width", "-w"),
+            FlagBinding::entry(b, "entry_nested_height", "-h"),
+            FlagBinding::entry(b, "entry_nested_refresh", "-r"),
+            // Scaler / Filter — "auto"/"linear" are the defaults we suppress
+            FlagBinding::combo(b, "combo_scaler", "-S", "auto"),
+            FlagBinding::combo(b, "combo_filter", "-F", "linear"),
+            FlagBinding::entry(b, "entry_fsr_sharpness", "--fsr-sharpness"),
+            // General gameplay switches
+            FlagBinding::switch(b, "check_fullscreen", "-f"),
+            FlagBinding::switch(b, "check_grab", "-g"),
+            FlagBinding::switch(b, "check_force_grab_cursor", "--force-grab-cursor"),
+            FlagBinding::switch(b, "check_adaptive_sync", "--adaptive-sync"),
+            FlagBinding::switch(b, "check_immediate_flips", "--immediate-flips"),
+            FlagBinding::switch(b, "check_expose_wayland", "--expose-wayland"),
+            FlagBinding::switch(
+                b,
+                "check_force_windows_fullscreen",
+                "--force-windows-fullscreen",
+            ),
+            // Backend / HDR / Cursor / FPS cap
+            FlagBinding::combo(b, "combo_backend", "--backend", "auto"),
+            FlagBinding::switch(b, "check_hdr_enabled", "--hdr-enabled"),
+            FlagBinding::entry(b, "entry_cursor_path", "--cursor"),
+            FlagBinding::entry(b, "entry_framerate_limit", "--framerate-limit"),
+            // Debug + performance
+            FlagBinding::switch(b, "check_debug_layers", "--debug-layers"),
+            FlagBinding::switch(b, "check_mangoapp", "--mangoapp"),
+            FlagBinding::switch(b, "check_realtime", "--rt"),
+        ];
+        let extras = extract_widget::<EntryRow>(b, "entry_extra_flags");
+        let output = extract_widget::<EntryRow>(b, "text_command_output");
+        Self {
+            bindings,
+            extras,
+            output,
         }
     }
 
-    // Filter
-    if let Some(filter) = get_combo_value(&widgets.combo_filter) {
-        if filter != "linear" {
-            parts.push(format!("-F {}", filter));
+    fn render_command(&self) -> String {
+        let mut parts = Vec::with_capacity(self.bindings.len() + 4);
+        parts.push(CMD_HEAD.to_owned());
+        for binding in &self.bindings {
+            if let Some(piece) = binding.serialize() {
+                parts.push(piece);
+            }
+        }
+        let extras = self.extras.text();
+        if !extras.is_empty() {
+            parts.push(extras.to_string());
+        }
+        for tail in CMD_TAIL {
+            parts.push((*tail).to_owned());
+        }
+        parts.join(" ")
+    }
+
+    fn refresh(&self) {
+        self.output.set_text(&self.render_command());
+    }
+
+    fn wire_change_watchers(self: &Rc<Self>) {
+        for binding in &self.bindings {
+            let me = self.clone();
+            binding.on_change(move || me.refresh());
+        }
+        let me = self.clone();
+        self.extras
+            .connect_notify_local(Some("text"), move |_, _| me.refresh());
+    }
+
+    fn bind_copy_button(self: &Rc<Self>, b: &Builder) {
+        let btn = extract_widget::<Button>(b, "btn_copy_command");
+        let output = self.output.clone();
+        btn.connect_clicked(move |_| {
+            let Some(display) = gtk4::gdk::Display::default() else {
+                return;
+            };
+            display.clipboard().set(&output.text().to_string());
+            info!("gamescope command copied to clipboard");
+        });
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Flag bindings
+// ---------------------------------------------------------------------------
+
+/// One widget-to-flag binding. Variants carry the extra bits needed to
+/// serialize the widget's current value and subscribe to its change signal.
+enum FlagBinding {
+    Entry {
+        flag: &'static str,
+        widget: EntryRow,
+    },
+    Switch {
+        flag: &'static str,
+        widget: Switch,
+    },
+    Combo {
+        flag: &'static str,
+        widget: ComboRow,
+        suppress: &'static str,
+    },
+}
+
+impl FlagBinding {
+    fn entry(b: &Builder, id: &str, flag: &'static str) -> Self {
+        Self::Entry {
+            flag,
+            widget: extract_widget(b, id),
         }
     }
 
-    // FSR sharpness
-    add_flag_if_not_empty(
-        parts,
-        "--fsr-sharpness",
-        &widgets.entry_fsr_sharpness.text(),
-    );
-}
-
-/// Add general gameplay flags.
-fn add_general_flags(parts: &mut Vec<String>, widgets: &GamescopeWidgets) {
-    add_switch_flag(parts, "-f", &widgets.check_fullscreen);
-    add_switch_flag(parts, "-g", &widgets.check_grab);
-    add_switch_flag(
-        parts,
-        "--force-grab-cursor",
-        &widgets.check_force_grab_cursor,
-    );
-    add_switch_flag(parts, "--adaptive-sync", &widgets.check_adaptive_sync);
-    add_switch_flag(parts, "--immediate-flips", &widgets.check_immediate_flips);
-    add_switch_flag(parts, "--expose-wayland", &widgets.check_expose_wayland);
-    add_switch_flag(
-        parts,
-        "--force-windows-fullscreen",
-        &widgets.check_force_windows_fullscreen,
-    );
-}
-
-/// Add backend and rendering flags.
-fn add_backend_flags(parts: &mut Vec<String>, widgets: &GamescopeWidgets) {
-    // Backend
-    if let Some(backend) = get_combo_value(&widgets.combo_backend) {
-        if backend != "auto" {
-            parts.push(format!("--backend {}", backend));
+    fn switch(b: &Builder, id: &str, flag: &'static str) -> Self {
+        Self::Switch {
+            flag,
+            widget: extract_widget(b, id),
         }
     }
 
-    // HDR
-    add_switch_flag(parts, "--hdr-enabled", &widgets.check_hdr_enabled);
+    fn combo(b: &Builder, id: &str, flag: &'static str, suppress: &'static str) -> Self {
+        Self::Combo {
+            flag,
+            widget: extract_widget(b, id),
+            suppress,
+        }
+    }
 
-    // Cursor
-    add_flag_if_not_empty(parts, "--cursor", &widgets.entry_cursor_path.text());
+    /// Returns the flag fragment for the current widget state, or `None`
+    /// when the widget contributes nothing (empty entry, off switch, combo
+    /// at its suppress value).
+    fn serialize(&self) -> Option<String> {
+        match self {
+            FlagBinding::Entry { flag, widget } => {
+                let text = widget.text();
+                if text.is_empty() {
+                    None
+                } else {
+                    Some(format!("{flag} {text}"))
+                }
+            }
+            FlagBinding::Switch { flag, widget } => {
+                widget.is_active().then(|| (*flag).to_owned())
+            }
+            FlagBinding::Combo {
+                flag,
+                widget,
+                suppress,
+            } => {
+                let value = combo_value(widget)?;
+                if value == *suppress {
+                    None
+                } else {
+                    Some(format!("{flag} {value}"))
+                }
+            }
+        }
+    }
 
-    // Framerate limit
-    add_flag_if_not_empty(
-        parts,
-        "--framerate-limit",
-        &widgets.entry_framerate_limit.text(),
-    );
-}
-
-/// Add debug and performance flags.
-fn add_debug_flags(parts: &mut Vec<String>, widgets: &GamescopeWidgets) {
-    add_switch_flag(parts, "--debug-layers", &widgets.check_debug_layers);
-    add_switch_flag(parts, "--mangoapp", &widgets.check_mangoapp);
-    add_switch_flag(parts, "--rt", &widgets.check_realtime);
-}
-
-/// Add user-provided extra flags.
-fn add_extra_flags(parts: &mut Vec<String>, widgets: &GamescopeWidgets) {
-    let extra = widgets.entry_extra_flags.text();
-    if !extra.is_empty() {
-        parts.push(extra.to_string());
+    fn on_change<F>(&self, on_change: F)
+    where
+        F: Fn() + 'static,
+    {
+        match self {
+            FlagBinding::Entry { widget, .. } => {
+                widget.connect_notify_local(Some("text"), move |_, _| on_change());
+            }
+            FlagBinding::Switch { widget, .. } => {
+                widget.connect_active_notify(move |_| on_change());
+            }
+            FlagBinding::Combo { widget, .. } => {
+                widget.connect_selected_notify(move |_| on_change());
+            }
+        }
     }
 }
 
-/// Add a flag with a value if the value is not empty.
-fn add_flag_if_not_empty(parts: &mut Vec<String>, flag: &str, value: &str) {
-    if !value.is_empty() {
-        parts.push(format!("{} {}", flag, value));
-    }
-}
-
-/// Add a flag if the switch is active.
-fn add_switch_flag(parts: &mut Vec<String>, flag: &str, switch: &Switch) {
-    if switch.is_active() {
-        parts.push(flag.to_string());
-    }
-}
-
-/// Get the selected value from a combo row.
-fn get_combo_value(combo: &ComboRow) -> Option<String> {
-    combo.selected_item().and_then(|item| {
-        item.downcast_ref::<StringObject>()
-            .map(|obj| obj.string().to_string())
-    })
+fn combo_value(combo: &ComboRow) -> Option<String> {
+    combo
+        .selected_item()
+        .and_then(|item| item.downcast_ref::<StringObject>().map(|s| s.string().to_string()))
 }

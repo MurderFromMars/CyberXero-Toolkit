@@ -1,615 +1,672 @@
-//! SCX Scheduler page handlers.
+//! SCX scheduler tab.
 //!
-//! Manages sched-ext BPF CPU schedulers via scxctl.
+//! Detects sched-ext kernel support, enumerates available BPF schedulers
+//! via `scxctl list`, and wires the buttons that start / switch / stop the
+//! active scheduler and toggle the `scx.service` persistence unit.
+
+use std::cell::RefCell;
+use std::collections::HashSet;
+use std::rc::Rc;
+use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
+
+use adw::prelude::*;
+use gtk4::glib;
+use gtk4::{ApplicationWindow, Box as GtkBox, Builder, Button, Image, Label};
+use log::{info, warn};
 
 use crate::ui::dialogs::warning::show_warning_confirmation;
 use crate::ui::task_runner::{self, Command, CommandSequence};
 use crate::ui::utils::{
     extract_widget, get_combo_row_value, is_service_enabled, path_exists, run_command,
 };
-use adw::prelude::*;
-use gtk4::glib;
-use gtk4::{ApplicationWindow, Box as GtkBox, Builder, Button, Image, Label};
-use log::{info, warn};
-use std::cell::RefCell;
-use std::rc::Rc;
 
 const SCHED_EXT_PATH: &str = "/sys/kernel/sched_ext";
+const SERVICE_NAME: &str = "scx.service";
+const STAGING_PATH: &str = "/tmp/scx.service";
+const SERVICE_INSTALL_PATH: &str = "/etc/systemd/system/scx.service";
+const SYSINIT_TARGET_DIR: &str = "/etc/systemd/system/sysinit.target.wants";
 
-/// Shared state for the scheduler page
-#[derive(Default)]
-struct State {
-    schedulers: Vec<String>,
-    kernel_supported: bool,
-    is_active: bool,
-    selected_scheduler: Option<String>,
-}
+const POLL: Duration = Duration::from_millis(100);
+const STATUS_REFRESH: Duration = Duration::from_secs(3);
 
-pub fn setup_handlers(builder: &Builder, _main_builder: &Builder, window: &ApplicationWindow) {
-    let state = Rc::new(RefCell::new(State::default()));
+/// Scheduler groupings shown in the selector dialog. Each tuple is
+/// `(group title, scheduler ids)`. Ids that aren't present on the system
+/// are silently dropped.
+const GROUPS: &[(&str, &[&str])] = &[
+    ("Gaming", &["scx_rusty", "scx_lavd", "scx_bpfland"]),
+    ("Desktop", &["scx_cosmos", "scx_flash"]),
+    ("Servers", &["scx_layered", "scx_flatcg", "scx_tickless"]),
+    ("Low Latency", &["scx_nest"]),
+    ("Testing", &["scx_simple", "scx_chaos", "scx_userland"]),
+];
 
-    init_kernel_support(builder, &state);
-    setup_buttons(builder, window, &state);
-    setup_persistence(builder, window, &state);
+/// Preference order used when the user hasn't picked a scheduler yet.
+const DEFAULT_PICK_ORDER: &[&str] = &["scx_rusty", "scx_lavd"];
 
-    // Initial scan
-    let b = builder.clone();
-    let s = Rc::clone(&state);
-    glib::idle_add_local_once(move || refresh_state(&b, &s, None));
+pub fn setup_handlers(
+    builder: &Builder,
+    _main_builder: &Builder,
+    window: &ApplicationWindow,
+) {
+    let tab = SchedTab::new(builder.clone(), window.clone());
+    tab.install_kernel_info();
+    tab.bind_buttons();
+    tab.bind_persistence();
 
-    // Status monitor
-    let b = builder.clone();
-    let s = Rc::clone(&state);
-    glib::timeout_add_seconds_local(3, move || {
-        update_status(&b, &s);
+    // Initial scan on the next idle tick so the tab paints before we run
+    // any subprocess calls.
+    let initial = tab.clone();
+    glib::idle_add_local_once(move || initial.rescan(None));
+
+    // Status poller — cheap, read-only, and cheap enough to run every few
+    // seconds while the tab is visible.
+    let ticking = tab.clone();
+    glib::timeout_add_local(STATUS_REFRESH, move || {
+        ticking.poll_status();
         glib::ControlFlow::Continue
     });
 }
 
-fn init_kernel_support(builder: &Builder, state: &Rc<RefCell<State>>) {
-    let version = run_command("uname", &["-r"]).unwrap_or_else(|| "Unknown".to_string());
-    let supported = path_exists(SCHED_EXT_PATH);
-
-    state.borrow_mut().kernel_supported = supported;
-
-    let icon = extract_widget::<Image>(builder, "kernel_status_icon");
-    let label = extract_widget::<Label>(builder, "kernel_version_label");
-
-    if supported {
-        icon.set_icon_name(Some("circle-check"));
-        icon.add_css_class("success");
-        label.set_text(&version);
-        label.remove_css_class("warning");
-    } else {
-        icon.set_icon_name(Some("circle-xmark"));
-        icon.add_css_class("error");
-        label.set_text(&format!("{} (no sched-ext)", version));
-        label.add_css_class("warning");
-    }
-
-    // Hidden label for compatibility
-    extract_widget::<Label>(builder, "kernel_support_label").set_text(if supported {
-        "Supported"
-    } else {
-        "Not supported"
-    });
+#[derive(Default)]
+struct SchedState {
+    schedulers: Vec<String>,
+    kernel_supported: bool,
+    active: bool,
+    picked: Option<String>,
 }
 
-fn setup_buttons(builder: &Builder, window: &ApplicationWindow, state: &Rc<RefCell<State>>) {
-    // Scheduler Selection Row
-    let b = builder.clone();
-    let w = window.clone();
-    let s = Rc::clone(state);
-    extract_widget::<adw::ActionRow>(builder, "scheduler_selection_row").connect_activated(
-        move |_| {
-            let schedulers = s.borrow().schedulers.clone();
-            let current = s.borrow().selected_scheduler.clone();
-            let s = s.clone();
-            let b = b.clone();
+struct SchedTab {
+    builder: Builder,
+    window: ApplicationWindow,
+    state: RefCell<SchedState>,
+}
 
-            show_scheduler_selector(&w, schedulers, current, move |selected| {
-                s.borrow_mut().selected_scheduler = Some(selected.clone());
-                extract_widget::<Label>(&b, "selected_scheduler_label")
-                    .set_label(&humanize_name(&selected));
-            });
-        },
-    );
+impl SchedTab {
+    fn new(builder: Builder, window: ApplicationWindow) -> Rc<Self> {
+        Rc::new(Self {
+            builder,
+            window,
+            state: RefCell::new(SchedState::default()),
+        })
+    }
 
-    // Refresh button
-    let b = builder.clone();
-    let s = Rc::clone(state);
-    extract_widget::<Button>(builder, "btn_refresh_schedulers").connect_clicked(move |btn| {
-        refresh_state(&b, &s, Some(btn));
-    });
+    // -- kernel-support banner ----------------------------------------------
 
-    // Switch button
-    let b = builder.clone();
-    let w = window.clone();
-    let s = Rc::clone(state);
-    extract_widget::<Button>(builder, "btn_switch_scheduler").connect_clicked(move |_| {
-        let scheduler = s.borrow().selected_scheduler.clone();
-        let mode = get_combo_row_value(&extract_widget::<adw::ComboRow>(&b, "mode_combo"))
-            .unwrap_or_else(|| "auto".to_string());
+    fn install_kernel_info(self: &Rc<Self>) {
+        let version = run_command("uname", &["-r"]).unwrap_or_else(|| "Unknown".to_owned());
+        let supported = path_exists(SCHED_EXT_PATH);
+        self.state.borrow_mut().kernel_supported = supported;
 
-        let Some(sched_name) = scheduler else {
-            warn!("No valid scheduler selected");
+        let icon = extract_widget::<Image>(&self.builder, "kernel_status_icon");
+        let version_label = extract_widget::<Label>(&self.builder, "kernel_version_label");
+        let legend = extract_widget::<Label>(&self.builder, "kernel_support_label");
+
+        if supported {
+            icon.set_icon_name(Some("circle-check"));
+            icon.add_css_class("success");
+            version_label.set_text(&version);
+            version_label.remove_css_class("warning");
+            legend.set_text("Supported");
+        } else {
+            icon.set_icon_name(Some("circle-xmark"));
+            icon.add_css_class("error");
+            version_label.set_text(&format!("{version} (no sched-ext)"));
+            version_label.add_css_class("warning");
+            legend.set_text("Not supported");
+        }
+    }
+
+    // -- button wiring ------------------------------------------------------
+
+    fn bind_buttons(self: &Rc<Self>) {
+        self.bind_selection_row();
+        self.bind_refresh_button();
+        self.bind_switch_button();
+        self.bind_stop_button();
+    }
+
+    fn bind_selection_row(self: &Rc<Self>) {
+        let me = self.clone();
+        let row = extract_widget::<adw::ActionRow>(&self.builder, "scheduler_selection_row");
+        row.connect_activated(move |_| me.open_selector());
+    }
+
+    fn bind_refresh_button(self: &Rc<Self>) {
+        let me = self.clone();
+        let btn = extract_widget::<Button>(&self.builder, "btn_refresh_schedulers");
+        btn.connect_clicked(move |button| me.rescan(Some(button.clone())));
+    }
+
+    fn bind_switch_button(self: &Rc<Self>) {
+        let me = self.clone();
+        let btn = extract_widget::<Button>(&self.builder, "btn_switch_scheduler");
+        btn.connect_clicked(move |_| me.switch_or_start());
+    }
+
+    fn bind_stop_button(self: &Rc<Self>) {
+        let me = self.clone();
+        let btn = extract_widget::<Button>(&self.builder, "btn_stop_scheduler");
+        btn.connect_clicked(move |_| me.confirm_stop());
+    }
+
+    // -- persistence switch -------------------------------------------------
+
+    fn bind_persistence(self: &Rc<Self>) {
+        let switch = extract_widget::<adw::SwitchRow>(&self.builder, "persist_switch");
+        switch.set_active(is_service_enabled(SERVICE_NAME));
+        let me = self.clone();
+        switch.connect_active_notify(move |sw| {
+            if sw.is_active() {
+                if !me.enable_persistence() {
+                    sw.set_active(false);
+                }
+            } else {
+                me.disable_persistence();
+            }
+        });
+    }
+
+    fn enable_persistence(self: &Rc<Self>) -> bool {
+        let Some(sched_name) = self.state.borrow().picked.clone() else {
+            warn!("persistence requested with no scheduler selected");
+            return false;
+        };
+        let mode = self.current_mode();
+        let sched_unit = format!("scx_{}", strip_prefix(&sched_name));
+
+        let template_path = crate::config::paths::systemd().join("scx.service.in");
+        let Ok(template) = std::fs::read_to_string(&template_path) else {
+            warn!("could not read {:?}", template_path);
+            return false;
+        };
+        let rendered = template
+            .replace("@SCHEDULER@", &sched_unit)
+            .replace("@SCHEDULER_NAME@", &sched_name)
+            .replace("@MODE@", &mode);
+
+        if std::fs::write(STAGING_PATH, &rendered).is_err() {
+            warn!("could not stage {STAGING_PATH}");
+            return false;
+        }
+
+        let sysinit_link = format!("{SYSINIT_TARGET_DIR}/scx.service");
+        let seq = CommandSequence::new()
+            .then(priv_cmd(
+                "cp",
+                &[STAGING_PATH, SERVICE_INSTALL_PATH],
+                "Installing service...",
+            ))
+            .then(priv_cmd(
+                "systemctl",
+                &["daemon-reload"],
+                "Reloading systemd...",
+            ))
+            .then(priv_cmd(
+                "systemctl",
+                &["enable", "--now", "scx.service"],
+                "Enabling and starting service...",
+            ))
+            .then(priv_cmd(
+                "mkdir",
+                &["-p", SYSINIT_TARGET_DIR],
+                "Preparing sysinit target...",
+            ))
+            .then(priv_cmd(
+                "ln",
+                &["-sf", SERVICE_INSTALL_PATH, &sysinit_link],
+                "Linking to sysinit...",
+            ))
+            .build();
+        task_runner::run(self.window.upcast_ref(), seq, "Enable Persistence");
+        true
+    }
+
+    fn disable_persistence(self: &Rc<Self>) {
+        let seq = CommandSequence::new()
+            .then(priv_cmd(
+                "systemctl",
+                &["stop", "scx.service"],
+                "Stopping service...",
+            ))
+            .then(priv_cmd(
+                "systemctl",
+                &["disable", "scx.service"],
+                "Disabling service...",
+            ))
+            .build();
+        task_runner::run(self.window.upcast_ref(), seq, "Disable Persistence");
+    }
+
+    // -- scheduler picker ---------------------------------------------------
+
+    fn open_selector(self: &Rc<Self>) {
+        let schedulers = self.state.borrow().schedulers.clone();
+        let current = self.state.borrow().picked.clone();
+        let me = self.clone();
+        present_selector(
+            &self.window,
+            &schedulers,
+            current.as_deref(),
+            move |chosen| {
+                me.state.borrow_mut().picked = Some(chosen.clone());
+                extract_widget::<Label>(&me.builder, "selected_scheduler_label")
+                    .set_label(&humanize(&chosen));
+            },
+        );
+    }
+
+    // -- switch / start / stop ---------------------------------------------
+
+    fn switch_or_start(self: &Rc<Self>) {
+        let Some(sched_name) = self.state.borrow().picked.clone() else {
+            warn!("start/switch with no scheduler picked");
             return;
         };
+        let mode = self.current_mode();
+        let active = self.state.borrow().active;
 
-        let sched = format!("scx_{}", sched_name);
-        let cmd = if s.borrow().is_active {
-            "switch"
+        let (verb, title, label_verb) = if active {
+            ("switch", "Switch Scheduler", "Switch")
         } else {
-            "start"
+            ("start", "Start Scheduler", "Start")
         };
 
-        info!("{cmd}ing scheduler {sched_name} with mode {mode}");
-
-        let commands = CommandSequence::new()
+        info!("{verb} {sched_name} ({mode} mode)");
+        let description = format!(
+            "{label_verb}ing scx_{} ({} mode)...",
+            strip_prefix(&sched_name),
+            mode
+        );
+        let seq = CommandSequence::new()
             .then(
                 Command::builder()
                     .normal()
                     .program("scxctl")
-                    .args(&[cmd, "--sched", &sched_name, "--mode", &mode])
-                    .description(&format!(
-                        "{}ing {} ({} mode)...",
-                        if cmd == "switch" { "Switch" } else { "Start" },
-                        sched,
-                        mode
-                    ))
+                    .args(&[verb, "--sched", &sched_name, "--mode", &mode])
+                    .description(&description)
                     .build(),
             )
             .build();
+        task_runner::run(self.window.upcast_ref(), seq, title);
+    }
 
-        task_runner::run(
-            w.upcast_ref(),
-            commands,
-            if cmd == "switch" {
-                "Switch Scheduler"
-            } else {
-                "Start Scheduler"
-            },
-        );
-    });
-
-    // Stop button
-    let w = window.clone();
-    extract_widget::<Button>(builder, "btn_stop_scheduler").connect_clicked(move |_| {
-        let wc = w.clone();
+    fn confirm_stop(self: &Rc<Self>) {
+        let me = self.clone();
         show_warning_confirmation(
-            w.upcast_ref(),
+            self.window.upcast_ref(),
             "Stop Scheduler",
             "Stop the current scheduler and fall back to EEVDF?",
             move || {
-                task_runner::run(
-                    wc.upcast_ref(),
-                    CommandSequence::new()
-                        .then(
-                            Command::builder()
-                                .normal()
-                                .program("scxctl")
-                                .args(&["stop"])
-                                .description("Stopping scheduler...")
-                                .build(),
-                        )
-                        .build(),
-                    "Stop Scheduler",
-                );
+                let seq = CommandSequence::new()
+                    .then(
+                        Command::builder()
+                            .normal()
+                            .program("scxctl")
+                            .args(&["stop"])
+                            .description("Stopping scheduler...")
+                            .build(),
+                    )
+                    .build();
+                task_runner::run(me.window.upcast_ref(), seq, "Stop Scheduler");
             },
         );
-    });
-}
-
-fn setup_persistence(builder: &Builder, window: &ApplicationWindow, state: &Rc<RefCell<State>>) {
-    let switch = extract_widget::<adw::SwitchRow>(builder, "persist_switch");
-    switch.set_active(is_service_enabled("scx.service"));
-
-    let b = builder.clone();
-    let w = window.clone();
-    let s = state.clone();
-    switch.connect_active_notify(move |sw| {
-        if sw.is_active() {
-            let scheduler = s.borrow().selected_scheduler.clone();
-            let mode = get_combo_row_value(&extract_widget::<adw::ComboRow>(&b, "mode_combo"))
-                .unwrap_or_else(|| "auto".to_string());
-
-            let Some(sched_name) = scheduler else {
-                warn!("No valid scheduler selected for persistence");
-                sw.set_active(false);
-                return;
-            };
-
-            let sched = format!("scx_{}", sched_name);
-            let template_path = crate::config::paths::systemd().join("scx.service.in");
-
-            let Ok(content) = std::fs::read_to_string(&template_path) else {
-                warn!("Failed to read service template");
-                sw.set_active(false);
-                return;
-            };
-
-            let service = content
-                .replace("@SCHEDULER@", &sched)
-                .replace("@SCHEDULER_NAME@", &sched_name)
-                .replace("@MODE@", &mode);
-
-            if std::fs::write("/tmp/scx.service", &service).is_err() {
-                sw.set_active(false);
-                return;
-            }
-
-            task_runner::run(
-                w.upcast_ref(),
-                CommandSequence::new()
-                    .then(
-                        Command::builder()
-                            .privileged()
-                            .program("cp")
-                            .args(&["/tmp/scx.service", "/etc/systemd/system/scx.service"])
-                            .description("Installing service...")
-                            .build(),
-                    )
-                    .then(
-                        Command::builder()
-                            .privileged()
-                            .program("systemctl")
-                            .args(&["daemon-reload"])
-                            .description("Reloading systemd...")
-                            .build(),
-                    )
-                    .then(
-                        Command::builder()
-                            .privileged()
-                            .program("systemctl")
-                            .args(&["enable", "--now", "scx.service"])
-                            .description("Enabling and starting service...")
-                            .build(),
-                    )
-                    .then(
-                        Command::builder()
-                            .privileged()
-                            .program("mkdir")
-                            .args(&["-p", "/etc/systemd/system/sysinit.target.wants"])
-                            .description("Preparing sysinit target...")
-                            .build(),
-                    )
-                    .then(
-                        Command::builder()
-                            .privileged()
-                            .program("ln")
-                            .args(&[
-                                "-sf",
-                                "/etc/systemd/system/scx.service",
-                                "/etc/systemd/system/sysinit.target.wants/scx.service",
-                            ])
-                            .description("Linking to sysinit...")
-                            .build(),
-                    )
-                    .build(),
-                "Enable Persistence",
-            );
-        } else {
-            task_runner::run(
-                w.upcast_ref(),
-                CommandSequence::new()
-                    .then(
-                        Command::builder()
-                            .privileged()
-                            .program("systemctl")
-                            .args(&["stop", "scx.service"])
-                            .description("Stopping service...")
-                            .build(),
-                    )
-                    .then(
-                        Command::builder()
-                            .privileged()
-                            .program("systemctl")
-                            .args(&["disable", "scx.service"])
-                            .description("Disabling service...")
-                            .build(),
-                    )
-                    .build(),
-                "Disable Persistence",
-            );
-        }
-    });
-}
-
-fn refresh_state(builder: &Builder, state: &Rc<RefCell<State>>, refresh_btn: Option<&Button>) {
-    let builder = builder.clone();
-    let state = state.clone();
-    let btn_opt = refresh_btn.cloned();
-
-    // Disable controls while refreshing
-    let row = extract_widget::<adw::ActionRow>(&builder, "scheduler_selection_row");
-    let mode_combo = extract_widget::<adw::ComboRow>(&builder, "mode_combo");
-    let switch_btn = extract_widget::<Button>(&builder, "btn_switch_scheduler");
-    let stop_btn = extract_widget::<Button>(&builder, "btn_stop_scheduler");
-    let persist = extract_widget::<adw::SwitchRow>(&builder, "persist_switch");
-
-    row.set_sensitive(false);
-    mode_combo.set_sensitive(false);
-    switch_btn.set_sensitive(false);
-    stop_btn.set_sensitive(false);
-    persist.set_sensitive(false);
-
-    if let Some(btn) = refresh_btn {
-        btn.set_sensitive(false);
-        // Try to find image child to animate
-        if let Some(child) = btn.child() {
-            if let Some(img) = child.downcast_ref::<Image>() {
-                img.add_css_class("spinning");
-            } else if let Some(box_child) = child.downcast_ref::<GtkBox>() {
-                if let Some(img) = box_child.first_child().and_downcast::<Image>() {
-                    img.add_css_class("spinning");
-                }
-            }
-        }
     }
 
-    // Use std::sync::mpsc for thread communication
-    let (sender, receiver) =
-        std::sync::mpsc::channel::<(Vec<String>, bool, String, String, bool)>();
+    // -- passive status polling --------------------------------------------
 
-    // Run blocking operations in a separate thread
-    std::thread::spawn(move || {
-        let schedulers = get_schedulers();
-        let (is_active, name, mode) = get_status();
-        let kernel_supported = path_exists(SCHED_EXT_PATH);
-        let _ = sender.send((schedulers, is_active, name, mode, kernel_supported));
-    });
+    fn poll_status(self: &Rc<Self>) {
+        let status = ScxStatus::current();
+        self.state.borrow_mut().active = status.active;
+        render_active(&self.builder, &status);
+        extract_widget::<Button>(&self.builder, "btn_stop_scheduler")
+            .set_sensitive(status.active);
+    }
 
-    // Poll for results in main thread
-    glib::timeout_add_local(
-        std::time::Duration::from_millis(100),
-        move || match receiver.try_recv() {
-            Ok((schedulers, is_active, name, mode, kernel_supported)) => {
-                {
-                    let mut s = state.borrow_mut();
-                    s.schedulers = schedulers.clone();
-                    s.kernel_supported = kernel_supported;
-                    s.is_active = is_active;
-                }
+    // -- full rescan (schedulers + kernel support + status) ----------------
 
-                // Select default scheduler if none selected
-                {
-                    let mut s = state.borrow_mut();
-                    if s.selected_scheduler.is_none() && !schedulers.is_empty() {
-                        // Prefer scx_rusty or scx_lavd if available, otherwise first
-                        if schedulers.iter().any(|s| s == "scx_rusty") {
-                            s.selected_scheduler = Some("scx_rusty".to_string());
-                        } else if schedulers.iter().any(|s| s == "scx_lavd") {
-                            s.selected_scheduler = Some("scx_lavd".to_string());
-                        } else {
-                            s.selected_scheduler = Some(schedulers[0].clone());
-                        }
-                    }
-                }
+    fn rescan(self: &Rc<Self>, button: Option<Button>) {
+        let lock = ControlLock::engage(&self.builder, button);
+        let (tx, rx) = mpsc::channel::<SchedScan>();
 
-                // Update selected label
-                if let Some(selected) = &state.borrow().selected_scheduler {
-                    extract_widget::<Label>(&builder, "selected_scheduler_label")
-                        .set_label(&humanize_name(selected));
-                }
+        thread::spawn(move || {
+            let _ = tx.send(SchedScan::collect());
+        });
 
-                // Update status display
-                update_status_labels(&builder, is_active, &name, &mode);
-
-                // Update buttons and re-enable controls
-                row.set_sensitive(true);
-                mode_combo.set_sensitive(true);
-                persist.set_sensitive(true);
-
-                let can_switch = kernel_supported && !schedulers.is_empty();
-                switch_btn.set_sensitive(can_switch);
-                stop_btn.set_sensitive(is_active);
-
-                // Update persistence state
-                persist.set_active(is_service_enabled("scx.service"));
-
-                // Restore refresh button
-                if let Some(btn) = &btn_opt {
-                    btn.set_sensitive(true);
-                    if let Some(child) = btn.child() {
-                        if let Some(img) = child.downcast_ref::<Image>() {
-                            img.remove_css_class("spinning");
-                        } else if let Some(box_child) = child.downcast_ref::<GtkBox>() {
-                            if let Some(img) = box_child.first_child().and_downcast::<Image>() {
-                                img.remove_css_class("spinning");
-                            }
-                        }
-                    }
-                }
-
-                info!(
-                    "Found {} schedulers, active={}",
-                    schedulers.len(),
-                    is_active
-                );
-
-                glib::ControlFlow::Break
-            }
-            Err(std::sync::mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
-            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                warn!("Scheduler scan thread disconnected");
-                // Re-enable controls on failure
-                row.set_sensitive(true);
-                mode_combo.set_sensitive(true);
-                switch_btn.set_sensitive(true);
-                stop_btn.set_sensitive(true);
-                persist.set_sensitive(true);
-
-                if let Some(btn) = &btn_opt {
-                    btn.set_sensitive(true);
-                    if let Some(child) = btn.child() {
-                        if let Some(img) = child.downcast_ref::<Image>() {
-                            img.remove_css_class("spinning");
-                        } else if let Some(box_child) = child.downcast_ref::<GtkBox>() {
-                            if let Some(img) = box_child.first_child().and_downcast::<Image>() {
-                                img.remove_css_class("spinning");
-                            }
-                        }
-                    }
+        let me = self.clone();
+        let lock_slot = RefCell::new(Some(lock));
+        glib::timeout_add_local(POLL, move || match rx.try_recv() {
+            Ok(scan) => {
+                me.apply_scan(&scan);
+                if let Some(lock) = lock_slot.borrow_mut().take() {
+                    lock.release(
+                        &me.builder,
+                        scan.kernel_supported && !scan.schedulers.is_empty(),
+                        scan.active,
+                    );
                 }
                 glib::ControlFlow::Break
             }
-        },
-    );
-}
+            Err(mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
+            Err(mpsc::TryRecvError::Disconnected) => {
+                warn!("scheduler scan worker dropped without a result");
+                if let Some(lock) = lock_slot.borrow_mut().take() {
+                    lock.release(&me.builder, false, false);
+                }
+                glib::ControlFlow::Break
+            }
+        });
+    }
 
-fn update_status(builder: &Builder, state: &Rc<RefCell<State>>) {
-    let (is_active, name, mode) = get_status();
-    state.borrow_mut().is_active = is_active;
+    fn apply_scan(self: &Rc<Self>, scan: &SchedScan) {
+        {
+            let mut s = self.state.borrow_mut();
+            s.schedulers = scan.schedulers.clone();
+            s.kernel_supported = scan.kernel_supported;
+            s.active = scan.active;
+            if s.picked.is_none() && !scan.schedulers.is_empty() {
+                s.picked = Some(default_pick(&scan.schedulers));
+            }
+        }
 
-    update_status_labels(builder, is_active, &name, &mode);
-    extract_widget::<Button>(builder, "btn_stop_scheduler").set_sensitive(is_active);
-}
+        if let Some(pick) = self.state.borrow().picked.clone() {
+            extract_widget::<Label>(&self.builder, "selected_scheduler_label")
+                .set_label(&humanize(&pick));
+        }
 
-fn update_status_labels(builder: &Builder, is_active: bool, name: &str, mode: &str) {
-    let active_label = extract_widget::<Label>(builder, "active_scheduler_label");
+        render_active(
+            &self.builder,
+            &ScxStatus {
+                active: scan.active,
+                name: scan.name.clone(),
+                mode: scan.mode.clone(),
+            },
+        );
 
-    if is_active {
-        active_label.set_text(&format!("{} ({})", humanize_name(name), mode));
-        active_label.remove_css_class("dim-label");
-        active_label.add_css_class("accent");
-    } else {
-        active_label.set_text("EEVDF (Default)");
-        active_label.remove_css_class("accent");
-        active_label.add_css_class("dim-label");
+        extract_widget::<adw::SwitchRow>(&self.builder, "persist_switch")
+            .set_active(is_service_enabled(SERVICE_NAME));
+
+        info!(
+            "scheduler scan: {} schedulers, active={}",
+            scan.schedulers.len(),
+            scan.active
+        );
+    }
+
+    fn current_mode(&self) -> String {
+        get_combo_row_value(&extract_widget::<adw::ComboRow>(&self.builder, "mode_combo"))
+            .unwrap_or_else(|| "auto".to_owned())
     }
 }
 
-fn get_schedulers() -> Vec<String> {
-    run_command("scxctl", &["list"])
-        .and_then(|out| {
-            out.find("supported schedulers:")
-                .and_then(|i| out[i + 21..].find('[').map(|j| i + 21 + j))
-                .and_then(|start| {
-                    out[start..]
-                        .find(']')
-                        .map(|end| &out[start + 1..start + end])
-                })
-                .map(|list| {
-                    list.split(',')
-                        .map(|s| format!("scx_{}", s.trim().trim_matches('"')))
-                        .filter(|s| s.len() > 4)
-                        .collect()
-                })
-        })
-        .unwrap_or_default()
-}
+// ---------------------------------------------------------------------------
+// Scan result + status query
+// ---------------------------------------------------------------------------
 
-fn get_status() -> (bool, String, String) {
-    run_command("scxctl", &["get"])
-        .map(|out| {
-            let lower = out.to_lowercase();
-            if lower.contains("not running") || out.is_empty() {
-                return (false, String::new(), String::new());
-            }
-            if lower.starts_with("running") {
-                let parts: Vec<&str> = out.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    let name = format!("scx_{}", parts[1].to_lowercase());
-                    let mode = out
-                        .split(" in ")
-                        .nth(1)
-                        .and_then(|s| s.split(" mode").next())
-                        .map(|s| s.trim().to_string())
-                        .unwrap_or_else(|| "N/A".to_string());
-                    return (true, name, mode);
-                }
-            }
-            (false, String::new(), String::new())
-        })
-        .unwrap_or((false, String::new(), String::new()))
-}
-
-fn show_scheduler_selector(
-    parent: &ApplicationWindow,
+struct SchedScan {
     schedulers: Vec<String>,
-    current_selected: Option<String>,
-    on_select: impl Fn(String) + 'static,
-) {
-    // Load UI from resource
+    kernel_supported: bool,
+    active: bool,
+    name: String,
+    mode: String,
+}
+
+impl SchedScan {
+    fn collect() -> Self {
+        let schedulers = list_schedulers();
+        let status = ScxStatus::current();
+        Self {
+            schedulers,
+            kernel_supported: path_exists(SCHED_EXT_PATH),
+            active: status.active,
+            name: status.name,
+            mode: status.mode,
+        }
+    }
+}
+
+struct ScxStatus {
+    active: bool,
+    name: String,
+    mode: String,
+}
+
+impl ScxStatus {
+    fn current() -> Self {
+        let Some(out) = run_command("scxctl", &["get"]) else {
+            return Self::inactive();
+        };
+        let lower = out.to_lowercase();
+        if out.is_empty() || lower.contains("not running") {
+            return Self::inactive();
+        }
+        if !lower.starts_with("running") {
+            return Self::inactive();
+        }
+        let parts: Vec<&str> = out.split_whitespace().collect();
+        if parts.len() < 2 {
+            return Self::inactive();
+        }
+        let name = format!("scx_{}", parts[1].to_lowercase());
+        let mode = out
+            .split(" in ")
+            .nth(1)
+            .and_then(|s| s.split(" mode").next())
+            .map(|s| s.trim().to_owned())
+            .unwrap_or_else(|| "N/A".to_owned());
+        Self {
+            active: true,
+            name,
+            mode,
+        }
+    }
+
+    fn inactive() -> Self {
+        Self {
+            active: false,
+            name: String::new(),
+            mode: String::new(),
+        }
+    }
+}
+
+fn list_schedulers() -> Vec<String> {
+    let Some(out) = run_command("scxctl", &["list"]) else {
+        return Vec::new();
+    };
+    const MARKER: &str = "supported schedulers:";
+    let Some(heading) = out.find(MARKER) else {
+        return Vec::new();
+    };
+    let tail = &out[heading + MARKER.len()..];
+    let Some(open) = tail.find('[') else {
+        return Vec::new();
+    };
+    let Some(close_rel) = tail[open..].find(']') else {
+        return Vec::new();
+    };
+    let body = &tail[open + 1..open + close_rel];
+    body.split(',')
+        .map(|s| format!("scx_{}", s.trim().trim_matches('"')))
+        .filter(|s| s.len() > 4)
+        .collect()
+}
+
+fn default_pick(available: &[String]) -> String {
+    for preferred in DEFAULT_PICK_ORDER {
+        if available.iter().any(|s| s == preferred) {
+            return (*preferred).to_owned();
+        }
+    }
+    available[0].clone()
+}
+
+// ---------------------------------------------------------------------------
+// Rendering + formatting helpers
+// ---------------------------------------------------------------------------
+
+fn render_active(builder: &Builder, status: &ScxStatus) {
+    let label = extract_widget::<Label>(builder, "active_scheduler_label");
+    if status.active {
+        label.set_text(&format!("{} ({})", humanize(&status.name), status.mode));
+        label.remove_css_class("dim-label");
+        label.add_css_class("accent");
+    } else {
+        label.set_text("EEVDF (Default)");
+        label.remove_css_class("accent");
+        label.add_css_class("dim-label");
+    }
+}
+
+fn humanize(name: &str) -> String {
+    let core = strip_prefix(name);
+    let mut chars = core.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+    }
+}
+
+fn strip_prefix(name: &str) -> &str {
+    name.strip_prefix("scx_").unwrap_or(name)
+}
+
+fn priv_cmd(program: &str, args: &[&str], description: &str) -> Command {
+    Command::builder()
+        .privileged()
+        .program(program)
+        .args(args)
+        .description(description)
+        .build()
+}
+
+// ---------------------------------------------------------------------------
+// UI lock used while a scan is in flight
+// ---------------------------------------------------------------------------
+
+struct ControlLock {
+    refresh_btn: Option<Button>,
+}
+
+impl ControlLock {
+    fn engage(builder: &Builder, button: Option<Button>) -> Self {
+        let c = Controls::fetch(builder);
+        c.set_all_sensitive(false);
+        if let Some(b) = &button {
+            b.set_sensitive(false);
+            toggle_spin(b, true);
+        }
+        Self {
+            refresh_btn: button,
+        }
+    }
+
+    fn release(self, builder: &Builder, can_switch: bool, can_stop: bool) {
+        let c = Controls::fetch(builder);
+        c.row.set_sensitive(true);
+        c.mode.set_sensitive(true);
+        c.persist.set_sensitive(true);
+        c.switch.set_sensitive(can_switch);
+        c.stop.set_sensitive(can_stop);
+        if let Some(b) = self.refresh_btn {
+            b.set_sensitive(true);
+            toggle_spin(&b, false);
+        }
+    }
+}
+
+struct Controls {
+    row: adw::ActionRow,
+    mode: adw::ComboRow,
+    switch: Button,
+    stop: Button,
+    persist: adw::SwitchRow,
+}
+
+impl Controls {
+    fn fetch(builder: &Builder) -> Self {
+        Self {
+            row: extract_widget(builder, "scheduler_selection_row"),
+            mode: extract_widget(builder, "mode_combo"),
+            switch: extract_widget(builder, "btn_switch_scheduler"),
+            stop: extract_widget(builder, "btn_stop_scheduler"),
+            persist: extract_widget(builder, "persist_switch"),
+        }
+    }
+
+    fn set_all_sensitive(&self, on: bool) {
+        self.row.set_sensitive(on);
+        self.mode.set_sensitive(on);
+        self.switch.set_sensitive(on);
+        self.stop.set_sensitive(on);
+        self.persist.set_sensitive(on);
+    }
+}
+
+fn toggle_spin(button: &Button, spinning: bool) {
+    let Some(child) = button.child() else { return };
+    let apply = |img: &Image| {
+        if spinning {
+            img.add_css_class("spinning");
+        } else {
+            img.remove_css_class("spinning");
+        }
+    };
+    if let Some(img) = child.downcast_ref::<Image>() {
+        apply(img);
+    } else if let Some(row) = child.downcast_ref::<GtkBox>() {
+        if let Some(img) = row.first_child().and_downcast::<Image>() {
+            apply(&img);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Scheduler selector dialog
+// ---------------------------------------------------------------------------
+
+fn present_selector<F>(
+    parent: &ApplicationWindow,
+    available: &[String],
+    current: Option<&str>,
+    on_select: F,
+) where
+    F: Fn(String) + 'static,
+{
     let builder = Builder::from_resource(crate::config::resources::dialogs::SCHEDULER_SELECTION);
     let window: adw::Window = extract_widget(&builder, "scheduler_selection_window");
     window.set_transient_for(Some(parent));
 
     let content: GtkBox = extract_widget(&builder, "schedulers_container");
-
-    // Categories
-    let categories = vec![
-        ("Gaming", vec!["scx_rusty", "scx_lavd", "scx_bpfland"]),
-        ("Desktop", vec!["scx_cosmos", "scx_flash"]),
-        ("Servers", vec!["scx_layered", "scx_flatcg", "scx_tickless"]),
-        ("Low Latency", vec!["scx_nest"]),
-        ("Testing", vec!["scx_simple", "scx_chaos", "scx_userland"]),
-    ];
-
-    // Set for tracking used schedulers
-    let mut added = std::collections::HashSet::new();
-
     let window_weak = window.downgrade();
     let on_select = Rc::new(on_select);
+    let mut placed: HashSet<String> = HashSet::new();
 
-    for (cat_name, items) in categories {
+    for (title, members) in GROUPS {
+        let items: Vec<&&str> = members
+            .iter()
+            .filter(|m| available.iter().any(|a| a == **m))
+            .collect();
+        if items.is_empty() {
+            continue;
+        }
         let group = adw::PreferencesGroup::new();
-        group.set_title(cat_name);
-
-        let mut has_items = false;
-
+        group.set_title(title);
         for item in items {
-            if schedulers.iter().any(|s| s == item) {
-                has_items = true;
-                added.insert(item.to_string());
-
-                let row = adw::ActionRow::new();
-                row.set_title(&humanize_name(item));
-
-                if let Some(ref current) = current_selected {
-                    if current == item {
-                        row.add_suffix(&gtk4::Image::from_icon_name("circle-check-symbolic"));
-                    }
-                }
-
-                row.set_activatable(true);
-
-                let on_select_clone = on_select.clone();
-                let item_string = item.to_string();
-                let win_weak = window_weak.clone();
-
-                row.connect_activated(move |_| {
-                    on_select_clone(item_string.clone());
-                    if let Some(win) = win_weak.upgrade() {
-                        win.close();
-                    }
-                });
-
-                group.add(&row);
-            }
+            placed.insert((*item).to_owned());
+            group.add(&selector_row(item, current, &on_select, &window_weak));
         }
-
-        if has_items {
-            content.append(&group);
-        }
+        content.append(&group);
     }
 
-    // Others category
-    let mut others = Vec::new();
-    for sched in &schedulers {
-        if !added.contains(sched) {
-            others.push(sched);
-        }
-    }
+    let mut others: Vec<&String> = available.iter().filter(|s| !placed.contains(*s)).collect();
     others.sort();
-
     if !others.is_empty() {
         let group = adw::PreferencesGroup::new();
         group.set_title("Other");
         for item in others {
-            let row = adw::ActionRow::new();
-            row.set_title(&humanize_name(item));
-
-            if let Some(ref current) = current_selected {
-                if current == item {
-                    row.add_suffix(&gtk4::Image::from_icon_name("circle-check-symbolic"));
-                }
-            }
-
-            row.set_activatable(true);
-
-            let on_select_clone = on_select.clone();
-            let item_string = item.to_string();
-            let win_weak = window_weak.clone();
-
-            row.connect_activated(move |_| {
-                on_select_clone(item_string.clone());
-                if let Some(win) = win_weak.upgrade() {
-                    win.close();
-                }
-            });
-
-            group.add(&row);
+            group.add(&selector_row(item, current, &on_select, &window_weak));
         }
         content.append(&group);
     }
@@ -617,11 +674,30 @@ fn show_scheduler_selector(
     window.present();
 }
 
-fn humanize_name(name: &str) -> String {
-    let name = name.strip_prefix("scx_").unwrap_or(name);
-    let mut chars = name.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
+fn selector_row<F>(
+    item: &str,
+    current: Option<&str>,
+    on_select: &Rc<F>,
+    window_weak: &glib::WeakRef<adw::Window>,
+) -> adw::ActionRow
+where
+    F: Fn(String) + 'static,
+{
+    let row = adw::ActionRow::new();
+    row.set_title(&humanize(item));
+    if current == Some(item) {
+        row.add_suffix(&gtk4::Image::from_icon_name("circle-check-symbolic"));
     }
+    row.set_activatable(true);
+
+    let on_select = on_select.clone();
+    let window_weak = window_weak.clone();
+    let item = item.to_owned();
+    row.connect_activated(move |_| {
+        on_select(item.clone());
+        if let Some(win) = window_weak.upgrade() {
+            win.close();
+        }
+    });
+    row
 }

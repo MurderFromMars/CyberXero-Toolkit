@@ -732,35 +732,53 @@ fn setup_chaotic_aur(page_builder: &Builder, window: &ApplicationWindow) {
     });
 }
 
+const XERO_REPO_WARNING: &str =
+    "Several packages in the <span foreground=\"cyan\" weight=\"bold\">XeroLinux repo</span> are designed to \
+     <span foreground=\"red\" weight=\"bold\">block installation on non XeroLinux systems</span>.\n\n\
+     The CyberXero Toolkit ships <span foreground=\"green\" weight=\"bold\">forks of every affected package</span> \
+     with those blockers removed and alternative installation paths, so you should install those through the \
+     toolkit instead of pulling them from this repo.\n\n\
+     If you hit a problem with a XeroLinux package, \
+     <span foreground=\"yellow\" weight=\"bold\">please report it to me, not upstream XeroLinux</span>. \
+     They do not want this feature set enabled outside their distro and will not support it.";
+
 fn setup_xero_repo(page_builder: &Builder, window: &ApplicationWindow) {
     let btn_xero_repo = extract_widget::<gtk4::Button>(page_builder, "btn_xero_repo");
     let window = window.clone();
     btn_xero_repo.connect_clicked(move |_| {
         info!("Servicing: Add Xero Linux Repository button clicked");
-        
-        let commands = CommandSequence::new()
-            .then(
-                Command::builder()
-                    .privileged()
-                    .program("sh")
-                    .args(&[
-                        "-c",
-                        "grep -q '\\[xerolinux\\]' /etc/pacman.conf || echo -e '\\n[xerolinux]\\nSigLevel = Optional TrustAll\\nServer = https://repos.xerolinux.xyz/$repo/$arch' >> /etc/pacman.conf",
-                    ])
-                    .description("Adding Xero Linux repository to pacman.conf...")
-                    .build(),
-            )
-            .then(
-                Command::builder()
-                    .privileged()
-                    .program("pacman")
-                    .args(&["-Syy"])
-                    .description("Refreshing package databases...")
-                    .build(),
-            )
-            .build();
 
-        task_runner::run(window.upcast_ref(), commands, "Add Xero Linux Repository");
+        let window_inner = window.clone();
+        crate::ui::dialogs::warning::show_warning_confirmation(
+            window.upcast_ref(),
+            "Add XeroLinux Repository",
+            XERO_REPO_WARNING,
+            move || {
+                let commands = CommandSequence::new()
+                    .then(
+                        Command::builder()
+                            .privileged()
+                            .program("sh")
+                            .args(&[
+                                "-c",
+                                "grep -q '\\[xerolinux\\]' /etc/pacman.conf || echo -e '\\n[xerolinux]\\nSigLevel = Optional TrustAll\\nServer = https://repos.xerolinux.xyz/$repo/$arch' >> /etc/pacman.conf",
+                            ])
+                            .description("Adding Xero Linux repository to pacman.conf...")
+                            .build(),
+                    )
+                    .then(
+                        Command::builder()
+                            .privileged()
+                            .program("pacman")
+                            .args(&["-Syy"])
+                            .description("Refreshing package databases...")
+                            .build(),
+                    )
+                    .build();
+
+                task_runner::run(window_inner.upcast_ref(), commands, "Add Xero Linux Repository");
+            },
+        );
     });
 }
 

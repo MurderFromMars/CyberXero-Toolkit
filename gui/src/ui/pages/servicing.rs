@@ -733,7 +733,7 @@ fn setup_chaotic_aur(page_builder: &Builder, window: &ApplicationWindow) {
 }
 
 const XERO_REPO_WARNING: &str =
-    "Several packages in the <span foreground=\"cyan\" weight=\"bold\">XeroLinux repo</span> are designed to \
+    "A few packages in the <span foreground=\"cyan\" weight=\"bold\">XeroLinux repo</span> are designed to \
      <span foreground=\"red\" weight=\"bold\">block installation on non XeroLinux systems</span>.\n\n\
      The CyberXero Toolkit ships <span foreground=\"green\" weight=\"bold\">forks of every affected package</span> \
      with those blockers removed and alternative installation paths, so you should install those through the \

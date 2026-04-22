@@ -1,8 +1,8 @@
 //! SCX scheduler tab.
 //!
-//! Detects sched-ext kernel support, enumerates available BPF schedulers
-//! via `scxctl list`, and wires the buttons that start / switch / stop the
-//! active scheduler and toggle the `scx.service` persistence unit.
+//! Detects sched-ext kernel support, enumerates available BPF schedulers by
+//! scanning `/usr/bin/scx_*`, and wires the buttons that start / switch /
+//! stop the active scheduler via a rendered `scx.service` systemd unit.
 
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -18,15 +18,12 @@ use log::{info, warn};
 
 use crate::ui::dialogs::warning::show_warning_confirmation;
 use crate::ui::task_runner::{self, Command, CommandSequence};
-use crate::ui::utils::{
-    extract_widget, get_combo_row_value, is_service_enabled, path_exists, run_command,
-};
+use crate::ui::utils::{extract_widget, is_service_enabled, path_exists, run_command};
 
 const SCHED_EXT_PATH: &str = "/sys/kernel/sched_ext";
 const SERVICE_NAME: &str = "scx.service";
 const STAGING_PATH: &str = "/tmp/scx.service";
 const SERVICE_INSTALL_PATH: &str = "/etc/systemd/system/scx.service";
-const SYSINIT_TARGET_DIR: &str = "/etc/systemd/system/sysinit.target.wants";
 
 const POLL: Duration = Duration::from_millis(100);
 const STATUS_REFRESH: Duration = Duration::from_secs(3);
@@ -173,25 +170,9 @@ impl SchedTab {
             warn!("persistence requested with no scheduler selected");
             return false;
         };
-        let mode = self.current_mode();
-        let sched_unit = format!("scx_{}", strip_prefix(&sched_name));
-
-        let template_path = crate::config::paths::systemd().join("scx.service.in");
-        let Ok(template) = std::fs::read_to_string(&template_path) else {
-            warn!("could not read {:?}", template_path);
-            return false;
-        };
-        let rendered = template
-            .replace("@SCHEDULER@", &sched_unit)
-            .replace("@SCHEDULER_NAME@", &sched_name)
-            .replace("@MODE@", &mode);
-
-        if std::fs::write(STAGING_PATH, &rendered).is_err() {
-            warn!("could not stage {STAGING_PATH}");
+        if !stage_unit(&sched_name) {
             return false;
         }
-
-        let sysinit_link = format!("{SYSINIT_TARGET_DIR}/scx.service");
         let seq = CommandSequence::new()
             .then(priv_cmd(
                 "cp",
@@ -205,18 +186,8 @@ impl SchedTab {
             ))
             .then(priv_cmd(
                 "systemctl",
-                &["enable", "--now", "scx.service"],
-                "Enabling and starting service...",
-            ))
-            .then(priv_cmd(
-                "mkdir",
-                &["-p", SYSINIT_TARGET_DIR],
-                "Preparing sysinit target...",
-            ))
-            .then(priv_cmd(
-                "ln",
-                &["-sf", SERVICE_INSTALL_PATH, &sysinit_link],
-                "Linking to sysinit...",
+                &["enable", "scx.service"],
+                "Enabling at boot...",
             ))
             .build();
         task_runner::run(self.window.upcast_ref(), seq, "Enable Persistence");
@@ -225,11 +196,6 @@ impl SchedTab {
 
     fn disable_persistence(self: &Rc<Self>) {
         let seq = CommandSequence::new()
-            .then(priv_cmd(
-                "systemctl",
-                &["stop", "scx.service"],
-                "Stopping service...",
-            ))
             .then(priv_cmd(
                 "systemctl",
                 &["disable", "scx.service"],
@@ -264,30 +230,34 @@ impl SchedTab {
             warn!("start/switch with no scheduler picked");
             return;
         };
-        let mode = self.current_mode();
         let active = self.state.borrow().active;
-
-        let (verb, title, label_verb) = if active {
-            ("switch", "Switch Scheduler", "Switch")
+        let (title, verb_gerund) = if active {
+            ("Switch Scheduler", "Switching to")
         } else {
-            ("start", "Start Scheduler", "Start")
+            ("Start Scheduler", "Starting")
         };
 
-        info!("{verb} {sched_name} ({mode} mode)");
-        let description = format!(
-            "{label_verb}ing scx_{} ({} mode)...",
-            strip_prefix(&sched_name),
-            mode
-        );
+        info!("{} {sched_name}", title.to_lowercase());
+        if !stage_unit(&sched_name) {
+            return;
+        }
+        let description = format!("{verb_gerund} {}...", humanize(&sched_name));
         let seq = CommandSequence::new()
-            .then(
-                Command::builder()
-                    .normal()
-                    .program("scxctl")
-                    .args(&[verb, "--sched", &sched_name, "--mode", &mode])
-                    .description(&description)
-                    .build(),
-            )
+            .then(priv_cmd(
+                "cp",
+                &[STAGING_PATH, SERVICE_INSTALL_PATH],
+                "Installing service...",
+            ))
+            .then(priv_cmd(
+                "systemctl",
+                &["daemon-reload"],
+                "Reloading systemd...",
+            ))
+            .then(priv_cmd(
+                "systemctl",
+                &["restart", "scx.service"],
+                &description,
+            ))
             .build();
         task_runner::run(self.window.upcast_ref(), seq, title);
     }
@@ -300,14 +270,11 @@ impl SchedTab {
             "Stop the current scheduler and fall back to EEVDF?",
             move || {
                 let seq = CommandSequence::new()
-                    .then(
-                        Command::builder()
-                            .normal()
-                            .program("scxctl")
-                            .args(&["stop"])
-                            .description("Stopping scheduler...")
-                            .build(),
-                    )
+                    .then(priv_cmd(
+                        "systemctl",
+                        &["stop", "scx.service"],
+                        "Stopping scheduler...",
+                    ))
                     .build();
                 task_runner::run(me.window.upcast_ref(), seq, "Stop Scheduler");
             },
@@ -380,7 +347,6 @@ impl SchedTab {
             &ScxStatus {
                 active: scan.active,
                 name: scan.name.clone(),
-                mode: scan.mode.clone(),
             },
         );
 
@@ -393,11 +359,6 @@ impl SchedTab {
             scan.active
         );
     }
-
-    fn current_mode(&self) -> String {
-        get_combo_row_value(&extract_widget::<adw::ComboRow>(&self.builder, "mode_combo"))
-            .unwrap_or_else(|| "auto".to_owned())
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -409,19 +370,17 @@ struct SchedScan {
     kernel_supported: bool,
     active: bool,
     name: String,
-    mode: String,
 }
 
 impl SchedScan {
     fn collect() -> Self {
         let schedulers = list_schedulers();
-        let status = ScxStatus::current();
+        let status = ScxStatus::current_with_candidates(&schedulers);
         Self {
             schedulers,
             kernel_supported: path_exists(SCHED_EXT_PATH),
             active: status.active,
             name: status.name,
-            mode: status.mode,
         }
     }
 }
@@ -429,68 +388,51 @@ impl SchedScan {
 struct ScxStatus {
     active: bool,
     name: String,
-    mode: String,
 }
 
 impl ScxStatus {
     fn current() -> Self {
-        let Some(out) = run_command("scxctl", &["get"]) else {
-            return Self::inactive();
-        };
-        let lower = out.to_lowercase();
-        if out.is_empty() || lower.contains("not running") {
-            return Self::inactive();
+        Self::current_with_candidates(&list_schedulers())
+    }
+
+    /// Probe each candidate scheduler binary with `pgrep -x` and report the
+    /// first one that's actually running. Works no matter how it was started
+    /// (scx.service, systemd-run, manual invocation).
+    fn current_with_candidates(candidates: &[String]) -> Self {
+        for name in candidates {
+            if let Some(out) = run_command("pgrep", &["-x", name]) {
+                if !out.trim().is_empty() {
+                    return Self {
+                        active: true,
+                        name: name.clone(),
+                    };
+                }
+            }
         }
-        if !lower.starts_with("running") {
-            return Self::inactive();
-        }
-        let parts: Vec<&str> = out.split_whitespace().collect();
-        if parts.len() < 2 {
-            return Self::inactive();
-        }
-        let name = format!("scx_{}", parts[1].to_lowercase());
-        let mode = out
-            .split(" in ")
-            .nth(1)
-            .and_then(|s| s.split(" mode").next())
-            .map(|s| s.trim().to_owned())
-            .unwrap_or_else(|| "N/A".to_owned());
-        Self {
-            active: true,
-            name,
-            mode,
-        }
+        Self::inactive()
     }
 
     fn inactive() -> Self {
         Self {
             active: false,
             name: String::new(),
-            mode: String::new(),
         }
     }
 }
 
 fn list_schedulers() -> Vec<String> {
-    let Some(out) = run_command("scxctl", &["list"]) else {
+    let Ok(entries) = std::fs::read_dir("/usr/bin") else {
         return Vec::new();
     };
-    const MARKER: &str = "supported schedulers:";
-    let Some(heading) = out.find(MARKER) else {
-        return Vec::new();
-    };
-    let tail = &out[heading + MARKER.len()..];
-    let Some(open) = tail.find('[') else {
-        return Vec::new();
-    };
-    let Some(close_rel) = tail[open..].find(']') else {
-        return Vec::new();
-    };
-    let body = &tail[open + 1..open + close_rel];
-    body.split(',')
-        .map(|s| format!("scx_{}", s.trim().trim_matches('"')))
-        .filter(|s| s.len() > 4)
-        .collect()
+    let mut out: Vec<String> = entries
+        .flatten()
+        .filter_map(|e| {
+            let name = e.file_name().into_string().ok()?;
+            (name.starts_with("scx_") && name.len() > 4).then_some(name)
+        })
+        .collect();
+    out.sort();
+    out
 }
 
 fn default_pick(available: &[String]) -> String {
@@ -509,7 +451,7 @@ fn default_pick(available: &[String]) -> String {
 fn render_active(builder: &Builder, status: &ScxStatus) {
     let label = extract_widget::<Label>(builder, "active_scheduler_label");
     if status.active {
-        label.set_text(&format!("{} ({})", humanize(&status.name), status.mode));
+        label.set_text(&humanize(&status.name));
         label.remove_css_class("dim-label");
         label.add_css_class("accent");
     } else {
@@ -517,6 +459,23 @@ fn render_active(builder: &Builder, status: &ScxStatus) {
         label.remove_css_class("accent");
         label.add_css_class("dim-label");
     }
+}
+
+fn stage_unit(sched_name: &str) -> bool {
+    let template_path = crate::config::paths::systemd().join("scx.service.in");
+    let template = match std::fs::read_to_string(&template_path) {
+        Ok(t) => t,
+        Err(e) => {
+            warn!("could not read {:?}: {}", template_path, e);
+            return false;
+        }
+    };
+    let rendered = template.replace("@SCHEDULER@", sched_name);
+    if let Err(e) = std::fs::write(STAGING_PATH, &rendered) {
+        warn!("could not stage {}: {}", STAGING_PATH, e);
+        return false;
+    }
+    true
 }
 
 fn humanize(name: &str) -> String {
@@ -565,7 +524,6 @@ impl ControlLock {
     fn release(self, builder: &Builder, can_switch: bool, can_stop: bool) {
         let c = Controls::fetch(builder);
         c.row.set_sensitive(true);
-        c.mode.set_sensitive(true);
         c.persist.set_sensitive(true);
         c.switch.set_sensitive(can_switch);
         c.stop.set_sensitive(can_stop);
@@ -578,7 +536,6 @@ impl ControlLock {
 
 struct Controls {
     row: adw::ActionRow,
-    mode: adw::ComboRow,
     switch: Button,
     stop: Button,
     persist: adw::SwitchRow,
@@ -588,7 +545,6 @@ impl Controls {
     fn fetch(builder: &Builder) -> Self {
         Self {
             row: extract_widget(builder, "scheduler_selection_row"),
-            mode: extract_widget(builder, "mode_combo"),
             switch: extract_widget(builder, "btn_switch_scheduler"),
             stop: extract_widget(builder, "btn_stop_scheduler"),
             persist: extract_widget(builder, "persist_switch"),
@@ -597,7 +553,6 @@ impl Controls {
 
     fn set_all_sensitive(&self, on: bool) {
         self.row.set_sensitive(on);
-        self.mode.set_sensitive(on);
         self.switch.set_sensitive(on);
         self.stop.set_sensitive(on);
         self.persist.set_sensitive(on);

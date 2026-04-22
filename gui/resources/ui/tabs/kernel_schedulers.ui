@@ -362,24 +362,6 @@
                               </object>
                             </child>
                             <child>
-                              <object class="AdwComboRow" id="mode_combo">
-                                <property name="title">Profile Mode</property>
-                                <property name="subtitle">Workload optimization target</property>
-                                <property name="icon-name">gauge-symbolic</property>
-                                <property name="model">
-                                  <object class="GtkStringList">
-                                    <items>
-                                      <item>auto</item>
-                                      <item>gaming</item>
-                                      <item>lowlatency</item>
-                                      <item>powersave</item>
-                                    </items>
-                                  </object>
-                                </property>
-                                <property name="selected">0</property>
-                              </object>
-                            </child>
-                            <child>
                               <object class="AdwSwitchRow" id="persist_switch">
                                 <property name="title">Start on Boot</property>
                                 <property name="subtitle">Automatically start service at login</property>

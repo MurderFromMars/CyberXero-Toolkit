@@ -1,9 +1,8 @@
 //! UI utility functions for widget extraction and common operations.
 
-use adw::prelude::ComboRowExt;
 use gtk4::glib;
 use gtk4::prelude::*;
-use gtk4::{Builder, StringList};
+use gtk4::Builder;
 use std::process::Command;
 
 /// Helper to extract widgets from builder with consistent error handling.
@@ -11,14 +10,6 @@ pub fn extract_widget<T: IsA<glib::Object>>(builder: &Builder, name: &str) -> T 
     builder
         .object(name)
         .unwrap_or_else(|| panic!("Failed to get widget with id '{}'", name))
-}
-
-/// Get the selected string value from an AdwComboRow.
-pub fn get_combo_row_value(combo: &adw::ComboRow) -> Option<String> {
-    let model = combo.model()?;
-    let string_list = model.downcast_ref::<StringList>()?;
-    let selected = combo.selected();
-    string_list.string(selected).map(|s| s.to_string())
 }
 
 /// Run a command and return stdout as a trimmed string.

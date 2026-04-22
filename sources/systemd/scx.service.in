@@ -4,11 +4,9 @@ After=sysinit.target local-fs.target
 DefaultDependencies=no
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/scxctl stop 2>/dev/null || true; /usr/bin/scxctl start --sched @SCHEDULER_NAME@ --mode @MODE@'
-ExecStop=/usr/bin/scxctl stop
-TimeoutStartSec=30
+Type=simple
+ExecStart=/usr/bin/@SCHEDULER@
+TimeoutStopSec=10
 
 [Install]
 WantedBy=sysinit.target

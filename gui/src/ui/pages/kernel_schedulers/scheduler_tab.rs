@@ -1,8 +1,10 @@
 //! SCX scheduler tab.
 //!
-//! Detects sched-ext kernel support, enumerates available BPF schedulers by
-//! scanning `/usr/bin/scx_*`, and wires the buttons that start / switch /
-//! stop the active scheduler via a rendered `scx.service` systemd unit.
+//! Detects sched-ext kernel support, enumerates available BPF schedulers via
+//! the `scx_loader` D-Bus service (falling back to a `/usr/bin/scx_*` scan
+//! when the loader isn't running), and drives switch / start / stop through
+//! the loader's D-Bus interface. Persistence is handled by writing
+//! `/etc/scx_loader.toml` and enabling `scx_loader.service`.
 
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -21,9 +23,19 @@ use crate::ui::task_runner::{self, Command, CommandSequence};
 use crate::ui::utils::{extract_widget, is_service_enabled, path_exists, run_command};
 
 const SCHED_EXT_PATH: &str = "/sys/kernel/sched_ext";
-const SERVICE_NAME: &str = "scx.service";
-const STAGING_PATH: &str = "/tmp/scx.service";
-const SERVICE_INSTALL_PATH: &str = "/etc/systemd/system/scx.service";
+
+const LOADER_SERVICE: &str = "scx_loader.service";
+const LOADER_CONFIG_PATH: &str = "/etc/scx_loader.toml";
+const LOADER_CONFIG_STAGING: &str = "/tmp/scx_loader.toml";
+
+const LOADER_BUS: &str = "org.scx.Loader";
+const LOADER_OBJ: &str = "/org/scx/Loader";
+const LOADER_IFACE: &str = "org.scx.Loader";
+
+// scx_loader mode enum — matches the u32 accepted by SwitchScheduler /
+// StartSchedulerWithArgs. We default to Auto; users wanting gaming/lowlatency
+// profiles can still edit /etc/scx_loader.toml or use scxctl directly.
+const MODE_AUTO: u32 = 0;
 
 const POLL: Duration = Duration::from_millis(100);
 const STATUS_REFRESH: Duration = Duration::from_secs(3);
@@ -152,7 +164,7 @@ impl SchedTab {
 
     fn bind_persistence(self: &Rc<Self>) {
         let switch = extract_widget::<adw::SwitchRow>(&self.builder, "persist_switch");
-        switch.set_active(is_service_enabled(SERVICE_NAME));
+        switch.set_active(is_service_enabled(LOADER_SERVICE));
         let me = self.clone();
         switch.connect_active_notify(move |sw| {
             if sw.is_active() {
@@ -170,24 +182,19 @@ impl SchedTab {
             warn!("persistence requested with no scheduler selected");
             return false;
         };
-        if !stage_unit(&sched_name) {
+        if !stage_loader_config(&sched_name) {
             return false;
         }
         let seq = CommandSequence::new()
             .then(priv_cmd(
                 "cp",
-                &[STAGING_PATH, SERVICE_INSTALL_PATH],
-                "Installing service...",
+                &[LOADER_CONFIG_STAGING, LOADER_CONFIG_PATH],
+                "Writing /etc/scx_loader.toml...",
             ))
             .then(priv_cmd(
                 "systemctl",
-                &["daemon-reload"],
-                "Reloading systemd...",
-            ))
-            .then(priv_cmd(
-                "systemctl",
-                &["enable", "scx.service"],
-                "Enabling at boot...",
+                &["enable", "--now", LOADER_SERVICE],
+                "Enabling scx_loader at boot...",
             ))
             .build();
         task_runner::run(self.window.upcast_ref(), seq, "Enable Persistence");
@@ -198,8 +205,8 @@ impl SchedTab {
         let seq = CommandSequence::new()
             .then(priv_cmd(
                 "systemctl",
-                &["disable", "scx.service"],
-                "Disabling service...",
+                &["disable", LOADER_SERVICE],
+                "Disabling scx_loader at boot...",
             ))
             .build();
         task_runner::run(self.window.upcast_ref(), seq, "Disable Persistence");
@@ -231,34 +238,29 @@ impl SchedTab {
             return;
         };
         let active = self.state.borrow().active;
-        let (title, verb_gerund) = if active {
-            ("Switch Scheduler", "Switching to")
+        let (title, verb_gerund, method) = if active {
+            ("Switch Scheduler", "Switching to", "SwitchScheduler")
         } else {
-            ("Start Scheduler", "Starting")
+            ("Start Scheduler", "Starting", "StartSchedulerWithArgs")
         };
 
         info!("{} {sched_name}", title.to_lowercase());
-        if !stage_unit(&sched_name) {
-            return;
-        }
         let description = format!("{verb_gerund} {}...", humanize(&sched_name));
+
+        let owned = gdbus_switch_args(method, &sched_name);
+        let borrowed: Vec<&str> = owned.iter().map(String::as_str).collect();
+
         let seq = CommandSequence::new()
-            .then(priv_cmd(
-                "cp",
-                &[STAGING_PATH, SERVICE_INSTALL_PATH],
-                "Installing service...",
-            ))
+            // Always make sure scx_loader is running before poking its D-Bus
+            // interface. `systemctl start` is a no-op when it's already up.
             .then(priv_cmd(
                 "systemctl",
-                &["daemon-reload"],
-                "Reloading systemd...",
+                &["start", LOADER_SERVICE],
+                "Ensuring scx_loader is running...",
             ))
-            .then(priv_cmd(
-                "systemctl",
-                &["restart", "scx.service"],
-                &description,
-            ))
+            .then(priv_cmd("gdbus", &borrowed, &description))
             .build();
+
         task_runner::run(self.window.upcast_ref(), seq, title);
     }
 
@@ -269,10 +271,12 @@ impl SchedTab {
             "Stop Scheduler",
             "Stop the current scheduler and fall back to EEVDF?",
             move || {
+                let owned = gdbus_method_args("StopScheduler");
+                let borrowed: Vec<&str> = owned.iter().map(String::as_str).collect();
                 let seq = CommandSequence::new()
                     .then(priv_cmd(
-                        "systemctl",
-                        &["stop", "scx.service"],
+                        "gdbus",
+                        &borrowed,
                         "Stopping scheduler...",
                     ))
                     .build();
@@ -351,7 +355,7 @@ impl SchedTab {
         );
 
         extract_widget::<adw::SwitchRow>(&self.builder, "persist_switch")
-            .set_active(is_service_enabled(SERVICE_NAME));
+            .set_active(is_service_enabled(LOADER_SERVICE));
 
         info!(
             "scheduler scan: {} schedulers, active={}",
@@ -395,10 +399,14 @@ impl ScxStatus {
         Self::current_with_candidates(&list_schedulers())
     }
 
-    /// Probe each candidate scheduler binary with `pgrep -x` and report the
-    /// first one that's actually running. Works no matter how it was started
-    /// (scx.service, systemd-run, manual invocation).
+    /// First ask scx_loader for its CurrentScheduler. If the loader isn't on
+    /// the bus (e.g. service stopped, not installed) we fall back to a pgrep
+    /// over the candidate list so a scheduler started outside the loader
+    /// still shows up.
     fn current_with_candidates(candidates: &[String]) -> Self {
+        if let Some(name) = loader_current_scheduler() {
+            return Self { active: true, name };
+        }
         for name in candidates {
             if let Some(out) = run_command("pgrep", &["-x", name]) {
                 if !out.trim().is_empty() {
@@ -421,6 +429,13 @@ impl ScxStatus {
 }
 
 fn list_schedulers() -> Vec<String> {
+    if let Some(list) = loader_supported_schedulers() {
+        if !list.is_empty() {
+            return list;
+        }
+    }
+    // Loader unavailable — enumerate scx_* binaries so the UI is still useful
+    // before scx_loader gets started for the first time.
     let Ok(entries) = std::fs::read_dir("/usr/bin") else {
         return Vec::new();
     };
@@ -445,6 +460,123 @@ fn default_pick(available: &[String]) -> String {
 }
 
 // ---------------------------------------------------------------------------
+// scx_loader D-Bus helpers (read-only queries via `gdbus`)
+// ---------------------------------------------------------------------------
+
+/// Query `org.scx.Loader.CurrentScheduler`. Returns `None` if the loader
+/// isn't reachable or reports "unknown".
+fn loader_current_scheduler() -> Option<String> {
+    let out = run_command(
+        "gdbus",
+        &[
+            "call",
+            "--system",
+            "--dest",
+            LOADER_BUS,
+            "--object-path",
+            LOADER_OBJ,
+            "--method",
+            "org.freedesktop.DBus.Properties.Get",
+            LOADER_IFACE,
+            "CurrentScheduler",
+        ],
+    )?;
+    let name = parse_gdbus_string(&out)?;
+    if name.is_empty() || name == "unknown" {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+/// Query `org.scx.Loader.SupportedSchedulers`. Returns `None` if the loader
+/// isn't reachable.
+fn loader_supported_schedulers() -> Option<Vec<String>> {
+    let out = run_command(
+        "gdbus",
+        &[
+            "call",
+            "--system",
+            "--dest",
+            LOADER_BUS,
+            "--object-path",
+            LOADER_OBJ,
+            "--method",
+            "org.freedesktop.DBus.Properties.Get",
+            LOADER_IFACE,
+            "SupportedSchedulers",
+        ],
+    )?;
+    let mut list = parse_gdbus_string_array(&out)?;
+    list.sort();
+    Some(list)
+}
+
+/// `gdbus` prints variant-wrapped properties like:
+///   `(<'scx_rusty'>,)`
+/// Pull out the inner string.
+fn parse_gdbus_string(raw: &str) -> Option<String> {
+    let start = raw.find('\'')?;
+    let end = raw[start + 1..].find('\'')? + start + 1;
+    Some(raw[start + 1..end].to_owned())
+}
+
+/// `gdbus` prints string arrays like:
+///   `(<['scx_rusty', 'scx_lavd']>,)`
+fn parse_gdbus_string_array(raw: &str) -> Option<Vec<String>> {
+    let open = raw.find('[')?;
+    let close = raw[open..].find(']')? + open;
+    let body = &raw[open + 1..close];
+    let items: Vec<String> = body
+        .split(',')
+        .map(|s| s.trim().trim_matches('\'').to_owned())
+        .filter(|s| !s.is_empty())
+        .collect();
+    Some(items)
+}
+
+// ---------------------------------------------------------------------------
+// scx_loader D-Bus helpers (state-changing calls — routed through the
+// privileged task runner so polkit prompts happen once via pkexec).
+// ---------------------------------------------------------------------------
+
+/// Build gdbus args for SwitchScheduler / StartSchedulerWithArgs, returning
+/// owned strings so they can be borrowed into the Command builder safely.
+fn gdbus_switch_args(method: &str, sched_name: &str) -> Vec<String> {
+    let mut v = vec![
+        "call".into(),
+        "--system".into(),
+        "--dest".into(),
+        LOADER_BUS.into(),
+        "--object-path".into(),
+        LOADER_OBJ.into(),
+        "--method".into(),
+        format!("{LOADER_IFACE}.{method}"),
+        format!("'{sched_name}'"),
+        format!("{MODE_AUTO}"),
+    ];
+    if method == "StartSchedulerWithArgs" {
+        // Empty args array — scheduler picks its own defaults for this mode.
+        v.push("[]".into());
+    }
+    v
+}
+
+/// Build gdbus args for zero-parameter methods like StopScheduler.
+fn gdbus_method_args(method: &str) -> Vec<String> {
+    vec![
+        "call".into(),
+        "--system".into(),
+        "--dest".into(),
+        LOADER_BUS.into(),
+        "--object-path".into(),
+        LOADER_OBJ.into(),
+        "--method".into(),
+        format!("{LOADER_IFACE}.{method}"),
+    ]
+}
+
+// ---------------------------------------------------------------------------
 // Rendering + formatting helpers
 // ---------------------------------------------------------------------------
 
@@ -461,18 +593,16 @@ fn render_active(builder: &Builder, status: &ScxStatus) {
     }
 }
 
-fn stage_unit(sched_name: &str) -> bool {
-    let template_path = crate::config::paths::systemd().join("scx.service.in");
-    let template = match std::fs::read_to_string(&template_path) {
-        Ok(t) => t,
-        Err(e) => {
-            warn!("could not read {:?}: {}", template_path, e);
-            return false;
-        }
-    };
-    let rendered = template.replace("@SCHEDULER@", sched_name);
-    if let Err(e) = std::fs::write(STAGING_PATH, &rendered) {
-        warn!("could not stage {}: {}", STAGING_PATH, e);
+/// Render a minimal `/etc/scx_loader.toml` that makes the chosen scheduler
+/// the one scx_loader auto-starts at boot.
+fn stage_loader_config(sched_name: &str) -> bool {
+    let rendered = format!(
+        "# Managed by CyberXero Toolkit.\n\
+         default_sched = \"{sched_name}\"\n\
+         default_mode = \"auto\"\n"
+    );
+    if let Err(e) = std::fs::write(LOADER_CONFIG_STAGING, &rendered) {
+        warn!("could not stage {}: {}", LOADER_CONFIG_STAGING, e);
         return false;
     }
     true

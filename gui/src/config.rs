@@ -38,9 +38,6 @@ pub mod paths {
     /// Path to the scripts directory.
     pub const SCRIPTS: &str = "/opt/cyberxero-toolkit/sources/scripts";
 
-    /// Path to the systemd units directory.
-    pub const SYSTEMD: &str = "/opt/cyberxero-toolkit/sources/systemd";
-
     /// Path to the desktop file in system applications.
     pub const DESKTOP_FILE: &str = "/usr/share/applications/cyberxero-toolkit.desktop";
 
@@ -66,11 +63,6 @@ pub mod paths {
     /// Get the scripts path as a PathBuf.
     pub fn scripts() -> PathBuf {
         PathBuf::from(SCRIPTS)
-    }
-
-    /// Get the systemd units path as a PathBuf.
-    pub fn systemd() -> PathBuf {
-        PathBuf::from(SYSTEMD)
     }
 
     /// Get the desktop file path as a PathBuf.

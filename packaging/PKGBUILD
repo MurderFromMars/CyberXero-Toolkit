@@ -13,10 +13,11 @@ depends=(
     'libadwaita'
     'vte4'
     'flatpak'
-    'scx-tool'
+    'scx-tools'
+    'scx-scheds'
     'polkit')
 optdepends=(
-    'scxctl: SCX scheduler management for sched-ext kernels')
+    'scxctl: optional CLI for scx_loader (toolkit uses the D-Bus API directly)')
 makedepends=(
     'rust'
     'cargo'
@@ -44,11 +45,9 @@ package() {
   install -Dm755 "target/release/cyberxero-auth" \
     "${pkgdir}/opt/cyberxero-toolkit/cyberxero-auth"
 
-  # Install sources (scripts and systemd units)
+  # Install sources (helper scripts)
   install -d "${pkgdir}/opt/cyberxero-toolkit/sources/scripts"
-  install -d "${pkgdir}/opt/cyberxero-toolkit/sources/systemd"
   install -m755 sources/scripts/* "${pkgdir}/opt/cyberxero-toolkit/sources/scripts/"
-  install -m644 sources/systemd/* "${pkgdir}/opt/cyberxero-toolkit/sources/systemd/"
 
   # Convenience symlink in /usr/bin
   install -d "${pkgdir}/usr/bin"

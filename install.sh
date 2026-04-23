@@ -116,6 +116,7 @@ DEPS=(
     "polkit"
     "base-devel"
     "scx-scheds"
+    "scx-tools"
 )
 
 MISSING_DEPS=()
@@ -161,7 +162,6 @@ print_status "Installing to /opt/cyberxero-toolkit..."
 # Create directories
 sudo mkdir -p /opt/cyberxero-toolkit || die "Failed to create /opt/cyberxero-toolkit"
 sudo mkdir -p /opt/cyberxero-toolkit/sources/scripts
-sudo mkdir -p /opt/cyberxero-toolkit/sources/systemd
 
 # Install binaries
 print_status "Installing binaries..."
@@ -170,9 +170,8 @@ sudo install -Dm755 "target/release/cyberxero-authd" "/opt/cyberxero-toolkit/cyb
 sudo install -Dm755 "target/release/cyberxero-auth" "/opt/cyberxero-toolkit/cyberxero-auth" || die "Failed to install cyberxero-auth"
 
 # Install sources
-print_status "Installing scripts and systemd units..."
+print_status "Installing scripts..."
 sudo install -m755 sources/scripts/* "/opt/cyberxero-toolkit/sources/scripts/" || die "Failed to install scripts"
-sudo install -m644 sources/systemd/* "/opt/cyberxero-toolkit/sources/systemd/" || die "Failed to install systemd units"
 
 # Create symlink in /usr/bin
 print_status "Creating symlink..."

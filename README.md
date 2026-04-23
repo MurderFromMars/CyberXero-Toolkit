@@ -132,7 +132,7 @@ Removes binaries, symlinks, desktop entries, icons, all bundled scripts, and aut
 
 Installed automatically by `install.sh`:
 
-`rust` - `cargo` - `pkgconf` - `gtk4` - `glib2` - `libadwaita` - `vte4` - `flatpak` - `polkit` - `base-devel` - `scx-scheds`
+`rust` - `cargo` - `pkgconf` - `gtk4` - `glib2` - `libadwaita` - `vte4` - `flatpak` - `polkit` - `base-devel` - `scx-scheds` - `scx-tools`
 
 ---
 

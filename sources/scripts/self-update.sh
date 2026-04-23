@@ -91,7 +91,9 @@ if [ -f "$LEGACY_UNIT" ] \
     # Seed /etc/scx_loader.toml with the previously-pinned scheduler so the
     # user's choice survives the migration. Don't clobber an existing config.
     if [ -n "$LEGACY_SCHED" ] && [ ! -f /etc/scx_loader.toml ]; then
-        printf '# Migrated by CyberXero Toolkit self-update.\ndefault_sched = "%s"\ndefault_mode = "auto"\n' \
+        # scx_loader expects CamelCase mode variants (Auto / Gaming /
+        # PowerSave / LowLatency / Server) — lowercase fails TOML parsing.
+        printf '# Migrated by CyberXero Toolkit self-update.\ndefault_sched = "%s"\ndefault_mode = "Auto"\n' \
             "$LEGACY_SCHED" > /etc/scx_loader.toml
         systemctl enable --now scx_loader.service 2>/dev/null || true
         echo "    preserved scheduler '$LEGACY_SCHED' via /etc/scx_loader.toml"

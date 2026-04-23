@@ -596,10 +596,13 @@ fn render_active(builder: &Builder, status: &ScxStatus) {
 /// Render a minimal `/etc/scx_loader.toml` that makes the chosen scheduler
 /// the one scx_loader auto-starts at boot.
 fn stage_loader_config(sched_name: &str) -> bool {
+    // scx_loader expects mode variants in CamelCase (Auto, Gaming, PowerSave,
+    // LowLatency, Server) — lowercase strings fail TOML parsing and the
+    // service refuses to start.
     let rendered = format!(
         "# Managed by CyberXero Toolkit.\n\
          default_sched = \"{sched_name}\"\n\
-         default_mode = \"auto\"\n"
+         default_mode = \"Auto\"\n"
     );
     if let Err(e) = std::fs::write(LOADER_CONFIG_STAGING, &rendered) {
         warn!("could not stage {}: {}", LOADER_CONFIG_STAGING, e);

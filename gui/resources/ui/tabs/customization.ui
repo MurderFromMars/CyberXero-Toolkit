@@ -82,6 +82,13 @@
                 <property name="css-classes">destructive-action pill</property>
               </object>
             </child>
+            <child>
+              <object class="GtkButton" id="btn_carnage_theme">
+                <property name="label">Apply Carnage Theme</property>
+                <property name="height-request">50</property>
+                <property name="css-classes">destructive-action pill</property>
+              </object>
+            </child>
           </object>
         </child>
         <!-- Row 1: ZSH AiO, Save Desktop -->

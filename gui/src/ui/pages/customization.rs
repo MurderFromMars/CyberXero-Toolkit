@@ -4,6 +4,7 @@
 //! - CyberXero Theme installation
 //! - PS4 Theme installation
 //! - Lunar Glass Theme installation
+//! - Carnage Theme installation
 //! - ZSH All-in-One setup
 //! - Save Desktop tool
 //! - GRUB theme installation
@@ -24,6 +25,7 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_cyberxero_theme(page_builder, window);
     setup_ps4_theme(page_builder, window);
     setup_lunar_glass(page_builder, window);
+    setup_carnage_theme(page_builder, window);
     setup_zsh_aio(page_builder, window);
     setup_save_desktop(page_builder, window);
     setup_grub_theme(page_builder, window);
@@ -110,6 +112,34 @@ fn setup_lunar_glass(builder: &Builder, window: &ApplicationWindow) {
                     window_clone.upcast_ref(),
                     "Lunar Glass Theme Installation",
                     "/usr/local/bin/Lunar-Glass",
+                    &[],
+                );
+            },
+        );
+    });
+}
+
+fn setup_carnage_theme(builder: &Builder, window: &ApplicationWindow) {
+    let button = extract_widget::<Button>(builder, "btn_carnage_theme");
+    let window = window.clone();
+
+    button.connect_clicked(move |_| {
+        info!("Carnage Theme button clicked");
+
+        let window_clone = window.clone();
+        crate::ui::dialogs::warning::show_warning_confirmation(
+            window.upcast_ref(),
+            "Apply Carnage Theme",
+            "This will install the <span foreground=\"red\" weight=\"bold\">Carnage Dynamic Tiling Theme</span>.\n\n\
+             • Existing Plasma configs will be <span foreground=\"cyan\" weight=\"bold\">backed up</span> automatically\n\
+             • KWin effects will be compiled from source\n\
+             • Plasmashell will be <span foreground=\"red\" weight=\"bold\">restarted</span> during installation\n\n\
+             This process may take several minutes.",
+            move || {
+                terminal::show_terminal_dialog(
+                    window_clone.upcast_ref(),
+                    "Carnage Theme Installation",
+                    "/usr/local/bin/carnage-theme",
                     &[],
                 );
             },

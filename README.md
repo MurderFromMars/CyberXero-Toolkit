@@ -144,4 +144,4 @@ GNU General Public License v3.0 — see [LICENSE](LICENSE).
 
 ## Credit for Original Concept
 
-This project started off as a fork of the Xero Toolkit, a tool made by Synse and DarkXero, it started off as seeking to port the toolkit so it could be used on other distros, lots of drama ensued, over time, this project has become distinct enough (and given how much the relationship between me and upstream has soured) remaining a fork no longer makes sense, i've rewritten entire pages, added new ones. and made lots of other additions and rewritten a significant amount of the backend code. so this is now a standalone project.
+This project started off as a fork of the Xero Toolkit, a tool made by Synse and DarkXero, it started off as seeking to port the toolkit so it could be used on other distros, lots of drama ensued, over time, this project has become distinct enough (and given how much the relationship between me and upstream has soured) remaining a fork no longer makes sense, I've rewritten entire pages, added new ones. and made lots of other additions and rewritten a significant amount of the backend code. so this is now a standalone project.

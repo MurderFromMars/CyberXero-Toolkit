@@ -51,20 +51,27 @@
       <object class="GtkBox">
         <property name="orientation">vertical</property>
         <property name="spacing">16</property>
-        <property name="halign">center</property>
+        <property name="halign">fill</property>
         <property name="valign">center</property>
+        <property name="hexpand">true</property>
         <property name="vexpand">true</property>
         <property name="margin-top">32</property>
-        <!-- Row 0: CyberXero Theme, PS4 Theme, Lunar Glass Theme (featured) -->
+        <!-- Row 0: CyberXero Theme, PS4 Theme, Lunar Glass Theme, Carnage Theme (featured) -->
         <child>
-          <object class="GtkBox">
-            <property name="orientation">horizontal</property>
-            <property name="spacing">16</property>
-            <property name="halign">center</property>
+          <object class="GtkFlowBox">
+            <property name="selection-mode">none</property>
+            <property name="column-spacing">16</property>
+            <property name="row-spacing">16</property>
+            <property name="homogeneous">true</property>
+            <property name="halign">fill</property>
+            <property name="hexpand">true</property>
+            <property name="min-children-per-line">1</property>
+            <property name="max-children-per-line">4</property>
             <child>
               <object class="GtkButton" id="btn_cyberxero_theme">
                 <property name="label">Apply CyberXero Theme</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">destructive-action pill</property>
               </object>
             </child>
@@ -72,6 +79,7 @@
               <object class="GtkButton" id="btn_ps4_theme">
                 <property name="label">Apply PS4 Theme</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">destructive-action pill</property>
               </object>
             </child>
@@ -79,6 +87,7 @@
               <object class="GtkButton" id="btn_lunar_glass">
                 <property name="label">Apply Lunar Glass Theme</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">destructive-action pill</property>
               </object>
             </child>
@@ -86,6 +95,7 @@
               <object class="GtkButton" id="btn_carnage_theme">
                 <property name="label">Apply Carnage Theme</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">destructive-action pill</property>
               </object>
             </child>
@@ -93,14 +103,20 @@
         </child>
         <!-- Row 1: ZSH AiO, Save Desktop -->
         <child>
-          <object class="GtkBox">
-            <property name="orientation">horizontal</property>
-            <property name="spacing">16</property>
-            <property name="halign">center</property>
+          <object class="GtkFlowBox">
+            <property name="selection-mode">none</property>
+            <property name="column-spacing">16</property>
+            <property name="row-spacing">16</property>
+            <property name="homogeneous">true</property>
+            <property name="halign">fill</property>
+            <property name="hexpand">true</property>
+            <property name="min-children-per-line">1</property>
+            <property name="max-children-per-line">2</property>
             <child>
               <object class="GtkButton" id="btn_zsh_aio">
                 <property name="label">Setup ZSH AiO</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
             </child>
@@ -108,6 +124,7 @@
               <object class="GtkButton" id="btn_save_desktop">
                 <property name="label">Save Desktop Tool</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
             </child>
@@ -115,14 +132,20 @@
         </child>
         <!-- Row 2: GRUB Theme, Plymouth Manager, Layan Patch -->
         <child>
-          <object class="GtkBox">
-            <property name="orientation">horizontal</property>
-            <property name="spacing">16</property>
-            <property name="halign">center</property>
+          <object class="GtkFlowBox">
+            <property name="selection-mode">none</property>
+            <property name="column-spacing">16</property>
+            <property name="row-spacing">16</property>
+            <property name="homogeneous">true</property>
+            <property name="halign">fill</property>
+            <property name="hexpand">true</property>
+            <property name="min-children-per-line">1</property>
+            <property name="max-children-per-line">3</property>
             <child>
               <object class="GtkButton" id="btn_grub_theme">
                 <property name="label">GRUB Theme</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
             </child>
@@ -130,6 +153,7 @@
               <object class="GtkButton" id="btn_plymouth_manager">
                 <property name="label">Plymouth Manager</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
             </child>
@@ -137,6 +161,7 @@
               <object class="GtkButton" id="btn_layan_patch">
                 <property name="label">Update Layan Theme</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
             </child>
@@ -144,14 +169,20 @@
         </child>
         <!-- Row 3: Decky Loader, Config/Rice Reset -->
         <child>
-          <object class="GtkBox">
-            <property name="orientation">horizontal</property>
-            <property name="spacing">16</property>
-            <property name="halign">center</property>
+          <object class="GtkFlowBox">
+            <property name="selection-mode">none</property>
+            <property name="column-spacing">16</property>
+            <property name="row-spacing">16</property>
+            <property name="homogeneous">true</property>
+            <property name="halign">fill</property>
+            <property name="hexpand">true</property>
+            <property name="min-children-per-line">1</property>
+            <property name="max-children-per-line">2</property>
             <child>
               <object class="GtkButton" id="btn_decky_loader">
                 <property name="label">Decky Loader</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
             </child>
@@ -159,6 +190,7 @@
               <object class="GtkButton" id="btn_config_reset">
                 <property name="label">Config/Rice Reset</property>
                 <property name="height-request">50</property>
+                <property name="hexpand">true</property>
                 <property name="css-classes">suggested-action pill</property>
               </object>
             </child>

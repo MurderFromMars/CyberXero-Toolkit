@@ -48,6 +48,10 @@ pub fn setup_application_ui(app: &Application) {
     // Apply seasonal effects (snow for December, Halloween for October, etc.)
     crate::ui::seasonal::apply_seasonal_effects(&window);
 
+    // Background-check for a toolkit update and reveal the header-bar notifier
+    // if one is available.
+    setup_update_notifier(&builder, &window);
+
     // Present the window only after the full UI is assembled —
     // this prevents the visible resize/hitch where the window
     // appears empty at a small size before the WM tiles it.
@@ -193,6 +197,42 @@ fn setup_about_button(builder: &Builder, window: &ApplicationWindow) {
     button.connect_clicked(move |_| {
         info!("About button clicked");
         about::show_about_dialog(window_clone.upcast_ref());
+    });
+}
+
+/// Run a background `git ls-remote` check and, if an update is available,
+/// reveal the header-bar notifier and wire its click to the update dialog.
+fn setup_update_notifier(builder: &Builder, window: &ApplicationWindow) {
+    use crate::ui::pages::servicing;
+
+    let button = extract_widget::<gtk4::Button>(builder, "update_notification_button");
+    button.set_visible(false);
+
+    let (sender, receiver) = async_channel::bounded::<servicing::UpdateInfo>(1);
+
+    std::thread::spawn(move || {
+        info!("Checking for toolkit updates (background thread)");
+        if let Some(info) = servicing::check_for_update() {
+            let _ = sender.send_blocking(info);
+        }
+    });
+
+    let window = window.clone();
+    glib::MainContext::default().spawn_local(async move {
+        if let Ok(info) = receiver.recv().await {
+            info!("Toolkit update available — showing header-bar notifier");
+            button.set_visible(true);
+
+            let window_clone = window.clone();
+            let info_cell = std::cell::RefCell::new(Some(info));
+            button.connect_clicked(move |_| {
+                if let Some(info) = info_cell.borrow_mut().take() {
+                    servicing::show_update_dialog(&window_clone, info);
+                } else if let Some(info) = servicing::check_for_update() {
+                    servicing::show_update_dialog(&window_clone, info);
+                }
+            });
+        }
     });
 }
 

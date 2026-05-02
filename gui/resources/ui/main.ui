@@ -21,6 +21,18 @@
                 <property name="active">true</property>
               </object>
             </child>
+            <!-- Update available notifier (hidden until startup check finds an update) -->
+            <child type="end">
+              <object class="GtkButton" id="update_notification_button">
+                <property name="tooltip-text">A toolkit update is available</property>
+                <property name="icon-name">download-symbolic</property>
+                <property name="visible">false</property>
+                <style>
+                  <class name="suggested-action"/>
+                  <class name="circular"/>
+                </style>
+              </object>
+            </child>
             <!-- Seasonal effects toggle button -->
             <child type="end">
               <object class="GtkToggleButton" id="seasonal_effects_toggle">

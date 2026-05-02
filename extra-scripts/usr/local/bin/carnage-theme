@@ -508,7 +508,7 @@ install_kyanite() {
 
 deploy_config_folders() {
     log "deploying configuration modules…"
-    local folders=(btop kitty fastfetch)
+    local folders=(btop kitty fastfetch cava)
     for f in "${folders[@]}"; do
         if [ -d "$REPO_DIR/$f" ]; then
             backup_file "$HOME/.config/$f"

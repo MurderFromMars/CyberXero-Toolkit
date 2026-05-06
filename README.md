@@ -100,6 +100,7 @@ CyberXero Toolkit ships as the default system management tool in [OrbitOS](https
 
 ## Requirements
 
+- **CPU: x86-64-v3 capable** — Intel Haswell (2013) / AMD Excavator (2015) or newer. Builds use CachyOS-style optimizations (`-C target-cpu=x86-64-v3`, fat LTO, single codegen unit) for noticeably faster runtime performance. Older CPUs will hit `Illegal instruction` on launch. Check with `/lib/ld-linux-x86-64.so.2 --help | grep x86-64-v3` — you want to see `(supported, searched)`.
 - **AUR helper** — Paru or Yay (the installer will offer to set one up if missing)
 - **Flatpak** — optional, used for some multimedia tools
 

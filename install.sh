@@ -143,6 +143,9 @@ cd "$SCRIPT_DIR"
 
 cargo clean
 
+# CachyOS-style v3 optimizations are pinned in Cargo.toml's [profile.release]
+# and .cargo/config.toml's rustflags — applies automatically to every build.
+
 if ! cargo build --release; then
     die "Build failed. Check the error messages above."
 fi

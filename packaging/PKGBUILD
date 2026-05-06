@@ -30,6 +30,8 @@ options=('!emptydirs')
 build() {
   cd "${startdir}/.."
 
+  # CachyOS-style v3 optimizations are pinned in Cargo.toml's [profile.release]
+  # and .cargo/config.toml's rustflags — applies automatically.
   cargo build --release --locked
 }
 

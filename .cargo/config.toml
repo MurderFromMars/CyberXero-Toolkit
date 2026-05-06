@@ -1,0 +1,14 @@
+# CachyOS-style v3 optimizations — pinned to the repo so every build path
+# (install.sh, PKGBUILD, in-app self-updater, plain `cargo build`) gets the
+# same target-cpu floor without each caller having to export RUSTFLAGS.
+#
+# x86-64-v3 covers Haswell (2013+) and Excavator (2015+). Users on older
+# CPUs can override by setting RUSTFLAGS in their environment — env wins
+# over this file.
+
+[target.'cfg(target_arch = "x86_64")']
+rustflags = [
+    "-C", "target-cpu=x86-64-v3",
+    "-C", "link-arg=-Wl,-O1,--as-needed",
+    "-C", "relocation-model=pic",
+]

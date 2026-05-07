@@ -56,7 +56,7 @@
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
         <property name="margin-top">32</property>
-        <!-- Row 0: CyberXero Theme, PS4 Theme, Lunar Glass Theme, Carnage Theme (featured) -->
+        <!-- Row 0: CyberXero, PS4, Lunar Glass, Carnage, Nova-Choom Theme (featured) -->
         <child>
           <object class="GtkFlowBox">
             <property name="selection-mode">none</property>
@@ -66,7 +66,7 @@
             <property name="halign">fill</property>
             <property name="hexpand">true</property>
             <property name="min-children-per-line">1</property>
-            <property name="max-children-per-line">4</property>
+            <property name="max-children-per-line">5</property>
             <child>
               <object class="GtkButton" id="btn_cyberxero_theme">
                 <property name="label">Apply CyberXero Theme</property>
@@ -94,6 +94,14 @@
             <child>
               <object class="GtkButton" id="btn_carnage_theme">
                 <property name="label">Apply Carnage Theme</property>
+                <property name="height-request">50</property>
+                <property name="hexpand">true</property>
+                <property name="css-classes">destructive-action pill</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_nova_choom_theme">
+                <property name="label">Apply Nova-Choom Theme</property>
                 <property name="height-request">50</property>
                 <property name="hexpand">true</property>
                 <property name="css-classes">destructive-action pill</property>

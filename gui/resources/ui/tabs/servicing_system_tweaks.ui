@@ -233,7 +233,7 @@
         </child>
         <child>
           <object class="GtkButton" id="btn_xpackagemanager">
-            <property name="label">Install xPackageManager</property>
+            <property name="label">Install cxPackageManager</property>
             <property name="height-request">36</property>
             <property name="hexpand">true</property>
             <property name="css-classes">svc-btn</property>
@@ -242,7 +242,7 @@
         </child>
         <child>
           <object class="GtkButton" id="btn_xpackagemanager_uninstall">
-            <property name="label">Uninstall xPackageManager</property>
+            <property name="label">Uninstall cxPackageManager</property>
             <property name="height-request">36</property>
             <property name="hexpand">true</property>
             <property name="css-classes">destructive-action svc-btn</property>

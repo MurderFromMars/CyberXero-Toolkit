@@ -29,7 +29,7 @@ One-click install for:
 
 - **Third-party repos** — one-click install for CachyOS, Chaotic-AUR, and XeroLinux repositories
 - **Smart mirror updates** — auto-detects all configured repos and updates mirrorlists via `rate-mirrors` (Arch, CachyOS, Chaotic-AUR, EndeavourOS, Manjaro, RebornOS, Artix)
-- **xPackageManager** — dynamic repo detection
+- **cxPackageManager** — Slint GUI for pacman, AUR, Flatpak, firmware (CyberXero Edition)
 - **Toolkit self-updater** — checks upstream commit hash and rebuilds from source
 - **Orphaned package removal** — presents a selectable list of orphans to clean up
 - System updater, keyring repair, pacman.conf management, and more

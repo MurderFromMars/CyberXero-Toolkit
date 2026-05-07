@@ -788,11 +788,11 @@ fn setup_xpackagemanager(page_builder: &Builder, window: &ApplicationWindow) {
 
     fn update_button_state(setup_btn: &gtk4::Button, uninstall_btn: &gtk4::Button, is_installed: bool) {
         if is_installed {
-            setup_btn.set_label("Launch xPackageManager");
+            setup_btn.set_label("Launch cxPackageManager");
             setup_btn.add_css_class("suggested-action");
             uninstall_btn.set_visible(true);
         } else {
-            setup_btn.set_label("Install xPackageManager");
+            setup_btn.set_label("Install cxPackageManager");
             setup_btn.remove_css_class("suggested-action");
             uninstall_btn.set_visible(false);
         }
@@ -812,17 +812,17 @@ fn setup_xpackagemanager(page_builder: &Builder, window: &ApplicationWindow) {
 
     let window_clone = window.clone();
     btn_xpackagemanager.connect_clicked(move |_| {
-        info!("Servicing: xPackageManager button clicked");
+        info!("Servicing: cxPackageManager button clicked");
 
         if std::path::Path::new("/usr/bin/xpackagemanager").exists() {
-            info!("Launching xPackageManager...");
+            info!("Launching cxPackageManager...");
             if let Err(e) = std::process::Command::new("xpackagemanager")
                 .stdin(std::process::Stdio::null())
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .spawn()
             {
-                log::error!("Failed to launch xPackageManager: {}", e);
+                log::error!("Failed to launch cxPackageManager: {}", e);
             }
         } else {
             let commands = CommandSequence::new()
@@ -830,8 +830,10 @@ fn setup_xpackagemanager(page_builder: &Builder, window: &ApplicationWindow) {
                     Command::builder()
                         .privileged()
                         .program("pacman")
-                        .args(&["-S", "--needed", "--noconfirm", "rust", "qt6-base", "qt6-declarative", "pacman", "flatpak", "git"])
-                        .description("Installing build dependencies...")
+                        .args(&["-S", "--needed", "--noconfirm",
+                            "rust", "cargo", "qt6-base", "qt6-declarative",
+                            "pacman", "pacman-contrib", "flatpak", "git", "polkit"])
+                        .description("Installing build & runtime dependencies...")
                         .build(),
                 )
                 .then(
@@ -840,17 +842,17 @@ fn setup_xpackagemanager(page_builder: &Builder, window: &ApplicationWindow) {
                         .program("sh")
                         .args(&[
                             "-c",
-                            "rm -rf /tmp/xpm-build && git clone https://github.com/MurderFromMars/xPackageManager.git /tmp/xpm-build",
+                            "rm -rf /tmp/xpm-build && git clone --depth=1 https://github.com/MurderFromMars/xPackageManager.git /tmp/xpm-build",
                         ])
-                        .description("Cloning xPackageManager source...")
+                        .description("Cloning cxPackageManager source...")
                         .build(),
                 )
                 .then(
                     Command::builder()
                         .normal()
                         .program("sh")
-                        .args(&["-c", "cd /tmp/xpm-build && cargo build --release"])
-                        .description("Building xPackageManager (this may take a few minutes)...")
+                        .args(&["-c", "cd /tmp/xpm-build && cargo build --release --bin xpackagemanager"])
+                        .description("Building cxPackageManager (this may take a few minutes)...")
                         .build(),
                 )
                 .then(
@@ -870,17 +872,18 @@ fn setup_xpackagemanager(page_builder: &Builder, window: &ApplicationWindow) {
                         .program("sh")
                         .args(&[
                             "-c",
-                            r#"cat > /usr/share/applications/xpackagemanager.desktop << 'EOF'
-[Desktop Entry]
-Name=xPackage Manager
-Comment=Modern package manager for Arch Linux
-Exec=xpackagemanager
-Icon=system-software-install
-Terminal=false
-Type=Application
-Categories=System;PackageManager;
-Keywords=package;manager;pacman;flatpak;
-EOF"#,
+                            "install -Dm644 /tmp/xpm-build/packaging/cyberxero.png /usr/share/icons/hicolor/512x512/apps/xpm-cyberxero.png && (gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true)",
+                        ])
+                        .description("Installing CyberXero icon...")
+                        .build(),
+                )
+                .then(
+                    Command::builder()
+                        .privileged()
+                        .program("sh")
+                        .args(&[
+                            "-c",
+                            "install -Dm644 /tmp/xpm-build/packaging/xpackagemanager.desktop /usr/share/applications/xpackagemanager.desktop",
                         ])
                         .description("Installing desktop entry...")
                         .build(),
@@ -919,7 +922,7 @@ EOF"#,
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
   <action id="org.xpackagemanager.pkexec">
-    <description>Run xPackageManager privileged operations</description>
+    <description>Run cxPackageManager privileged operations</description>
     <message>Authentication is required to manage packages</message>
     <defaults>
       <allow_any>auth_admin</allow_any>
@@ -969,14 +972,14 @@ EOF"#,
             task_runner::run(
                 window_clone.upcast_ref(),
                 commands,
-                "Install xPackageManager",
+                "Install cxPackageManager",
             );
         }
     });
 
     let window_clone = window.clone();
     btn_xpackagemanager_uninstall.connect_clicked(move |_| {
-        info!("Servicing: xPackageManager uninstall button clicked");
+        info!("Servicing: cxPackageManager uninstall button clicked");
 
         let commands = CommandSequence::new()
             .then(
@@ -984,7 +987,7 @@ EOF"#,
                     .privileged()
                     .program("rm")
                     .args(&["-f", "/usr/bin/xpackagemanager"])
-                    .description("Removing xPackageManager binary...")
+                    .description("Removing cxPackageManager binary...")
                     .build(),
             )
             .then(
@@ -1007,6 +1010,14 @@ EOF"#,
                 Command::builder()
                     .privileged()
                     .program("rm")
+                    .args(&["-f", "/usr/share/icons/hicolor/512x512/apps/xpm-cyberxero.png"])
+                    .description("Removing CyberXero icon...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .privileged()
+                    .program("rm")
                     .args(&["-f", "/usr/share/mime/packages/x-alpm-package.xml"])
                     .description("Removing MIME type...")
                     .build(),
@@ -1022,6 +1033,14 @@ EOF"#,
             .then(
                 Command::builder()
                     .privileged()
+                    .program("sh")
+                    .args(&["-c", "gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true"])
+                    .description("Refreshing icon cache...")
+                    .build(),
+            )
+            .then(
+                Command::builder()
+                    .privileged()
                     .program("update-desktop-database")
                     .args(&["/usr/share/applications"])
                     .description("Updating desktop database...")
@@ -1032,7 +1051,7 @@ EOF"#,
         task_runner::run(
             window_clone.upcast_ref(),
             commands,
-            "Uninstall xPackageManager",
+            "Uninstall cxPackageManager",
         );
     });
 }

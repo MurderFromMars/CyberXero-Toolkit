@@ -5,6 +5,7 @@ A GTK4/libadwaita system management toolkit for Arch-based Linux distributions. 
 > CyberXero runs on any distribution with `pacman`. Features are driven by explicit package lists rather than distribution-specific metapackages, so the same build works across the Arch ecosystem. SystemD is required, so no Artix support currently.
 
 ---
+![CyberXero Desktop Overview](screenshot1.png)
 
 ## Pages
 

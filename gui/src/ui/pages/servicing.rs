@@ -29,6 +29,7 @@ pub fn setup_handlers(page_builder: &Builder, _main_builder: &Builder, window: &
     setup_cachyos_repos(page_builder, window);
     setup_chaotic_aur(page_builder, window);
     setup_xero_repo(page_builder, window);
+    setup_garuda_repo(page_builder, window);
     setup_xpackagemanager(page_builder, window);
     setup_update_toolkit(page_builder, window);
     setup_optimization_services(page_builder, window);
@@ -777,6 +778,119 @@ fn setup_xero_repo(page_builder: &Builder, window: &ApplicationWindow) {
                     .build();
 
                 task_runner::run(window_inner.upcast_ref(), commands, "Add Xero Linux Repository");
+            },
+        );
+    });
+}
+
+const GARUDA_REPO_WARNING: &str =
+    "The <span foreground=\"cyan\" weight=\"bold\">Garuda Linux repo</span> contains packages \
+     <span foreground=\"red\" weight=\"bold\">designed for Garuda Linux</span> and some may not \
+     work correctly on other distributions.\\n\\n\
+     This will first ensure <span foreground=\"green\" weight=\"bold\">Chaotic-AUR</span> is \
+     installed (required for the Garuda mirrorlist), then add the \
+     <span foreground=\"cyan\" weight=\"bold\">[garuda]</span> repository to your \
+     <span foreground=\"yellow\" weight=\"bold\">/etc/pacman.conf</span>.\\n\\n\
+     If you run into issues with Garuda packages, \
+     <span foreground=\"yellow\" weight=\"bold\">please do not report them to the Garuda Linux team</span> \
+     \u{2014} they only support their own distribution.";
+
+fn setup_garuda_repo(page_builder: &Builder, window: &ApplicationWindow) {
+    let btn_garuda_repo = extract_widget::<gtk4::Button>(page_builder, "btn_garuda_repo");
+    let window = window.clone();
+    btn_garuda_repo.connect_clicked(move |_| {
+        info!("Servicing: Add Garuda Repository button clicked");
+
+        let window_inner = window.clone();
+        crate::ui::dialogs::warning::show_warning_confirmation(
+            window.upcast_ref(),
+            "Add Garuda Repository",
+            GARUDA_REPO_WARNING,
+            move || {
+                let commands = CommandSequence::new()
+                    // Step 1: Receive and locally sign the Chaotic-AUR key (needed for the
+                    // chaotic-mirrorlist package which the Garuda repo entry depends on).
+                    .then(
+                        Command::builder()
+                            .privileged()
+                            .program("sh")
+                            .args(&[
+                                "-c",
+                                "pacman-key --recv-key 3056513887B78AEB \
+                                 --keyserver keyserver.ubuntu.com && \
+                                 pacman-key --lsign-key 3056513887B78AEB",
+                            ])
+                            .description("Importing Chaotic-AUR signing key...")
+                            .build(),
+                    )
+                    // Step 2: Install chaotic-keyring if not already present.
+                    .then(
+                        Command::builder()
+                            .privileged()
+                            .program("sh")
+                            .args(&[
+                                "-c",
+                                "pacman -Qi chaotic-keyring &>/dev/null || \
+                                 pacman -U --noconfirm \
+                                 https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst",
+                            ])
+                            .description("Installing Chaotic-AUR keyring...")
+                            .build(),
+                    )
+                    // Step 3: Install chaotic-mirrorlist if not already present.
+                    .then(
+                        Command::builder()
+                            .privileged()
+                            .program("sh")
+                            .args(&[
+                                "-c",
+                                "pacman -Qi chaotic-mirrorlist &>/dev/null || \
+                                 pacman -U --noconfirm \
+                                 https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst",
+                            ])
+                            .description("Installing Chaotic-AUR mirrorlist...")
+                            .build(),
+                    )
+                    // Step 4: Add [chaotic-aur] to pacman.conf if missing.
+                    .then(
+                        Command::builder()
+                            .privileged()
+                            .program("sh")
+                            .args(&[
+                                "-c",
+                                "grep -q '\\[chaotic-aur\\]' /etc/pacman.conf || \
+                                 echo -e '\\n[chaotic-aur]\\nInclude = /etc/pacman.d/chaotic-mirrorlist' \
+                                 >> /etc/pacman.conf",
+                            ])
+                            .description("Ensuring Chaotic-AUR entry is in pacman.conf...")
+                            .build(),
+                    )
+                    // Step 5: Add [garuda] to pacman.conf if missing.
+                    .then(
+                        Command::builder()
+                            .privileged()
+                            .program("sh")
+                            .args(&[
+                                "-c",
+                                "grep -q '\\[garuda\\]' /etc/pacman.conf || \
+                                 echo -e '\\n[garuda]\\nInclude = /etc/pacman.d/chaotic-mirrorlist' \
+                                 >> /etc/pacman.conf",
+                            ])
+                            .description("Adding Garuda repository to pacman.conf...")
+                            .build(),
+                    )
+                    // Step 6: Refresh all package databases.
+                    .then(
+                        Command::builder()
+                            .privileged()
+                            .program("pacman")
+                            .args(&["-Syy"])
+                            .description("Refreshing package databases...")
+                            .build(),
+                    )
+                    .build();
+
+                task_runner::run(window_inner.upcast_ref(), commands, "Add Garuda Repository");
             },
         );
     });
